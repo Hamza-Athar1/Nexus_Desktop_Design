@@ -1,24 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
 
-/* ── Eye icon ──────────────────────────────────────────────────────── */
-function EyeIcon({ open }) {
-  return open ? (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-      <line x1="1" y1="1" x2="23" y2="23"/>
-    </svg>
-  ) : (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-      <circle cx="12" cy="12" r="3"/>
-    </svg>
-  );
-}
+const EyeToggle = ({ open }) =>
+  open ? <EyeOff size={15} /> : <Eye size={15} />;
 
-/* ── Field wrapper ─────────────────────────────────────────────────── */
 function Field({ label, htmlFor, children }) {
   return (
     <div className="flex flex-col gap-1.5">
@@ -30,18 +17,14 @@ function Field({ label, htmlFor, children }) {
   );
 }
 
-/* ── Shared input class ────────────────────────────────────────────── */
 const inputCls = (error) =>
   `w-full px-3 py-2.5 rounded-md border-[1.5px] text-[12px] font-[inherit] outline-none transition-all duration-200
    bg-input text-input-text placeholder-input-ph
    ${error
-     ? 'border-red-400 bg-red-50 placeholder-red-300'
-     : 'border-transparent focus:border-primary focus:ring-2 focus:ring-primary-ring'}
+      ? 'border-red-400 bg-red-50 placeholder-red-300'
+      : 'border-transparent focus:border-primary focus:ring-2 focus:ring-primary-ring'}
    disabled:opacity-65 disabled:cursor-not-allowed`.replace(/\s+/g, ' ').trim();
 
-/* ═══════════════════════════════════════════════════════════════════
-   LoginPage — Route: /
-   ═══════════════════════════════════════════════════════════════════ */
 export default function LoginPage() {
   const navigate = useNavigate();
 
@@ -49,7 +32,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  const [status,   setStatus]   = useState('idle'); // idle | error | loading | success
+  const [status, setStatus] = useState('idle'); // idle | error | loading | success
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -63,7 +46,6 @@ export default function LoginPage() {
     setTimeout(() => navigate('/modules'), 1600);
   };
 
-  /* ── Brand block ─────────────────────────────────────────────────── */
   const Brand = () => (
     <div className="flex flex-col items-center gap-2 mb-5">
       <NexusLogo size={38} variant="dark" />
@@ -72,7 +54,6 @@ export default function LoginPage() {
     </div>
   );
 
-  /* ── Success screen ─────────────────────────────────────────────── */
   if (status === 'success') {
     return (
       <div className="nexus-bg min-h-screen w-full flex flex-col items-center justify-center px-4 py-8">
@@ -84,10 +65,7 @@ export default function LoginPage() {
           </div>
           <div className="fade-up flex flex-col items-center gap-3 py-6 text-center">
             <span className="pop-in flex items-center justify-center">
-              <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-                <circle cx="30" cy="30" r="30" fill="#4CAF50"/>
-                <path d="M16 30L25 39L44 21" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
+              <CheckCircle2 size={60} strokeWidth={1.5} className="text-success" />
             </span>
             <p className="text-[18px] font-bold text-heading">Login Successful</p>
             <p className="text-[12px] text-muted">Redirecting to Dashboard</p>
@@ -97,7 +75,7 @@ export default function LoginPage() {
     );
   }
 
-  const isError   = status === 'error';
+  const isError = status === 'error';
   const isLoading = status === 'loading';
 
   return (
@@ -155,7 +133,7 @@ export default function LoginPage() {
                 onClick={() => setShowPass(v => !v)}
                 aria-label={showPass ? 'Hide password' : 'Show password'}
               >
-                <EyeIcon open={showPass} />
+                <EyeToggle open={showPass} />
               </button>
             </div>
           </Field>

@@ -3,15 +3,7 @@ import LoginPage       from './pages/LoginPage';
 import SignUpPage      from './pages/SignUpPage';
 import ModuleSelectPage from './pages/ModuleSelectPage';
 
-/**
- * App — root route config.
- *
- * Routes:
- *   /           → Login
- *   /signup     → Sign Up
- *   /modules    → Business Module Selection
- *   *           → Redirect to /
- */
+
 export default function App() {
   return (
     <Routes>

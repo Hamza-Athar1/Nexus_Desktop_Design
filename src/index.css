@@ -1,35 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
-/* ── Custom design tokens exposed as Tailwind theme values ──────── */
-@theme {
-  /* Brand greens */
-  --color-primary:       #1e5c1e;
-  --color-primary-dark:  #174d17;
-  --color-primary-ring:  rgba(30, 92, 30, 0.18);
-
-  /* Inputs */
-  --color-input:         #c8d9a8;
-  --color-input-text:    #3a5c2a;
-  --color-input-ph:      #6e8f5c;
-
-  /* Text */
-  --color-heading:       #141a14;
-  --color-brand:         #1a3a1a;
-  --color-muted:         #8a8a8a;
-
-  /* Error / success */
-  --color-error:         #c0392b;
-  --color-error-bg:      #fef2f2;
-  --color-error-border:  #f5c6c6;
-  --color-success:       #4CAF50;
-
-  /* Typography */
-  --font-sans: 'Inter', system-ui, sans-serif;
-}
-
 /* ── Base ────────────────────────────────────────────────────────── */
-html, body {
+html,
+body {
   height: 100%;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
@@ -51,13 +25,16 @@ html, body {
 
   /* Spinner keyframe */
   @keyframes spin-fast {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
+
   .spinner {
     display: inline-block;
     width: 14px;
     height: 14px;
-    border: 2px solid rgba(255,255,255,0.35);
+    border: 2px solid rgba(255, 255, 255, 0.35);
     border-top-color: #fff;
     border-radius: 50%;
     animation: spin-fast 0.7s linear infinite;
@@ -66,18 +43,34 @@ html, body {
 
   /* Success pop-in */
   @keyframes pop-in {
-    from { transform: scale(0.4); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
+    from {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
+
   .pop-in {
     animation: pop-in 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
   }
 
   /* Fade-up */
   @keyframes fade-up {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
+
   .fade-up {
     animation: fade-up 0.35s ease both;
   }

@@ -1,18 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { UserRound } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
 
-/* ── Person icon ───────────────────────────────────────────────────── */
-function PersonIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-      <circle cx="12" cy="7" r="4"/>
-    </svg>
-  );
-}
-
-/* ── Module data ───────────────────────────────────────────────────── */
 const MODULES = [
   { id: 'pharmacy',      name: 'Pharmacy',      desc: 'Manage medicines\nand prescriptions', emoji: '💊' },
   { id: 'grocery',       name: 'Grocery',       desc: '',  emoji: '🛒' },
@@ -23,9 +13,6 @@ const MODULES = [
   { id: 'clothing',      name: 'Clothing',      desc: '',  emoji: '👕' },
 ];
 
-/* ═══════════════════════════════════════════════════════════════════
-   ModuleSelectPage — Route: /modules
-   ═══════════════════════════════════════════════════════════════════ */
 export default function ModuleSelectPage() {
   const navigate = useNavigate();
   const [active, setActive] = useState(null);
@@ -33,7 +20,6 @@ export default function ModuleSelectPage() {
   return (
     <div className="nexus-bg min-h-screen w-full flex flex-col">
 
-      {/* ── Navbar ─────────────────────────────────────────────────── */}
       <header className="w-full bg-primary flex items-center justify-between px-5 h-[54px] flex-shrink-0 shadow-md">
         <NexusLogo size={34} variant="light" />
         <button
@@ -43,12 +29,11 @@ export default function ModuleSelectPage() {
         >
           <span>Logout</span>
           <span className="flex items-center justify-center w-[30px] h-[30px] bg-white/20 rounded-full">
-            <PersonIcon />
+            <UserRound size={17} />
           </span>
         </button>
       </header>
 
-      {/* ── Main ───────────────────────────────────────────────────── */}
       <main className="flex-1 flex flex-col items-center px-8 py-10 gap-8">
 
         {/* Page title */}
