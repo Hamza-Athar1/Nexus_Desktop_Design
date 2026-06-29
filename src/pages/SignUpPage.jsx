@@ -4,33 +4,22 @@ import { Eye, EyeOff, TrendingUp, ShoppingCart } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
 
 /* ── Eye toggle ───────────────────────────────────────────────────── */
-const EyeToggle = ({ open }) =>
-  open ? <EyeOff size={14} /> : <Eye size={14} />;
+const EyeToggle = ({ open }) => open ? <EyeOff size={14} /> : <Eye size={14} />;
 
-/* ── Sparkline (reused from Login) ───────────────────────────────── */
+/* ── Sparkline SVG ────────────────────────────────────────────────── */
 function SparklineChart() {
-  const points = [
-    [0, 55], [10, 45], [22, 50], [34, 38], [46, 42],
-    [58, 30], [70, 35], [82, 28], [94, 32], [100, 25],
-  ];
-  const polyline = points.map(([x, y]) => `${x},${y}`).join(' ');
+  const pts = [[0,55],[10,45],[22,50],[34,38],[46,42],[58,30],[70,35],[82,28],[94,32],[100,25]];
+  const line = pts.map(([x,y]) => `${x},${y}`).join(' ');
   return (
     <svg viewBox="0 0 100 65" preserveAspectRatio="none" className="w-full h-full">
       <defs>
-        <linearGradient id="sgChartGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#4ade80" stopOpacity="0.35" />
-          <stop offset="100%" stopColor="#4ade80" stopOpacity="0" />
+        <linearGradient id="sgGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%"   stopColor="#4ade80" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="#4ade80" stopOpacity="0"    />
         </linearGradient>
       </defs>
-      <polygon points={`0,65 ${polyline} 100,65`} fill="url(#sgChartGrad)" />
-      <polyline
-        points={polyline}
-        fill="none"
-        stroke="#4ade80"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
+      <polygon points={`0,65 ${line} 100,65`} fill="url(#sgGrad)" />
+      <polyline points={line} fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -38,108 +27,54 @@ function SparklineChart() {
 /* ── Left brand panel ─────────────────────────────────────────────── */
 function BrandPanel() {
   return (
-    <div
-      className="hidden md:flex flex-col justify-between p-8"
-      style={{
-        background: 'linear-gradient(160deg, #1a4a1a 0%, #1e5c1e 55%, #14391a 100%)',
-        borderRadius: '20px 0 0 20px',
-        minWidth: 0,
-        flex: '0 0 320px',
-      }}
-    >
+    <div className="hidden md:flex flex-col justify-between p-8 nexus-panel min-w-0 flex-[0_0_320px]">
       {/* Logo + name */}
       <div className="flex flex-col items-center gap-3 pt-4">
         <NexusLogo size={56} variant="light" />
-        <h2
-          className="text-white font-bold text-[22px] tracking-wide mt-1"
-          style={{ fontFamily: 'Inter, sans-serif' }}
-        >
-          Nexus Desktop
-        </h2>
+        <h2 className="text-white font-bold text-[22px] tracking-wide mt-1">Nexus Desktop</h2>
       </div>
 
       {/* Hero text */}
       <div className="flex flex-col gap-3 mb-2">
-        <p
-          style={{
-            fontFamily: 'Inter, sans-serif',
-            fontWeight: 900,
-            fontSize: '32px',
-            lineHeight: 1.1,
-            letterSpacing: '-0.5px',
-            color: '#4ade80',
-            textTransform: 'uppercase',
-          }}
-        >
+        <p className="text-[32px] font-black leading-[1.1] tracking-tight text-green-400 uppercase">
           SMART<br />BUSINESS<br />STARTS HERE
         </p>
-        <p
-          style={{
-            fontSize: '12px',
-            color: 'rgba(255,255,255,0.55)',
-            fontFamily: 'Inter, sans-serif',
-            lineHeight: 1.6,
-          }}
-        >
-          Create your business account<br />
-          and unlock the Nexus ecosystem.
+        <p className="text-[12px] text-white/55 leading-relaxed">
+          Create your business account<br />and unlock the Nexus ecosystem.
         </p>
       </div>
 
       {/* Stats */}
       <div className="flex gap-3">
-        <div
-          className="flex-1 rounded-xl p-3"
-          style={{ background: 'rgba(255,255,255,0.08)' }}
-        >
-          <p className="text-[10px] font-medium mb-1" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            Sales
-          </p>
+        <div className="flex-1 rounded-xl p-3 bg-white/[0.08]">
+          <p className="text-[10px] font-medium mb-1 text-white/55">Sales</p>
           <p className="text-white font-bold text-[18px]">$12.4k</p>
-          <p className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: '#4ade80' }}>
-            <TrendingUp size={10} />
-            8% this week
+          <p className="text-[10px] mt-0.5 flex items-center gap-1 text-green-400">
+            <TrendingUp size={10} /> 8% this week
           </p>
         </div>
-        <div
-          className="flex-1 rounded-xl p-3"
-          style={{ background: 'rgba(255,255,255,0.08)' }}
-        >
-          <p className="text-[10px] font-medium mb-1" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            Orders
-          </p>
+        <div className="flex-1 rounded-xl p-3 bg-white/[0.08]">
+          <p className="text-[10px] font-medium mb-1 text-white/55">Orders</p>
           <p className="text-white font-bold text-[18px]">284</p>
-          <p className="text-[10px] mt-0.5 flex items-center gap-1" style={{ color: '#4ade80' }}>
-            <ShoppingCart size={10} />
-            +12 today
+          <p className="text-[10px] mt-0.5 flex items-center gap-1 text-green-400">
+            <ShoppingCart size={10} /> +12 today
           </p>
         </div>
       </div>
 
       {/* Chart */}
-      <div
-        className="rounded-xl overflow-hidden mt-3"
-        style={{ background: 'rgba(255,255,255,0.06)', height: '80px', padding: '8px 8px 4px' }}
-      >
+      <div className="rounded-xl overflow-hidden mt-3 bg-white/[0.06] h-[80px] p-2 pb-1">
         <SparklineChart />
       </div>
     </div>
   );
 }
 
-/* ── Field wrapper ────────────────────────────────────────────────── */
+/* ── Form field wrapper ───────────────────────────────────────────── */
 function Field({ label, htmlFor, children }) {
   return (
     <div className="flex flex-col gap-1">
-      <label
-        htmlFor={htmlFor}
-        style={{
-          fontSize: '12px',
-          fontWeight: 600,
-          color: '#1a1a1a',
-          fontFamily: 'Inter, sans-serif',
-        }}
-      >
+      <label htmlFor={htmlFor} className="text-[12px] font-semibold text-gray-900">
         {label}
       </label>
       {children}
@@ -147,33 +82,14 @@ function Field({ label, htmlFor, children }) {
   );
 }
 
-/* ── Input style helper ───────────────────────────────────────────── */
-const inputStyle = (hasError) => ({
-  width: '100%',
-  padding: '9px 12px',
-  borderRadius: '8px',
-  border: hasError ? '1.5px solid #ef4444' : '1.5px solid transparent',
-  background: hasError ? '#fef2f2' : '#f0f4ec',
-  fontSize: '12px',
-  color: '#1a1a1a',
-  outline: 'none',
-  fontFamily: 'Inter, sans-serif',
-  transition: 'border-color 0.2s, box-shadow 0.2s',
-  boxSizing: 'border-box',
-});
-
-const focusOn = (e, hasError) => {
-  if (!hasError) {
-    e.target.style.borderColor = '#1e5c1e';
-    e.target.style.boxShadow = '0 0 0 3px rgba(30,92,30,0.12)';
-  }
-};
-const focusOff = (e, hasError) => {
-  if (!hasError) {
-    e.target.style.borderColor = 'transparent';
-    e.target.style.boxShadow = 'none';
-  }
-};
+/* ── Input class helper ───────────────────────────────────────────── */
+const inputCls = (hasError) => [
+  'w-full px-3 py-[9px] rounded-lg border-[1.5px] text-[12px] text-gray-900',
+  'outline-none transition-all placeholder:text-gray-400 disabled:opacity-60',
+  hasError
+    ? 'border-red-400 bg-red-50 placeholder:text-red-300'
+    : 'border-transparent bg-[#f0f4ec] focus:border-nexus focus:ring-[3px] focus:ring-nexus/10',
+].join(' ');
 
 /* ── Google icon ──────────────────────────────────────────────────── */
 function GoogleIcon() {
@@ -188,20 +104,14 @@ function GoogleIcon() {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   SignUpPage
+   SignUpPage — Route: /signup
    ═══════════════════════════════════════════════════════════════════ */
 export default function SignUpPage() {
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({
-    businessName: '',
-    businessType: '',
-    email: '',
-    username: '',
-    password: '',
-  });
+  const [form, setForm]     = useState({ businessName: '', businessType: '', email: '', username: '', password: '' });
   const [showPass, setShowPass] = useState(false);
-  const [status, setStatus] = useState('idle'); // idle | error | loading | success
+  const [status, setStatus]     = useState('idle'); // idle | error | loading | success
   const [errorMsg, setErrorMsg] = useState('');
 
   const set = (field) => (e) => {
@@ -214,18 +124,14 @@ export default function SignUpPage() {
     if (!form.businessType.trim()) return 'Business type is required';
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) return 'A valid email is required';
     if (!form.username.trim()) return 'Username is required';
-    if (form.password.length < 6) return 'Password must be at least 6 characters';
+    if (form.password.length < 6)  return 'Password must be at least 6 characters';
     return null;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const err = validate();
-    if (err) {
-      setErrorMsg(err);
-      setStatus('error');
-      return;
-    }
+    if (err) { setErrorMsg(err); setStatus('error'); return; }
     setStatus('loading');
     await new Promise(res => setTimeout(res, 2000));
     setStatus('success');
@@ -235,78 +141,30 @@ export default function SignUpPage() {
   const isError   = status === 'error';
   const isLoading = status === 'loading';
 
-  const pageWrap = {
-    background: 'linear-gradient(135deg, #eaf0cc 0%, #d6e4a2 45%, #cade8e 100%)',
-  };
-  const outerCard = {
-    width: '100%',
-    maxWidth: '760px',
-    minHeight: '520px',
-    display: 'flex',
-    borderRadius: '20px',
-    overflow: 'hidden',
-    boxShadow: '0 25px 50px rgba(0,0,0,0.18)',
-  };
+  /* shared shells */
+  const pageWrap  = 'min-h-screen w-full flex items-center justify-center px-4 py-8 nexus-bg';
+  const outerCard = 'flex rounded-[20px] overflow-hidden w-full max-w-[760px] min-h-[520px] shadow-[0_25px_50px_rgba(0,0,0,0.18)]';
+  const rightPanel = 'flex-1 flex flex-col justify-center bg-white pt-8 px-9 pb-7';
 
-  /* ── Success screen ─────────────────────────────────────────────── */
+  /* ── SUCCESS ─────────────────────────────────────────────────────── */
   if (status === 'success') {
     return (
-      <div
-        className="min-h-screen w-full flex items-center justify-center px-4 py-8"
-        style={pageWrap}
-      >
-        <div style={outerCard}>
+      <div className={pageWrap}>
+        <div className={outerCard}>
           <BrandPanel />
-          <div
-            className="flex-1 flex flex-col justify-center bg-white"
-            style={{ padding: '36px 40px 32px' }}
-          >
+          <div className={rightPanel}>
             <div className="text-center mb-5">
-              <h1
-                style={{
-                  fontSize: '22px',
-                  fontWeight: 800,
-                  color: '#1a1a1a',
-                  fontFamily: 'Inter, sans-serif',
-                  marginBottom: '4px',
-                }}
-              >
-                Create Account
-              </h1>
-              <p style={{ fontSize: '11.5px', color: '#6b7280', fontFamily: 'Inter, sans-serif' }}>
-                Get started in less than a minute
-              </p>
+              <h1 className="text-[22px] font-extrabold text-gray-900 mb-1">Create Account</h1>
+              <p className="text-[11.5px] text-gray-500">Get started in less than a minute</p>
             </div>
-
             <div className="fade-up flex flex-col items-center gap-3 text-center py-6">
-              <span
-                className="pop-in"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '50%',
-                  background: '#1e5c1e',
-                }}
-              >
+              <span className="pop-in flex items-center justify-center w-16 h-16 rounded-full bg-nexus">
                 <svg width="30" height="30" viewBox="0 0 24 24" fill="none">
-                  <path
-                    d="M5 13l4 4L19 7"
-                    stroke="#ffffff"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                  <path d="M5 13l4 4L19 7" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </span>
-              <p style={{ fontSize: '20px', fontWeight: 700, color: '#1a1a1a', fontFamily: 'Inter, sans-serif', marginTop: '4px' }}>
-                Account Created!
-              </p>
-              <p style={{ fontSize: '13px', color: '#6b7280', fontFamily: 'Inter, sans-serif' }}>
-                Redirecting to Login
-              </p>
+              <p className="text-[20px] font-bold text-gray-900 mt-1">Account Created!</p>
+              <p className="text-[13px] text-gray-500">Redirecting to Login</p>
             </div>
           </div>
         </div>
@@ -314,54 +172,24 @@ export default function SignUpPage() {
     );
   }
 
-  /* ── Normal / Error / Loading screen ───────────────────────────── */
+  /* ── IDLE / ERROR / LOADING ──────────────────────────────────────── */
   return (
-    <div
-      className="min-h-screen w-full flex items-center justify-center px-4 py-8"
-      style={pageWrap}
-    >
-      <div style={outerCard}>
-        {/* Left brand panel */}
+    <div className={pageWrap}>
+      <div className={outerCard}>
         <BrandPanel />
 
-        {/* Right form panel */}
-        <div
-          className="flex-1 flex flex-col justify-center bg-white"
-          style={{ padding: '32px 36px 28px' }}
-        >
+        <div className={rightPanel}>
           {/* Header */}
           <div className="text-center mb-4">
-            <h1
-              style={{
-                fontSize: '22px',
-                fontWeight: 800,
-                color: '#1a1a1a',
-                fontFamily: 'Inter, sans-serif',
-                marginBottom: '3px',
-              }}
-            >
-              Create Account
-            </h1>
-            <p style={{ fontSize: '11.5px', color: '#6b7280', fontFamily: 'Inter, sans-serif' }}>
-              Get started in less than a minute
-            </p>
+            <h1 className="text-[22px] font-extrabold text-gray-900 mb-1">Create Account</h1>
+            <p className="text-[11.5px] text-gray-500">Get started in less than a minute</p>
           </div>
 
           {/* Error banner */}
           {isError && (
             <div
               role="alert"
-              style={{
-                marginBottom: '12px',
-                padding: '7px 12px',
-                borderRadius: '20px',
-                background: '#fef2f2',
-                border: '1px solid #fca5a5',
-                fontSize: '11.5px',
-                color: '#dc2626',
-                textAlign: 'center',
-                fontFamily: 'Inter, sans-serif',
-              }}
+              className="mb-3 px-3 py-[7px] rounded-full bg-red-50 border border-red-200 text-[11.5px] text-red-600 text-center"
             >
               {errorMsg}
             </div>
@@ -379,9 +207,7 @@ export default function SignUpPage() {
                 onChange={set('businessName')}
                 disabled={isLoading}
                 autoComplete="organization"
-                style={inputStyle(isError && !form.businessName.trim())}
-                onFocus={e => focusOn(e, isError && !form.businessName.trim())}
-                onBlur={e  => focusOff(e, isError && !form.businessName.trim())}
+                className={inputCls(isError && !form.businessName.trim())}
               />
             </Field>
 
@@ -394,9 +220,7 @@ export default function SignUpPage() {
                 value={form.businessType}
                 onChange={set('businessType')}
                 disabled={isLoading}
-                style={inputStyle(isError && !form.businessType.trim())}
-                onFocus={e => focusOn(e, isError && !form.businessType.trim())}
-                onBlur={e  => focusOff(e, isError && !form.businessType.trim())}
+                className={inputCls(isError && !form.businessType.trim())}
               />
             </Field>
 
@@ -410,9 +234,7 @@ export default function SignUpPage() {
                 onChange={set('email')}
                 disabled={isLoading}
                 autoComplete="email"
-                style={inputStyle(isError && (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)))}
-                onFocus={e => focusOn(e, false)}
-                onBlur={e  => focusOff(e, false)}
+                className={inputCls(isError && (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)))}
               />
             </Field>
 
@@ -426,15 +248,13 @@ export default function SignUpPage() {
                 onChange={set('username')}
                 disabled={isLoading}
                 autoComplete="username"
-                style={inputStyle(isError && !form.username.trim())}
-                onFocus={e => focusOn(e, isError && !form.username.trim())}
-                onBlur={e  => focusOff(e, isError && !form.username.trim())}
+                className={inputCls(isError && !form.username.trim())}
               />
             </Field>
 
             {/* Password */}
             <Field label="Password" htmlFor="su-password">
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <div className="relative flex items-center">
                 <input
                   id="su-password"
                   type={showPass ? 'text' : 'password'}
@@ -443,25 +263,13 @@ export default function SignUpPage() {
                   onChange={set('password')}
                   disabled={isLoading}
                   autoComplete="new-password"
-                  style={{ ...inputStyle(isError && form.password.length < 6), paddingRight: '36px' }}
-                  onFocus={e => focusOn(e, isError && form.password.length < 6)}
-                  onBlur={e  => focusOff(e, isError && form.password.length < 6)}
+                  className={`${inputCls(isError && form.password.length < 6)} pr-10`}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPass(v => !v)}
                   aria-label={showPass ? 'Hide password' : 'Show password'}
-                  style={{
-                    position: 'absolute',
-                    right: '10px',
-                    background: 'none',
-                    border: 'none',
-                    cursor: 'pointer',
-                    color: '#9ca3af',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: 0,
-                  }}
+                  className="absolute right-2.5 flex items-center text-gray-400 hover:text-nexus transition-colors bg-transparent border-none cursor-pointer p-0"
                 >
                   <EyeToggle open={showPass} />
                 </button>
@@ -473,103 +281,44 @@ export default function SignUpPage() {
               id="create-account-btn"
               type="submit"
               disabled={isLoading}
-              style={{
-                marginTop: '4px',
-                width: '100%',
-                padding: '11px',
-                borderRadius: '8px',
-                background: '#1e5c1e',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: '14px',
-                border: 'none',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                opacity: isLoading ? 0.85 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                fontFamily: 'Inter, sans-serif',
-                transition: 'background 0.2s, transform 0.1s',
-              }}
-              onMouseEnter={e => { if (!isLoading) e.currentTarget.style.background = '#14391a'; }}
-              onMouseLeave={e => { if (!isLoading) e.currentTarget.style.background = '#1e5c1e'; }}
-              onMouseDown={e => { if (!isLoading) e.currentTarget.style.transform = 'scale(0.99)'; }}
-              onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
+              className={[
+                'mt-1 w-full flex items-center justify-center gap-2 py-[11px] rounded-lg',
+                'bg-nexus text-white text-sm font-bold border-none transition-all active:scale-[0.99]',
+                isLoading
+                  ? 'cursor-not-allowed opacity-85'
+                  : 'cursor-pointer hover:bg-nexus-dark',
+              ].join(' ')}
             >
               {isLoading ? (
                 <>
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      background: '#fff',
-                      flexShrink: 0,
-                    }}
-                  />
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-white shrink-0" />
                   Signing up&nbsp;
-                  <span className="loading-dots">
-                    <span /><span /><span /><span />
-                  </span>
+                  <span className="loading-dots"><span /><span /><span /><span /></span>
                 </>
               ) : 'Create Account'}
             </button>
           </form>
 
           {/* Divider */}
-          <div className="flex items-center gap-3" style={{ margin: '12px 0 10px' }}>
-            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
-            <span style={{ fontSize: '11px', color: '#9ca3af', whiteSpace: 'nowrap', fontFamily: 'Inter, sans-serif' }}>
-              or sign up with Google
-            </span>
-            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
+          <div className="flex items-center gap-3 my-3">
+            <div className="flex-1 h-px bg-gray-200" />
+            <span className="text-[11px] text-gray-400 whitespace-nowrap">or sign up with Google</span>
+            <div className="flex-1 h-px bg-gray-200" />
           </div>
 
-          {/* Google button */}
+          {/* Google */}
           <button
             type="button"
-            style={{
-              width: '100%',
-              padding: '9px',
-              borderRadius: '8px',
-              border: '1.5px solid #e5e7eb',
-              background: '#fff',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              fontSize: '13px',
-              fontWeight: 600,
-              color: '#1a1a1a',
-              fontFamily: 'Inter, sans-serif',
-              transition: 'border-color 0.2s, box-shadow 0.2s',
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.borderColor = '#d1d5db';
-              e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.borderColor = '#e5e7eb';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
+            className="w-full py-[9px] rounded-lg border-[1.5px] border-gray-200 bg-white cursor-pointer flex items-center justify-center gap-2 text-[13px] font-semibold text-gray-900 hover:border-gray-300 hover:shadow-md transition-all"
           >
             <GoogleIcon />
             Google
           </button>
 
           {/* Login link */}
-          <p
-            className="text-center"
-            style={{ marginTop: '12px', fontSize: '12px', color: '#6b7280', fontFamily: 'Inter, sans-serif' }}
-          >
+          <p className="text-center mt-3 text-[12px] text-gray-500">
             Already have an account?{' '}
-            <Link
-              to="/"
-              style={{ color: '#1e5c1e', fontWeight: 700, textDecoration: 'none' }}
-            >
+            <Link to="/" className="text-nexus font-bold no-underline hover:opacity-75 transition-opacity">
               Login
             </Link>
           </p>

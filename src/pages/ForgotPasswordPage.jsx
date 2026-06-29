@@ -5,7 +5,7 @@ import NexusLogo from '../components/NexusLogo';
 
 /* ═══════════════════════════════════════════════════════════════════
    ForgotPasswordPage  —  Route: /forgot-password
-   Full dark-green background with a single centred card
+   Full dark-green background · centred glass card
    ═══════════════════════════════════════════════════════════════════ */
 export default function ForgotPasswordPage() {
   const navigate = useNavigate();
@@ -27,371 +27,138 @@ export default function ForgotPasswordPage() {
     setStatus('success');
   };
 
-  /* ── shared styles ──────────────────────────────────────────────── */
-  const page = {
-    minHeight: '100vh',
-    width: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: 'linear-gradient(160deg, #1a4a1a 0%, #1e5c1e 55%, #14391a 100%)',
-    fontFamily: 'Inter, sans-serif',
-    padding: '24px',
-  };
+  /* ── Shared shell ───────────────────────────────────────────────── */
+  const Page = ({ children }) => (
+    <div className="min-h-screen w-full flex items-center justify-center px-6 py-6 nexus-dark-bg">
+      <div className="w-full max-w-[400px] flex flex-col items-center bg-white/[0.06] border border-white/[0.14] rounded-[20px] backdrop-blur-xl pt-10 px-9 pb-9 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+        <NexusLogo size={48} variant="light" />
+        <p className="mt-2.5 text-[10.5px] font-bold tracking-[2px] text-white/50 uppercase">
+          Nexus Desktop
+        </p>
+        {children}
+      </div>
+    </div>
+  );
 
-  /* Glass card */
-  const card = {
-    width: '100%',
-    maxWidth: '400px',
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.14)',
-    borderRadius: '20px',
-    backdropFilter: 'blur(16px)',
-    WebkitBackdropFilter: 'blur(16px)',
-    padding: '40px 36px 36px',
-    boxShadow: '0 24px 60px rgba(0,0,0,0.35)',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    gap: '0',
-  };
-
-  /* ── SUCCESS state ──────────────────────────────────────────────── */
+  /* ── SUCCESS ─────────────────────────────────────────────────────── */
   if (isSuccess) {
     return (
-      <div style={page}>
-        <div style={card}>
-          {/* Logo */}
-          <NexusLogo size={48} variant="light" />
-          <p
-            style={{
-              marginTop: '10px',
-              fontSize: '10.5px',
-              fontWeight: 700,
-              letterSpacing: '2px',
-              color: 'rgba(255,255,255,0.5)',
-              textTransform: 'uppercase',
-            }}
-          >
-            Nexus Desktop
+      <Page>
+        <div className="fade-up w-full text-center mt-7">
+          <span className="pop-in inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/[0.18] border border-green-400/40 mb-4">
+            <CheckCircle size={30} color="#4ade80" strokeWidth={1.8} />
+          </span>
+          <h2 className="text-[22px] font-extrabold text-white mb-2">
+            Check Your Email
+          </h2>
+          <p className="text-[13px] text-white/55 leading-relaxed mb-7">
+            We sent a password reset link to<br />
+            <span className="text-green-400 font-semibold">{email}</span>
           </p>
-
-          <div className="fade-up" style={{ width: '100%', textAlign: 'center', marginTop: '28px' }}>
-            {/* Success icon */}
-            <span
-              className="pop-in"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                width: '64px',
-                height: '64px',
-                borderRadius: '50%',
-                background: 'rgba(74,222,128,0.18)',
-                border: '1.5px solid rgba(74,222,128,0.4)',
-                marginBottom: '16px',
-              }}
-            >
-              <CheckCircle size={30} color="#4ade80" strokeWidth={1.8} />
-            </span>
-
-            <h2
-              style={{
-                fontSize: '22px',
-                fontWeight: 800,
-                color: '#ffffff',
-                marginBottom: '8px',
-              }}
-            >
-              Check Your Email
-            </h2>
-            <p
-              style={{
-                fontSize: '13px',
-                color: 'rgba(255,255,255,0.55)',
-                lineHeight: 1.6,
-                marginBottom: '28px',
-              }}
-            >
-              We sent a password reset link to<br />
-              <span style={{ color: '#4ade80', fontWeight: 600 }}>{email}</span>
-            </p>
-
-            {/* Back to login */}
-            <button
-              onClick={() => navigate('/')}
-              style={{
-                width: '100%',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px',
-                padding: '11px',
-                borderRadius: '10px',
-                background: 'rgba(255,255,255,0.1)',
-                border: '1px solid rgba(255,255,255,0.2)',
-                color: '#fff',
-                fontSize: '13.5px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                fontFamily: 'Inter, sans-serif',
-                transition: 'background 0.2s',
-              }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.18)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; }}
-            >
-              <ArrowLeft size={14} />
-              Back to Login
-            </button>
-          </div>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full flex items-center justify-center gap-2 py-[11px] rounded-[10px] bg-white/10 border border-white/20 text-white text-[13.5px] font-semibold cursor-pointer hover:bg-white/[0.18] transition-colors"
+          >
+            <ArrowLeft size={14} />
+            Back to Login
+          </button>
         </div>
-      </div>
+      </Page>
     );
   }
 
-  /* ── IDLE / ERROR / LOADING state ──────────────────────────────── */
+  /* ── IDLE / ERROR / LOADING ──────────────────────────────────────── */
   return (
-    <div style={page}>
-      <div style={card}>
+    <Page>
+      {/* Heading */}
+      <h1 className="mt-5 text-2xl font-extrabold text-white text-center tracking-tight">
+        Forgot Password
+      </h1>
+      <p className="mt-1.5 text-[12.5px] text-white/50 text-center leading-[1.55] mb-7">
+        Enter your email and we will transmit<br />a secure reset link
+      </p>
 
-        {/* Brand mark */}
-        <NexusLogo size={48} variant="light" />
-        <p
-          style={{
-            marginTop: '10px',
-            fontSize: '10.5px',
-            fontWeight: 700,
-            letterSpacing: '2px',
-            color: 'rgba(255,255,255,0.5)',
-            textTransform: 'uppercase',
-          }}
-        >
-          Nexus Desktop
-        </p>
-
-        {/* Heading */}
-        <h1
-          style={{
-            marginTop: '20px',
-            fontSize: '24px',
-            fontWeight: 800,
-            color: '#ffffff',
-            textAlign: 'center',
-            letterSpacing: '-0.3px',
-          }}
-        >
-          Forgot Password
-        </h1>
-        <p
-          style={{
-            marginTop: '6px',
-            fontSize: '12.5px',
-            color: 'rgba(255,255,255,0.5)',
-            textAlign: 'center',
-            lineHeight: 1.55,
-            marginBottom: '28px',
-          }}
-        >
-          Enter your email and we will transmit<br />a secure reset link
-        </p>
-
-        {/* Error banner */}
-        {isError && (
-          <div
-            role="alert"
-            style={{
-              width: '100%',
-              padding: '8px 14px',
-              borderRadius: '20px',
-              background: 'rgba(239,68,68,0.15)',
-              border: '1px solid rgba(239,68,68,0.4)',
-              fontSize: '12px',
-              color: '#fca5a5',
-              textAlign: 'center',
-              marginBottom: '16px',
-            }}
-          >
-            Please enter a valid email address
-          </div>
-        )}
-
-        <form
-          onSubmit={handleSubmit}
-          noValidate
-          style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}
-        >
-          {/* Email field */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <label
-              htmlFor="fp-email"
-              style={{
-                fontSize: '10.5px',
-                fontWeight: 700,
-                letterSpacing: '1.5px',
-                color: 'rgba(255,255,255,0.6)',
-                textTransform: 'uppercase',
-              }}
-            >
-              Email Address
-            </label>
-
-            {/* Input with icon */}
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              {/* Mail icon */}
-              <span
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  color: isError ? '#fca5a5' : 'rgba(255,255,255,0.45)',
-                  pointerEvents: 'none',
-                }}
-              >
-                <Mail size={15} />
-              </span>
-
-              <input
-                id="fp-email"
-                type="email"
-                placeholder="user@example.com"
-                value={email}
-                onChange={e => { setEmail(e.target.value); if (status === 'error') setStatus('idle'); }}
-                disabled={isLoading}
-                autoComplete="email"
-                style={{
-                  width: '100%',
-                  padding: '11px 14px 11px 38px',
-                  borderRadius: '10px',
-                  border: isError
-                    ? '1.5px solid rgba(239,68,68,0.6)'
-                    : '1.5px solid rgba(255,255,255,0.15)',
-                  background: isError
-                    ? 'rgba(239,68,68,0.08)'
-                    : 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  fontSize: '13px',
-                  fontFamily: 'Inter, sans-serif',
-                  outline: 'none',
-                  transition: 'border-color 0.2s, box-shadow 0.2s',
-                  boxSizing: 'border-box',
-                }}
-                onFocus={e => {
-                  if (!isError) {
-                    e.target.style.borderColor = 'rgba(74,222,128,0.6)';
-                    e.target.style.boxShadow = '0 0 0 3px rgba(74,222,128,0.12)';
-                  }
-                }}
-                onBlur={e => {
-                  if (!isError) {
-                    e.target.style.borderColor = 'rgba(255,255,255,0.15)';
-                    e.target.style.boxShadow = 'none';
-                  }
-                }}
-              />
-            </div>
-          </div>
-
-          {/* Send Reset Link button — cream/ivory colored like the mockup */}
-          <button
-            id="send-reset-btn"
-            type="submit"
-            disabled={isLoading}
-            style={{
-              width: '100%',
-              padding: '13px 20px',
-              borderRadius: '10px',
-              background: isLoading ? '#c8b96a' : '#e8d87a',
-              color: '#1a3a1a',
-              fontWeight: 800,
-              fontSize: '13px',
-              letterSpacing: '1px',
-              textTransform: 'uppercase',
-              border: 'none',
-              cursor: isLoading ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              fontFamily: 'Inter, sans-serif',
-              transition: 'background 0.2s, transform 0.1s',
-              boxShadow: '0 4px 16px rgba(232,216,122,0.25)',
-            }}
-            onMouseEnter={e => { if (!isLoading) { e.currentTarget.style.background = '#d4c45a'; e.currentTarget.style.boxShadow = '0 6px 20px rgba(232,216,122,0.35)'; } }}
-            onMouseLeave={e => { if (!isLoading) { e.currentTarget.style.background = '#e8d87a'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(232,216,122,0.25)'; } }}
-            onMouseDown={e => { if (!isLoading) e.currentTarget.style.transform = 'scale(0.99)'; }}
-            onMouseUp={e => { e.currentTarget.style.transform = 'scale(1)'; }}
-          >
-            {isLoading ? (
-              <>
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: '10px',
-                    height: '10px',
-                    borderRadius: '50%',
-                    background: '#1a3a1a',
-                    flexShrink: 0,
-                  }}
-                />
-                Sending&nbsp;
-                <span className="loading-dots" style={{ '--dot-color': '#1a3a1a' }}>
-                  <span style={{ background: '#1a3a1a' }} />
-                  <span style={{ background: '#1a3a1a' }} />
-                  <span style={{ background: '#1a3a1a' }} />
-                  <span style={{ background: '#1a3a1a' }} />
-                </span>
-              </>
-            ) : (
-              <>
-                Send Reset Link
-                <ArrowRight size={15} />
-              </>
-            )}
-          </button>
-        </form>
-
-        {/* Separator */}
+      {/* Error banner */}
+      {isError && (
         <div
-          style={{
-            width: '100%',
-            height: '1px',
-            background: 'rgba(255,255,255,0.1)',
-            margin: '24px 0 20px',
-          }}
-        />
-
-        {/* Back to login */}
-        <button
-          onClick={() => navigate('/')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '7px',
-            background: 'none',
-            border: '1px solid rgba(255,255,255,0.18)',
-            borderRadius: '8px',
-            color: 'rgba(255,255,255,0.7)',
-            fontSize: '13px',
-            fontWeight: 500,
-            padding: '9px 20px',
-            cursor: 'pointer',
-            fontFamily: 'Inter, sans-serif',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={e => {
-            e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-            e.currentTarget.style.color = '#fff';
-          }}
-          onMouseLeave={e => {
-            e.currentTarget.style.background = 'none';
-            e.currentTarget.style.color = 'rgba(255,255,255,0.7)';
-          }}
+          role="alert"
+          className="w-full px-3.5 py-2 rounded-full bg-red-500/15 border border-red-500/40 text-[12px] text-red-300 text-center mb-4"
         >
-          <ArrowLeft size={14} />
-          Back to login
+          Please enter a valid email address
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate className="w-full flex flex-col gap-4">
+
+        {/* Email field */}
+        <div className="flex flex-col gap-1.5">
+          <label
+            htmlFor="fp-email"
+            className="text-[10.5px] font-bold tracking-[1.5px] text-white/60 uppercase"
+          >
+            Email Address
+          </label>
+          <div className="relative flex items-center">
+            <span className="absolute left-3 flex items-center pointer-events-none text-white/45">
+              <Mail size={15} />
+            </span>
+            <input
+              id="fp-email"
+              type="email"
+              placeholder="user@example.com"
+              value={email}
+              onChange={e => { setEmail(e.target.value); if (status === 'error') setStatus('idle'); }}
+              disabled={isLoading}
+              autoComplete="email"
+              className={[
+                'w-full py-[11px] pl-10 pr-3.5 rounded-[10px] text-white text-[13px]',
+                'placeholder:text-white/40 outline-none transition-all disabled:opacity-60',
+                isError
+                  ? 'border border-red-500/60 bg-red-500/[0.08]'
+                  : 'border border-white/15 bg-white/[0.08] focus:border-green-400/60 focus:ring-[3px] focus:ring-green-400/[0.12]',
+              ].join(' ')}
+            />
+          </div>
+        </div>
+
+        {/* Send Reset Link CTA */}
+        <button
+          id="send-reset-btn"
+          type="submit"
+          disabled={isLoading}
+          className={[
+            'w-full py-3.5 px-5 rounded-[10px] font-extrabold text-[13px] tracking-[1px] uppercase',
+            'border-none flex items-center justify-center gap-2.5 transition-all active:scale-[0.99]',
+            isLoading
+              ? 'bg-[#c8b96a] text-[#1a3a1a] cursor-not-allowed opacity-85 shadow-[0_4px_16px_rgba(232,216,122,0.15)]'
+              : 'bg-nexus-cream text-[#1a3a1a] cursor-pointer hover:bg-[#d4c45a] shadow-[0_4px_16px_rgba(232,216,122,0.25)] hover:shadow-[0_6px_20px_rgba(232,216,122,0.35)]',
+          ].join(' ')}
+        >
+          {isLoading ? (
+            <>
+              <span className="inline-block w-2.5 h-2.5 rounded-full shrink-0 bg-[#1a3a1a]" />
+              Sending&nbsp;
+              <span className="loading-dots loading-dots-dark">
+                <span /><span /><span /><span />
+              </span>
+            </>
+          ) : (
+            <>Send Reset Link <ArrowRight size={15} /></>
+          )}
         </button>
-      </div>
-    </div>
+      </form>
+
+      {/* Divider */}
+      <div className="w-full h-px bg-white/10 my-6" />
+
+      {/* Back to login */}
+      <button
+        onClick={() => navigate('/')}
+        className="flex items-center gap-2 bg-transparent border border-white/[0.18] rounded-lg text-white/70 text-[13px] font-medium px-5 py-2.5 cursor-pointer hover:bg-white/[0.08] hover:text-white transition-all"
+      >
+        <ArrowLeft size={14} />
+        Back to login
+      </button>
+    </Page>
   );
 }
