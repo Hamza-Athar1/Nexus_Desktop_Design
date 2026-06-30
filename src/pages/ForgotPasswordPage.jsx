@@ -30,7 +30,7 @@ export default function ForgotPasswordPage() {
   /* ── Shared shell ───────────────────────────────────────────────── */
   const Page = ({ children }) => (
     <div className="min-h-screen w-full flex items-center justify-center px-6 py-6 nexus-dark-bg">
-      <div className="w-full max-w-[400px] flex flex-col items-center bg-white/[0.06] border border-white/[0.14] rounded-[20px] backdrop-blur-xl pt-10 px-9 pb-9 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+      <div className="w-full max-w-100 flex flex-col items-center bg-white/6 border border-white/[0.14] rounded-[20px] backdrop-blur-xl pt-10 px-9 pb-9 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
         <NexusLogo size={48} variant="light" />
         <p className="mt-2.5 text-[10.5px] font-bold tracking-[2px] text-white/50 uppercase">
           Nexus Desktop
@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
     return (
       <Page>
         <div className="fade-up w-full text-center mt-7">
-          <span className="pop-in inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/[0.18] border border-green-400/40 mb-4">
+          <span className="pop-in inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-400/18 border border-green-400/40 mb-4">
             <CheckCircle size={30} color="#4ade80" strokeWidth={1.8} />
           </span>
           <h2 className="text-[22px] font-extrabold text-white mb-2">
@@ -57,7 +57,7 @@ export default function ForgotPasswordPage() {
           </p>
           <button
             onClick={() => navigate('/')}
-            className="w-full flex items-center justify-center gap-2 py-[11px] rounded-[10px] bg-white/10 border border-white/20 text-white text-[13.5px] font-semibold cursor-pointer hover:bg-white/[0.18] transition-colors"
+            className="w-full flex items-center justify-center gap-2 py-2.75 rounded-[10px] bg-white/10 border border-white/20 text-white text-[13.5px] font-semibold cursor-pointer hover:bg-white/18 transition-colors"
           >
             <ArrowLeft size={14} />
             Back to Login

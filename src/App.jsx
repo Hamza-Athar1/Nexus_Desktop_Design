@@ -3,6 +3,8 @@ import LoginPage          from './pages/LoginPage';
 import SignUpPage         from './pages/SignUpPage';
 import ModuleSelectPage  from './pages/ModuleSelectPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import DashboardPage     from './pages/DashboardPage';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 
 export default function App() {
@@ -11,6 +13,8 @@ export default function App() {
       <Route path="/"                element={<LoginPage />} />
       <Route path="/signup"          element={<SignUpPage />} />
       <Route path="/modules"         element={<ModuleSelectPage />} />
+      <Route path="/dashboard"        element={<DashboardPage />} />
+      <Route path="/admin"            element={<AdminDashboardPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="*"                element={<Navigate to="/" replace />} />
     </Routes>
