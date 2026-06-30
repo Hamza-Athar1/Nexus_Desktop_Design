@@ -4,9 +4,11 @@ import {
   LayoutDashboard, Users, CreditCard, ReceiptText, UserCog,
   Grid2x2, ShieldCheck, Settings, Bell, AlertTriangle,
   TrendingUp, UserCheck, DollarSign, Clock, Check,
+  Menu, X, MoreHorizontal,
 } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
 
+// Navigation configuration
 const NAV_MAIN = [
   { id: 'dashboard',     label: 'Dashboard',    icon: LayoutDashboard },
   { id: 'users',         label: 'Users',         icon: Users           },
@@ -15,205 +17,560 @@ const NAV_MAIN = [
   { id: 'fbr',           label: 'FBR users',     icon: UserCog         },
   { id: 'modules',       label: 'Modules',       icon: Grid2x2         },
 ];
+
 const NAV_ACCOUNT = [
   { id: 'security', label: 'Security', icon: ShieldCheck },
   { id: 'settings', label: 'Settings', icon: Settings    },
 ];
 
+// Initial approval queue data
 const INITIAL_QUEUE = [
-  { id:1, business:'AL-Shifa Pharmacy', module:'Pharmacy', plan:'PRO',   planBg:'rgba(74,222,128,0.14)', planText:'#4ade80', status:'pending' },
-  { id:2, business:'Karachi Grocers',   module:'Grocery',  plan:'BASIC', planBg:'rgba(59,130,246,0.14)', planText:'#60a5fa', status:'pending' },
-  { id:3, business:'Style Hub',         module:'Clothing', plan:'TRIAL', planBg:'rgba(251,191,36,0.14)', planText:'#fbbf24', status:'pending' },
+  { 
+    id: 1, 
+    business: 'AL-Shifa Pharmacy', 
+    module: 'Pharmacy', 
+    plan: 'PRO',   
+    planBg: 'rgba(74,222,128,0.14)', 
+    planText: '#4ade80', 
+    status: 'pending' 
+  },
+  { 
+    id: 2, 
+    business: 'Karachi Grocers',   
+    module: 'Grocery',  
+    plan: 'BASIC', 
+    planBg: 'rgba(59,130,246,0.14)', 
+    planText: '#60a5fa', 
+    status: 'pending' 
+  },
+  { 
+    id: 3, 
+    business: 'Style Hub',         
+    module: 'Clothing', 
+    plan: 'TRIAL', 
+    planBg: 'rgba(251,191,36,0.14)', 
+    planText: '#fbbf24', 
+    status: 'pending' 
+  },
 ];
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+// Date helpers
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
+const DAYS = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 
+  'Thursday', 'Friday', 'Saturday'
+];
+
+// Section Label Component
 function SectionLabel({ children }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-      <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', color:'rgba(74,222,128,0.7)', textTransform:'uppercase' }}>{children}</span>
-      <div style={{ flex:1, height:1, background:'rgba(74,222,128,0.12)' }} />
+    <div className="flex items-center gap-3">
+      <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/70 uppercase">
+        {children}
+      </span>
+      <div className="flex-1 h-px bg-emerald-400/10" />
     </div>
   );
 }
 
+// Statistics Card Component
 function StatCard({ title, icon: Icon, value, sub, subColor, highlight }) {
   return (
-    <div style={{
-      flex:1, minWidth:0,
-      background: highlight ? 'rgba(251,191,36,0.06)' : 'rgba(255,255,255,0.03)',
-      border: highlight ? '1px solid rgba(251,191,36,0.25)' : '1px solid rgba(74,222,128,0.12)',
-      borderRadius:14, padding:'18px 20px',
-      display:'flex', flexDirection:'column', gap:10,
-    }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', textTransform:'uppercase', color: highlight ? 'rgba(251,191,36,0.75)' : 'rgba(106,191,105,0.8)' }}>{title}</span>
-        <Icon size={16} style={{ color: highlight ? 'rgba(251,191,36,0.45)' : 'rgba(74,222,128,0.4)' }} />
+    <div className={`
+      flex-1 min-w-62.5 sm:min-w-0 rounded-2xl p-4 sm:p-[18px_20px] flex flex-col gap-2.5
+      ${highlight 
+        ? 'bg-yellow-400/5 border border-yellow-400/25' 
+        : 'bg-white/3 border border-emerald-400/10'
+      }
+    `}>
+      <div className="flex items-center justify-between">
+        <span className={`
+          text-[10px] font-bold tracking-[0.12em] uppercase
+          ${highlight ? 'text-yellow-400/75' : 'text-emerald-300/80'}
+        `}>
+          {title}
+        </span>
+        <Icon size={16} className={highlight ? 'text-yellow-400/45' : 'text-emerald-400/40'} />
       </div>
-      <p style={{ fontSize:30, fontWeight:900, color:'#fff', margin:0, lineHeight:1 }}>{value}</p>
-      <p style={{ fontSize:12, fontWeight:600, margin:0, color: subColor, display:'flex', alignItems:'center', gap:4 }}>{sub}</p>
+      <p className="text-2xl sm:text-[30px] font-black text-white leading-none m-0">
+        {value}
+      </p>
+      <p 
+        className="text-xs font-semibold m-0 flex items-center gap-1"
+        style={{ color: subColor }}
+      >
+        {sub}
+      </p>
     </div>
   );
 }
 
+// Plan Badge Component
 function PlanBadge({ plan, bg, text }) {
   return (
-    <span style={{ display:'inline-block', padding:'3px 12px', borderRadius:6, background:bg, color:text, fontSize:12, fontWeight:700, letterSpacing:'0.04em', border:'1px solid ' + text + '55' }}>{plan}</span>
+    <span 
+      className="inline-block px-2 sm:px-3 py-0.5 rounded-md text-[10px] sm:text-xs font-bold tracking-[0.04em]"
+      style={{ 
+        backgroundColor: bg, 
+        color: text,
+        border: `1px solid ${text}55`
+      }}
+    >
+      {plan}
+    </span>
   );
 }
 
+// Quick Link Component
 function QuickLink({ label, sub, icon: Icon, onClick }) {
-  const [hov, setHov] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  
   return (
-    <button onClick={onClick} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{ flex:1, minWidth:160, background:hov?'rgba(30,92,30,0.6)':'rgba(255,255,255,0.025)', border:hov?'1px solid rgba(74,222,128,0.35)':'1px solid rgba(74,222,128,0.1)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', gap:14, cursor:'pointer', transition:'all 0.2s', textAlign:'left' }}>
-      <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:38, height:38, borderRadius:10, background:hov?'rgba(74,222,128,0.2)':'rgba(74,222,128,0.08)', border:'1px solid rgba(74,222,128,0.15)', flexShrink:0, transition:'background 0.2s' }}>
-        <Icon size={17} style={{ color:'#4ade80' }} />
+    <button 
+      onClick={onClick} 
+      onMouseEnter={() => setIsHovered(true)} 
+      onMouseLeave={() => setIsHovered(false)}
+      className={`
+        flex-1 min-w-40 rounded-2xl p-4 flex items-center gap-3.5
+        cursor-pointer transition-all duration-200 text-left
+        ${isHovered 
+          ? 'bg-emerald-950/60 border-emerald-400/35' 
+          : 'bg-white/2.5 border-emerald-400/10'
+        }
+        border
+      `}
+    >
+      <span className={`
+        flex items-center justify-center w-9.5 h-9.5 rounded-xl
+        shrink-0 transition-colors duration-200
+        ${isHovered 
+          ? 'bg-emerald-400/20 border-emerald-400/15' 
+          : 'bg-emerald-400/8 border-emerald-400/15'
+        }
+        border
+      `}>
+        <Icon size={17} className="text-emerald-400" />
       </span>
       <div>
-        <p style={{ fontSize:13, fontWeight:700, color:'#fff', margin:0 }}>{label}</p>
-        <p style={{ fontSize:11, color:'rgba(255,255,255,0.38)', margin:0 }}>{sub}</p>
+        <p className="text-[13px] font-bold text-white m-0">{label}</p>
+        <p className="text-[11px] text-white/40 m-0">{sub}</p>
       </div>
     </button>
   );
 }
 
-export default function AdminDashboardPage() {
-  const navigate = useNavigate();
-  const [active, setActive] = useState('dashboard');
-  const [queue,  setQueue]  = useState(INITIAL_QUEUE);
-
-  const now     = new Date();
-  const pending = queue.filter(q => q.status === 'pending').length;
-  const dateStr = DAYS[now.getDay()] + String.fromCharCode(32,183,32) + now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear();
-
-  function approve(id) { setQueue(q => q.map(r => r.id === id ? { ...r, status:'approved' } : r)); }
-  function reject(id)  { setQueue(q => q.filter(r => r.id !== id)); }
-
-  const nb = { width:'100%', display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:12, fontSize:13, fontWeight:500, border:'none', cursor:'pointer', transition:'all 0.2s', background:'transparent' };
+// Mobile Queue Card Component
+function MobileQueueCard({ row, onApprove, onReject }) {
+  const [showActions, setShowActions] = useState(false);
 
   return (
-    <div style={{ display:'flex', height:'100vh', width:'100%', overflow:'hidden', background:'#0a1f0a', fontFamily:'Inter, sans-serif' }}>
-
-      <aside style={{ width:200, flexShrink:0, display:'flex', flexDirection:'column', height:'100%', background:'linear-gradient(180deg,#0d2b0d 0%,#0a1f0a 100%)', borderRight:'1px solid rgba(74,222,128,0.08)' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 18px', height:64, flexShrink:0, borderBottom:'1px solid rgba(74,222,128,0.08)' }}>
-          <NexusLogo size={26} variant='light' />
-          <span style={{ color:'rgba(255,255,255,0.55)', fontSize:10, fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase' }}>Admin-Dashboard</span>
+    <div className="bg-white/2 border border-emerald-400/10 rounded-xl p-4">
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex-1">
+          <h4 className="text-sm font-bold text-white mb-1">{row.business}</h4>
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-emerald-400/75 font-medium">{row.module}</span>
+            <PlanBadge plan={row.plan} bg={row.planBg} text={row.planText} />
+          </div>
         </div>
-        <nav style={{ flex:1, overflowY:'auto', padding:'20px 10px', display:'flex', flexDirection:'column', gap:2 }}>
-          <p style={{ fontSize:9, fontWeight:700, letterSpacing:'0.18em', color:'rgba(255,255,255,0.28)', textTransform:'uppercase', padding:'0 8px', marginBottom:8, marginTop:0 }}>Main</p>
+        <button 
+          onClick={() => setShowActions(!showActions)}
+          className="text-white/40 hover:text-white/60 transition-colors"
+        >
+          <MoreHorizontal size={18} />
+        </button>
+      </div>
+      
+      <div className="flex items-center justify-between">
+        <span>
+          {row.status === 'approved' ? (
+            <span className="text-xs font-semibold text-emerald-400/65 flex items-center gap-1">
+              <Check size={12} />Approved
+            </span>
+          ) : (
+            <span className="text-xs font-medium text-white/30">Pending</span>
+          )}
+        </span>
+        
+        {showActions && row.status === 'pending' && (
+          <div className="flex gap-2">
+            <button 
+              onClick={() => {
+                onApprove(row.id);
+                setShowActions(false);
+              }}
+              className="px-3 py-1 rounded-md text-xs font-bold cursor-pointer bg-emerald-400/10 text-emerald-400 border border-emerald-400/25 transition-all hover:bg-emerald-400/20"
+            >
+              Approve
+            </button>
+            <button 
+              onClick={() => {
+                onReject(row.id);
+                setShowActions(false);
+              }}
+              className="px-3 py-1 rounded-md text-xs font-bold cursor-pointer bg-red-500/10 text-red-400 border border-red-500/20 transition-all hover:bg-red-500/20"
+            >
+              Reject
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Main Dashboard Component
+export default function AdminDashboardPage() {
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [approvalQueue, setApprovalQueue] = useState(INITIAL_QUEUE);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+  const now = new Date();
+  const pendingCount = approvalQueue.filter(q => q.status === 'pending').length;
+  const dateStr = `${DAYS[now.getDay()]} · ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+
+  const handleApprove = (id) => {
+    setApprovalQueue(queue => 
+      queue.map(item => 
+        item.id === id ? { ...item, status: 'approved' } : item
+      )
+    );
+  };
+
+  const handleReject = (id) => {
+    setApprovalQueue(queue => queue.filter(item => item.id !== id));
+  };
+
+  const handleNavClick = (id) => {
+    setActiveTab(id);
+    setIsSidebarOpen(false);
+  };
+
+  return (
+    <div className="flex h-screen w-full overflow-hidden bg-[#0a1f0a] font-inter">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-70 sm:w-[320px] lg:w-50 shrink-0 
+        flex flex-col h-full 
+        bg-linear-to-b from-[#0d2b0d] to-[#0a1f0a] 
+        border-r border-emerald-400/8
+        transition-transform duration-300 ease-in-out
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        {/* Logo Section */}
+        <div className="flex items-center justify-between gap-2.5 px-4.5 h-16 shrink-0 border-b border-emerald-400/8">
+          <div className="flex items-center gap-2.5">
+            <NexusLogo size={26} variant="light" />
+            <span className="text-white/55 text-[10px] font-bold tracking-[0.18em] uppercase">
+              Admin-Dashboard
+            </span>
+          </div>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden text-white/45 hover:text-white/70 transition-colors"
+          >
+            <X size={20} />
+          </button>
+        </div>
+        
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-5 flex flex-col gap-0.5">
+          <p className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2 mb-2">
+            Main
+          </p>
           {NAV_MAIN.map(({ id, label, icon: Icon }) => {
-            const on = active === id;
+            const isActive = activeTab === id;
             return (
-              <button key={id} onClick={() => setActive(id)} style={{ ...nb, background:on?'#1e5c1e':'transparent', color:on?'#fff':'rgba(255,255,255,0.45)', boxShadow:on?'0 0 14px rgba(74,222,128,0.15)':'none' }}>
-                <Icon size={15} style={{ color:on?'#4ade80':'currentColor', flexShrink:0 }} />{label}
+              <button
+                key={id}
+                onClick={() => handleNavClick(id)}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium
+                  border-none cursor-pointer transition-all duration-200
+                  ${isActive 
+                    ? 'bg-[#1e5c1e] text-white shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
+                    : 'bg-transparent text-white/45 hover:bg-white/5'
+                  }
+                `}
+              >
+                <Icon 
+                  size={15} 
+                  className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-current'}`} 
+                />
+                {label}
               </button>
             );
           })}
-          <p style={{ fontSize:9, fontWeight:700, letterSpacing:'0.18em', color:'rgba(255,255,255,0.28)', textTransform:'uppercase', padding:'0 8px', marginBottom:8, marginTop:20 }}>Account</p>
+          
+          <p className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2 mb-2 mt-5">
+            Account
+          </p>
           {NAV_ACCOUNT.map(({ id, label, icon: Icon }) => {
-            const on = active === id;
+            const isActive = activeTab === id;
             return (
-              <button key={id} onClick={() => setActive(id)} style={{ ...nb, background:on?'#1e5c1e':'transparent', color:on?'#fff':'rgba(255,255,255,0.45)' }}>
-                <Icon size={15} style={{ color:on?'#4ade80':'currentColor', flexShrink:0 }} />{label}
+              <button
+                key={id}
+                onClick={() => handleNavClick(id)}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium
+                  border-none cursor-pointer transition-all duration-200
+                  ${isActive 
+                    ? 'bg-[#1e5c1e] text-white shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
+                    : 'bg-transparent text-white/45 hover:bg-white/5'
+                  }
+                `}
+              >
+                <Icon 
+                  size={15} 
+                  className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-current'}`} 
+                />
+                {label}
               </button>
             );
           })}
         </nav>
       </aside>
 
-      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-        <header style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 28px', height:64, flexShrink:0, background:'#0d2b0d', borderBottom:'1px solid rgba(74,222,128,0.08)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <NexusLogo size={22} variant='light' />
-            <span style={{ color:'rgba(255,255,255,0.45)', fontSize:10, fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase' }}>ADMIN-DASHBOARD</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:14 }}>
-            <button style={{ position:'relative', background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.45)', display:'flex', alignItems:'center' }}>
-              <Bell size={18} />
-              {pending > 0 && <span style={{ position:'absolute', top:-3, right:-3, width:8, height:8, borderRadius:'50%', background:'#fbbf24' }} />}
+      {/* Main Content */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* Header */}
+        <header className="flex items-center justify-between px-4 sm:px-7 h-16 shrink-0 bg-[#0d2b0d] border-b border-emerald-400/8">
+          <div className="flex items-center gap-2">
+            {/* Mobile Menu Button */}
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden text-white/45 hover:text-white/70 transition-colors"
+            >
+              <Menu size={22} />
             </button>
-            {pending > 0 && (
-              <div style={{ display:'flex', alignItems:'center', gap:6, padding:'5px 12px', borderRadius:8, background:'rgba(251,191,36,0.1)', border:'1px solid rgba(251,191,36,0.3)' }}>
-                <AlertTriangle size={13} style={{ color:'#fbbf24' }} />
-                <span style={{ fontSize:12, color:'#fbbf24', fontWeight:600 }}>{pending} pending</span>
+            <NexusLogo size={22} variant="light" />
+            <span className="hidden sm:inline text-white/45 text-[10px] font-bold tracking-[0.18em] uppercase">
+              ADMIN-DASHBOARD
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2 sm:gap-3.5">
+            <button className="relative bg-none border-none cursor-pointer text-white/45 flex items-center hover:text-white/70 transition-colors">
+              <Bell size={18} />
+              {pendingCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-yellow-400" />
+              )}
+            </button>
+            
+            {pendingCount > 0 && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-lg bg-yellow-400/10 border border-yellow-400/30">
+                <AlertTriangle size={13} className="text-yellow-400" />
+                <span className="text-xs text-yellow-400 font-semibold">
+                  {pendingCount} pending
+                </span>
               </div>
             )}
-            <div style={{ width:36, height:36, borderRadius:'50%', background:'linear-gradient(135deg,#2e7d32,#1e5c1e)', border:'2px solid rgba(74,222,128,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:'#fff', flexShrink:0 }}>AA</div>
+            
+            {/* Mobile Pending Badge */}
+            {pendingCount > 0 && (
+              <div className="sm:hidden flex items-center justify-center w-6 h-6 rounded-full bg-yellow-400/20 border border-yellow-400/30">
+                <span className="text-[10px] text-yellow-400 font-bold">
+                  {pendingCount}
+                </span>
+              </div>
+            )}
+            
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-linear-to-br from-emerald-700 to-emerald-800 border-2 border-emerald-400/30 flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0">
+              AA
+            </div>
           </div>
         </header>
 
-        <main style={{ flex:1, overflowY:'auto', padding:'28px 32px', display:'flex', flexDirection:'column', gap:24 }}>
-
-          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16 }}>
+        {/* Dashboard Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 flex flex-col gap-4 sm:gap-6">
+          {/* Welcome Section */}
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div>
-              <h1 style={{ fontSize:32, fontWeight:900, color:'#fff', margin:'0 0 6px', lineHeight:1.1 }}>Welcome, Ali</h1>
-              <p style={{ fontSize:13, color:'rgba(255,255,255,0.4)', margin:0 }}>Control Centre &nbsp;&middot;&nbsp; {dateStr}</p>
+              <h1 className="text-2xl sm:text-[32px] font-black text-white mb-1.5 leading-tight">
+                Welcome, Ali
+              </h1>
+              <p className="text-xs sm:text-[13px] text-white/40 m-0">
+                Control Centre · {dateStr}
+              </p>
             </div>
-            <button style={{ padding:'8px 20px', borderRadius:99, fontSize:13, fontWeight:700, cursor:'pointer', background:'transparent', border:'1px solid rgba(74,222,128,0.35)', color:'#4ade80', display:'flex', alignItems:'center', gap:6, flexShrink:0 }}>
-              <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block' }} />
+            <button className="px-4 sm:px-5 py-2 rounded-full text-xs sm:text-[13px] font-bold cursor-pointer bg-transparent border border-emerald-400/35 text-emerald-400 flex items-center gap-1.5 shrink-0 hover:bg-emerald-400/5 transition-colors">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
               System healthy
             </button>
           </div>
 
-          <section style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {/* Platform Summary */}
+          <section className="flex flex-col gap-3">
             <SectionLabel>Platform Summary</SectionLabel>
-            <div style={{ display:'flex', gap:14, flexWrap:'wrap' }}>
-              <StatCard title='Total Users' icon={Users} value='248' sub={<><TrendingUp size={12}/>&nbsp;+14 this month</>} subColor='#4ade80' />
-              <StatCard title='Active Subs' icon={UserCheck} value='201' sub='81% of users' subColor='rgba(255,255,255,0.45)' />
-              <StatCard title='Revenue' icon={DollarSign} value='2.4M' sub={<><TrendingUp size={12}/>&nbsp;+8% MoM</>} subColor='#4ade80' />
-              <StatCard title='Pending' icon={Clock} value={String(pending)} sub='ACTION REQUIRED' subColor='#ef4444' highlight={true} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+              <StatCard 
+                title="Total Users" 
+                icon={Users} 
+                value="248" 
+                sub={<><TrendingUp size={12} />&nbsp;+14 this month</>} 
+                subColor="#4ade80" 
+              />
+              <StatCard 
+                title="Active Subs" 
+                icon={UserCheck} 
+                value="201" 
+                sub="81% of users" 
+                subColor="rgba(255,255,255,0.45)" 
+              />
+              <StatCard 
+                title="Revenue" 
+                icon={DollarSign} 
+                value="2.4M" 
+                sub={<><TrendingUp size={12} />&nbsp;+8% MoM</>} 
+                subColor="#4ade80" 
+              />
+              <StatCard 
+                title="Pending" 
+                icon={Clock} 
+                value={String(pendingCount)} 
+                sub="ACTION REQUIRED" 
+                subColor="#ef4444" 
+                highlight={true} 
+              />
             </div>
           </section>
 
-          <section style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {/* Approval Queue */}
+          <section className="flex flex-col gap-3">
             <SectionLabel>Approval Queue</SectionLabel>
-            <div style={{ background:'rgba(255,255,255,0.02)', border:'1px solid rgba(74,222,128,0.1)', borderRadius:14, overflow:'hidden' }}>
-              <div style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 0.8fr 0.9fr 1.1fr', padding:'12px 24px', borderBottom:'1px solid rgba(74,222,128,0.08)', background:'rgba(74,222,128,0.03)' }}>
-                {['Business','Module','Plan','Status','Action'].map(h => (
-                  <span key={h} style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', color:'rgba(74,222,128,0.6)', textTransform:'uppercase' }}>{h}</span>
+            
+            {/* Desktop Table View */}
+            <div className="hidden lg:block bg-white/2 border border-emerald-400/10 rounded-2xl overflow-hidden">
+              {/* Table Header */}
+              <div className="grid grid-cols-[1.4fr_1fr_0.8fr_0.9fr_1.1fr] px-6 py-3 border-b border-emerald-400/8 bg-emerald-400/3">
+                {['Business', 'Module', 'Plan', 'Status', 'Action'].map((header) => (
+                  <span 
+                    key={header} 
+                    className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/60 uppercase"
+                  >
+                    {header}
+                  </span>
                 ))}
               </div>
-              {queue.length === 0 && (
-                <div style={{ padding:'32px 24px', textAlign:'center', color:'rgba(255,255,255,0.3)', fontSize:13 }}>No pending approvals</div>
+              
+              {/* Empty State */}
+              {approvalQueue.length === 0 && (
+                <div className="px-6 py-8 text-center text-white/30 text-[13px]">
+                  No pending approvals
+                </div>
               )}
-              {queue.map((row, i) => (
-                <div key={row.id} style={{ display:'grid', gridTemplateColumns:'1.4fr 1fr 0.8fr 0.9fr 1.1fr', padding:'16px 24px', alignItems:'center', borderBottom: i < queue.length-1 ? '1px solid rgba(74,222,128,0.06)' : 'none' }}>
-                  <span style={{ fontSize:14, fontWeight:700, color:'#fff' }}>{row.business}</span>
-                  <span style={{ fontSize:13, color:'rgba(74,222,128,0.75)', fontWeight:500 }}>{row.module}</span>
-                  <span><PlanBadge plan={row.plan} bg={row.planBg} text={row.planText} /></span>
+              
+              {/* Queue Items */}
+              {approvalQueue.map((row, index) => (
+                <div 
+                  key={row.id} 
+                  className={`
+                    grid grid-cols-[1.4fr_1fr_0.8fr_0.9fr_1.1fr] px-6 py-4 items-center
+                    ${index < approvalQueue.length - 1 ? 'border-b border-emerald-400/5' : ''}
+                  `}
+                >
+                  <span className="text-sm font-bold text-white">{row.business}</span>
+                  <span className="text-[13px] text-emerald-400/75 font-medium">{row.module}</span>
                   <span>
-                    {row.status === 'approved'
-                      ? <span style={{ fontSize:13, fontWeight:600, color:'rgba(74,222,128,0.65)', display:'flex', alignItems:'center', gap:4 }}><Check size={13}/>Approved</span>
-                      : <span style={{ fontSize:13, fontWeight:500, color:'rgba(255,255,255,0.3)' }}>Pending</span>
-                    }
+                    <PlanBadge plan={row.plan} bg={row.planBg} text={row.planText} />
                   </span>
-                  <div style={{ display:'flex', gap:8 }}>
+                  <span>
                     {row.status === 'approved' ? (
-                      <span style={{ fontSize:13, fontWeight:600, color:'rgba(74,222,128,0.65)', display:'flex', alignItems:'center', gap:4 }}><Check size={13}/>Approved</span>
+                      <span className="text-[13px] font-semibold text-emerald-400/65 flex items-center gap-1">
+                        <Check size={13} />Approved
+                      </span>
+                    ) : (
+                      <span className="text-[13px] font-medium text-white/30">Pending</span>
+                    )}
+                  </span>
+                  <div className="flex gap-2">
+                    {row.status === 'approved' ? (
+                      <span className="text-[13px] font-semibold text-emerald-400/65 flex items-center gap-1">
+                        <Check size={13} />Approved
+                      </span>
                     ) : (
                       <>
-                        <button onClick={() => approve(row.id)} style={{ padding:'5px 12px', borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', background:'rgba(74,222,128,0.12)', color:'#4ade80', border:'1px solid rgba(74,222,128,0.25)', transition:'all 0.2s' }}>Approve</button>
-                        <button onClick={() => reject(row.id)}  style={{ padding:'5px 12px', borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', background:'rgba(239,68,68,0.1)', color:'#f87171', border:'1px solid rgba(239,68,68,0.22)', transition:'all 0.2s' }}>Reject</button>
+                        <button 
+                          onClick={() => handleApprove(row.id)} 
+                          className="px-3 py-1 rounded-md text-xs font-bold cursor-pointer bg-emerald-400/10 text-emerald-400 border border-emerald-400/25 transition-all hover:bg-emerald-400/20"
+                        >
+                          Approve
+                        </button>
+                        <button 
+                          onClick={() => handleReject(row.id)}  
+                          className="px-3 py-1 rounded-md text-xs font-bold cursor-pointer bg-red-500/10 text-red-400 border border-red-500/20 transition-all hover:bg-red-500/20"
+                        >
+                          Reject
+                        </button>
                       </>
                     )}
                   </div>
                 </div>
               ))}
             </div>
-          </section>
 
-          <section style={{ display:'flex', flexDirection:'column', gap:12 }}>
-            <SectionLabel>Quick Actions</SectionLabel>
-            <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-              <QuickLink label='Manage Users'  sub='View and edit accounts' icon={Users}       onClick={() => setActive('users')} />
-              <QuickLink label='Subscriptions' sub='Plans and renewals'      icon={CreditCard}  onClick={() => setActive('subscriptions')} />
-              <QuickLink label='Payment Logs'  sub='Transaction history'     icon={ReceiptText} onClick={() => setActive('payments')} />
-              <QuickLink label='Module Config' sub='Enable and disable'      icon={Grid2x2}     onClick={() => setActive('modules')} />
+            {/* Mobile Card View */}
+            <div className="lg:hidden flex flex-col gap-3">
+              {approvalQueue.length === 0 && (
+                <div className="py-8 text-center text-white/30 text-[13px]">
+                  No pending approvals
+                </div>
+              )}
+              {approvalQueue.map((row) => (
+                <MobileQueueCard 
+                  key={row.id}
+                  row={row}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                />
+              ))}
             </div>
           </section>
 
+          {/* Quick Actions */}
+          <section className="flex flex-col gap-3">
+            <SectionLabel>Quick Actions</SectionLabel>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <QuickLink 
+                label="Manage Users"  
+                sub="View and edit accounts" 
+                icon={Users}       
+                onClick={() => handleNavClick('users')} 
+              />
+              <QuickLink 
+                label="Subscriptions" 
+                sub="Plans and renewals"      
+                icon={CreditCard}  
+                onClick={() => handleNavClick('subscriptions')} 
+              />
+              <QuickLink 
+                label="Payment Logs"  
+                sub="Transaction history"     
+                icon={ReceiptText} 
+                onClick={() => handleNavClick('payments')} 
+              />
+              <QuickLink 
+                label="Module Config" 
+                sub="Enable and disable"      
+                icon={Grid2x2}     
+                onClick={() => handleNavClick('modules')} 
+              />
+            </div>
+          </section>
         </main>
       </div>
     </div>

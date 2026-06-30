@@ -111,11 +111,11 @@ export default function ForgotPasswordPage() {
               disabled={isLoading}
               autoComplete="email"
               className={[
-                'w-full py-[11px] pl-10 pr-3.5 rounded-[10px] text-white text-[13px]',
+                'w-full py-2.75 pl-10 pr-3.5 rounded-[10px] text-white text-[13px]',
                 'placeholder:text-white/40 outline-none transition-all disabled:opacity-60',
                 isError
-                  ? 'border border-red-500/60 bg-red-500/[0.08]'
-                  : 'border border-white/15 bg-white/[0.08] focus:border-green-400/60 focus:ring-[3px] focus:ring-green-400/[0.12]',
+                  ? 'border border-red-500/60 bg-red-500/8'
+                  : 'border border-white/15 bg-white/8 focus:border-green-400/60 focus:ring-[3px] focus:ring-green-400/12',
               ].join(' ')}
             />
           </div>
@@ -154,7 +154,7 @@ export default function ForgotPasswordPage() {
       {/* Back to login */}
       <button
         onClick={() => navigate('/')}
-        className="flex items-center gap-2 bg-transparent border border-white/[0.18] rounded-lg text-white/70 text-[13px] font-medium px-5 py-2.5 cursor-pointer hover:bg-white/[0.08] hover:text-white transition-all"
+        className="flex items-center gap-2 bg-transparent border border-white/18 rounded-lg text-white/70 text-[13px] font-medium px-5 py-2.5 cursor-pointer hover:bg-white/8 hover:text-white transition-all"
       >
         <ArrowLeft size={14} />
         Back to login

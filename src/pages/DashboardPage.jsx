@@ -4,9 +4,11 @@ import {
   LayoutDashboard, ShoppingCart, Archive, Receipt, BarChart2,
   UserCircle, Settings, Bell, Plus, FileText,
   TrendingUp, Package, Crown, Clock, AlertTriangle, Check,
+  Menu, X, ChevronRight,
 } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
 
+// Navigation configuration
 const NAV_MAIN = [
   { id: 'dashboard', label: 'Dashboard',  icon: LayoutDashboard },
   { id: 'pos',       label: 'POS System', icon: ShoppingCart    },
@@ -20,6 +22,7 @@ const NAV_ACCOUNT = [
   { id: 'settings', label: 'Settings',     icon: Settings   },
 ];
 
+// Mock data
 const RECENT_ACTIVITY = [
   { id: 1, text: 'Bill #1042 created - Rs 3,200', time: '2m',  color: '#4ade80' },
   { id: 2, text: 'Panadol 500mg restocked',        time: '18m', color: '#4ade80' },
@@ -27,239 +30,424 @@ const RECENT_ACTIVITY = [
   { id: 4, text: 'Bill #1041 created - Rs 1,800',  time: '2h',  color: '#4ade80' },
 ];
 
-const LOW_STOCK = [
+const LOW_STOCK_ITEMS = [
   { name: 'Augmentin 625mg', qty: 8,  max: 100, color: '#ef4444' },
   { name: 'Panadol CF',      qty: 16, max: 100, color: '#facc15' },
   { name: 'ORD Sachet',      qty: 28, max: 100, color: '#facc15' },
   { name: 'Disprin 300mg',   qty: 55, max: 100, color: '#4ade80' },
 ];
 
-function pad(n) { return String(n).padStart(2, '0'); }
+// Date constants
+const DAYS = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 
+  'Thursday', 'Friday', 'Saturday'
+];
 
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+// Utility functions
+const padNumber = (n) => String(n).padStart(2, '0');
+
+const getGreeting = () => {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good Morning';
+  if (hour < 17) return 'Good Afternoon';
+  return 'Good Evening';
+};
+
+// Custom hook for real-time clock
 function useClock() {
   const [time, setTime] = useState(new Date());
+  
   useEffect(() => {
-    const id = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(id);
+    const intervalId = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(intervalId);
   }, []);
+  
   return time;
 }
 
-function getGreeting() {
-  const h = new Date().getHours();
-  if (h < 12) return 'Good Morning';
-  if (h < 17) return 'Good Afternoon';
-  return 'Good Evening';
-}
-
-const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
+// Section Label Component
 function SectionLabel({ children }) {
   return (
-    <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-      <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', color:'rgba(74,222,128,0.7)', textTransform:'uppercase' }}>{children}</span>
-      <div style={{ flex:1, height:1, background:'rgba(74,222,128,0.12)' }} />
+    <div className="flex items-center gap-3">
+      <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/70 uppercase">
+        {children}
+      </span>
+      <div className="flex-1 h-px bg-emerald-400/10" />
     </div>
   );
 }
 
+// Statistics Card Component
 function StatCard({ title, icon: Icon, children }) {
   return (
-    <div style={{ flex:1, minWidth:0, background:'rgba(255,255,255,0.03)', border:'1px solid rgba(74,222,128,0.12)', borderRadius:14, padding:'18px 20px', display:'flex', flexDirection:'column', gap:12 }}>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', color:'rgba(106,191,105,0.8)', textTransform:'uppercase' }}>{title}</span>
-        <Icon size={16} style={{ color:'rgba(74,222,128,0.4)' }} />
+    <div className="flex-1 min-w-70 sm:min-w-0 bg-white/3 border border-emerald-400/10 rounded-2xl p-4 sm:p-[18px_20px] flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-300/80 uppercase">
+          {title}
+        </span>
+        <Icon size={16} className="text-emerald-400/40" />
       </div>
       {children}
     </div>
   );
 }
 
+// Quick Action Card Component
 function QuickActionCard({ icon: Icon, label, sub, onClick }) {
-  const [hov, setHov] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  
   return (
-    <button onClick={onClick} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
-      style={{ flex:1, minWidth:0, background:hov?'rgba(30,92,30,0.6)':'rgba(255,255,255,0.03)', border:hov?'1px solid rgba(74,222,128,0.35)':'1px solid rgba(74,222,128,0.12)', borderRadius:14, padding:'16px 20px', display:'flex', alignItems:'center', gap:16, cursor:'pointer', transition:'all 0.2s', textAlign:'left' }}>
-      <span style={{ display:'flex', alignItems:'center', justifyContent:'center', width:40, height:40, borderRadius:10, background:hov?'rgba(74,222,128,0.2)':'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.2)', flexShrink:0, transition:'background 0.2s' }}>
-        <Icon size={18} style={{ color:'#4ade80' }} />
+    <button 
+      onClick={onClick} 
+      onMouseEnter={() => setIsHovered(true)} 
+      onMouseLeave={() => setIsHovered(false)}
+      className={`
+        flex-1 min-w-50 sm:min-w-0 rounded-2xl p-4 flex items-center gap-4
+        cursor-pointer transition-all duration-200 text-left
+        ${isHovered 
+          ? 'bg-emerald-950/60 border-emerald-400/35' 
+          : 'bg-white/3 border-emerald-400/10'
+        }
+        border
+      `}
+    >
+      <span className={`
+        flex items-center justify-center w-10 h-10 rounded-xl
+        shrink-0 transition-colors duration-200
+        ${isHovered 
+          ? 'bg-emerald-400/20 border-emerald-400/20' 
+          : 'bg-emerald-400/10 border-emerald-400/20'
+        }
+        border
+      `}>
+        <Icon size={18} className="text-emerald-400" />
       </span>
       <div>
-        <p style={{ fontSize:14, fontWeight:700, color:'#fff', margin:0 }}>{label}</p>
-        <p style={{ fontSize:11, color:'rgba(255,255,255,0.4)', margin:0 }}>{sub}</p>
+        <p className="text-sm font-bold text-white m-0">{label}</p>
+        <p className="text-[11px] text-white/40 m-0">{sub}</p>
       </div>
     </button>
   );
 }
 
+// Main Dashboard Component
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const time = useClock();
-  const [active, setActive] = useState('dashboard');
+  const currentTime = useClock();
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const hours   = pad(time.getHours());
-  const minutes = pad(time.getMinutes());
-  const dayName = DAYS[time.getDay()];
-  const dateStr = time.getDate() + ' ' + MONTHS[time.getMonth()] + ' ' + time.getFullYear();
+  // Close sidebar on window resize (for desktop)
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setIsSidebarOpen(false);
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  const nb = { width:'100%', display:'flex', alignItems:'center', gap:12, padding:'10px 12px', borderRadius:12, fontSize:13, fontWeight:500, border:'none', cursor:'pointer', transition:'all 0.2s', background:'transparent' };
+  // Close sidebar when clicking on mobile nav item
+  const handleNavClick = (id) => {
+    setActiveTab(id);
+    setIsSidebarOpen(false);
+  };
+
+  const hours = padNumber(currentTime.getHours());
+  const minutes = padNumber(currentTime.getMinutes());
+  const dayName = DAYS[currentTime.getDay()];
+  const dateStr = `${currentTime.getDate()} ${MONTHS[currentTime.getMonth()]} ${currentTime.getFullYear()}`;
 
   return (
-    <div style={{ display:'flex', height:'100vh', width:'100%', overflow:'hidden', background:'#0a1f0a', fontFamily:'Inter, sans-serif' }}>
+    <div className="flex h-screen w-full overflow-hidden bg-[#0a1f0a] font-inter">
+      {/* Mobile Sidebar Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       {/* Sidebar */}
-      <aside style={{ width:210, flexShrink:0, display:'flex', flexDirection:'column', height:'100%', background:'linear-gradient(180deg,#0d2b0d 0%,#0a1f0a 100%)', borderRight:'1px solid rgba(74,222,128,0.08)' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'0 20px', height:60, flexShrink:0, borderBottom:'1px solid rgba(74,222,128,0.08)' }}>
-          <NexusLogo size={26} variant="light" />
-          <span style={{ color:'rgba(255,255,255,0.55)', fontSize:10, fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase' }}>User-Dashboard</span>
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-70 sm:w-[320px] lg:w-52.5 shrink-0 
+        flex flex-col h-full 
+        bg-linear-to-b from-[#0d2b0d] to-[#0a1f0a] 
+        border-r border-emerald-400/8
+        transition-transform duration-300 ease-in-out
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        {/* Logo Section */}
+        <div className="flex items-center justify-between gap-2.5 px-5 h-15 shrink-0 border-b border-emerald-400/8">
+          <div className="flex items-center gap-2.5">
+            <NexusLogo size={26} variant="light" />
+            <span className="text-white/55 text-[10px] font-bold tracking-[0.18em] uppercase">
+              User-Dashboard
+            </span>
+          </div>
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="lg:hidden text-white/45 hover:text-white/70 transition-colors"
+          >
+            <X size={20} />
+          </button>
         </div>
-        <nav style={{ flex:1, overflowY:'auto', padding:'20px 12px', display:'flex', flexDirection:'column', gap:2 }}>
-          <p style={{ fontSize:9, fontWeight:700, letterSpacing:'0.18em', color:'rgba(255,255,255,0.28)', textTransform:'uppercase', padding:'0 8px', marginBottom:8, marginTop:0 }}>Main</p>
+        
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto p-5 flex flex-col gap-0.5">
+          <p className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2 mb-2 mt-0">
+            Main
+          </p>
           {NAV_MAIN.map(({ id, label, icon: Icon }) => {
-            const on = active===id;
+            const isActive = activeTab === id;
             return (
-              <button key={id} onClick={()=>setActive(id)} style={{ ...nb, background:on?'#1e5c1e':'transparent', color:on?'#fff':'rgba(255,255,255,0.45)', boxShadow:on?'0 0 14px rgba(74,222,128,0.15)':'none' }}>
-                <Icon size={16} style={{ color:on?'#4ade80':'currentColor', flexShrink:0 }} />{label}
+              <button
+                key={id}
+                onClick={() => handleNavClick(id)}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium
+                  border-none cursor-pointer transition-all duration-200
+                  ${isActive 
+                    ? 'bg-[#1e5c1e] text-white shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
+                    : 'bg-transparent text-white/45 hover:bg-white/5'
+                  }
+                `}
+              >
+                <Icon 
+                  size={16} 
+                  className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-current'}`} 
+                />
+                {label}
               </button>
             );
           })}
-          <p style={{ fontSize:9, fontWeight:700, letterSpacing:'0.18em', color:'rgba(255,255,255,0.28)', textTransform:'uppercase', padding:'0 8px', marginBottom:8, marginTop:20 }}>Account</p>
+          
+          <p className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2 mb-2 mt-5">
+            Account
+          </p>
           {NAV_ACCOUNT.map(({ id, label, icon: Icon }) => {
-            const on = active===id;
+            const isActive = activeTab === id;
             return (
-              <button key={id} onClick={()=>setActive(id)} style={{ ...nb, background:on?'#1e5c1e':'transparent', color:on?'#fff':'rgba(255,255,255,0.45)' }}>
-                <Icon size={16} style={{ color:on?'#4ade80':'currentColor', flexShrink:0 }} />{label}
+              <button
+                key={id}
+                onClick={() => handleNavClick(id)}
+                className={`
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium
+                  border-none cursor-pointer transition-all duration-200
+                  ${isActive 
+                    ? 'bg-[#1e5c1e] text-white shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
+                    : 'bg-transparent text-white/45 hover:bg-white/5'
+                  }
+                `}
+              >
+                <Icon 
+                  size={16} 
+                  className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-current'}`} 
+                />
+                {label}
               </button>
             );
           })}
         </nav>
-        <div style={{ margin:'0 12px 16px', padding:'14px 16px', borderRadius:14, background:'rgba(74,222,128,0.06)', border:'1px solid rgba(74,222,128,0.14)' }}>
-          <p style={{ fontSize:9, color:'rgba(74,222,128,0.6)', fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase', margin:'0 0 2px' }}>Plan</p>
-          <p style={{ fontSize:20, fontWeight:900, color:'#fff', margin:'0 0 8px', lineHeight:1.1 }}>PRO</p>
-          <div style={{ height:4, borderRadius:99, background:'rgba(255,255,255,0.08)', overflow:'hidden', marginBottom:6 }}>
-            <div style={{ height:'100%', width:'82%', borderRadius:99, background:'#4ade80' }} />
+        
+        {/* Plan Card */}
+        <div className="mx-3 mb-4 p-3.5 rounded-2xl bg-emerald-400/6 border border-emerald-400/15">
+          <p className="text-[9px] text-emerald-400/60 font-bold tracking-[0.18em] uppercase mb-0.5">
+            Plan
+          </p>
+          <p className="text-xl font-black text-white mb-2 leading-tight">PRO</p>
+          <div className="h-1 rounded-full bg-white/8 overflow-hidden mb-1.5">
+            <div className="h-full rounded-full bg-emerald-400" style={{ width: '82%' }} />
           </div>
-          <p style={{ fontSize:11, color:'rgba(255,255,255,0.38)', margin:0 }}>18 days left</p>
+          <p className="text-[11px] text-white/40 m-0">18 days left</p>
         </div>
       </aside>
 
-      {/* Right */}
-      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
-        {/* Topbar */}
-        <header style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 24px', height:60, flexShrink:0, background:'#0d2b0d', borderBottom:'1px solid rgba(74,222,128,0.08)' }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <NexusLogo size={22} variant="light" />
-            <span style={{ color:'rgba(255,255,255,0.45)', fontSize:10, fontWeight:700, letterSpacing:'0.18em', textTransform:'uppercase' }}>USER-DASHBOARD</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:16 }}>
-            <button style={{ position:'relative', background:'none', border:'none', cursor:'pointer', color:'rgba(255,255,255,0.45)', display:'flex', alignItems:'center' }}>
-              <Bell size={18} />
-              <span style={{ position:'absolute', top:-2, right:-2, width:8, height:8, borderRadius:'50%', background:'#4ade80' }} />
+      {/* Main Content Area */}
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        {/* Header / Topbar */}
+        <header className="flex items-center justify-between px-4 sm:px-6 h-15 shrink-0 bg-[#0d2b0d] border-b border-emerald-400/8">
+          <div className="flex items-center gap-2">
+            {/* Mobile Menu Button */}
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden text-white/45 hover:text-white/70 transition-colors"
+            >
+              <Menu size={22} />
             </button>
-            <div style={{ display:'flex', alignItems:'center', gap:6, padding:'4px 12px', borderRadius:99, background:'rgba(74,222,128,0.08)', border:'1px solid rgba(74,222,128,0.2)' }}>
-              <span style={{ width:7, height:7, borderRadius:'50%', background:'#4ade80', display:'inline-block' }} />
-              <span style={{ fontSize:12, color:'#4ade80', fontWeight:600 }}>Online</span>
+            <NexusLogo size={22} variant="light" />
+            <span className="hidden sm:inline text-white/45 text-[10px] font-bold tracking-[0.18em] uppercase">
+              USER-DASHBOARD
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Notification Bell */}
+            <button className="relative bg-none border-none cursor-pointer text-white/45 flex items-center hover:text-white/70 transition-colors">
+              <Bell size={18} />
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400" />
+            </button>
+            
+            {/* Online Status - Hidden on very small screens */}
+            <div className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-emerald-400/8 border border-emerald-400/20">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+              <span className="text-xs text-emerald-400 font-semibold">Online</span>
             </div>
-            <button style={{ padding:'6px 14px', borderRadius:8, fontSize:12, fontWeight:600, color:'rgba(255,255,255,0.75)', background:'transparent', cursor:'pointer', border:'1px solid rgba(74,222,128,0.25)' }}>
+            
+            {/* Module Selector - Hidden on small screens */}
+            <button className="hidden md:block px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white/75 bg-transparent cursor-pointer border border-emerald-400/25 hover:bg-emerald-400/5 transition-colors">
               Pharmacy Module
             </button>
-            <div style={{ width:34, height:34, borderRadius:'50%', background:'linear-gradient(135deg,#2e7d32,#1e5c1e)', border:'2px solid rgba(74,222,128,0.3)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:'#fff', flexShrink:0 }}>AK</div>
+            
+            {/* User Avatar */}
+            <div className="w-8.5 h-8.5 rounded-full bg-linear-to-br from-emerald-700 to-emerald-800 border-2 border-emerald-400/30 flex items-center justify-center text-xs font-bold text-white shrink-0">
+              AK
+            </div>
           </div>
         </header>
 
-        {/* Main */}
-        <main style={{ flex:1, overflowY:'auto', padding:'28px 32px', display:'flex', flexDirection:'column', gap:24 }}>
-          {/* Greeting */}
-          <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', gap:16 }}>
-            <div>
-              <h1 style={{ fontSize:30, fontWeight:900, color:'#fff', margin:'0 0 6px', lineHeight:1.1 }}>{getGreeting()}, Ahmed</h1>
-              <p style={{ fontSize:13, color:'rgba(255,255,255,0.38)', margin:0, display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 flex flex-col gap-4 sm:gap-6">
+          {/* Greeting Section */}
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-2xl sm:text-[30px] font-black text-white mb-1.5 leading-tight">
+                {getGreeting()}, Ahmed
+              </h1>
+              <p className="text-xs sm:text-[13px] text-white/40 m-0 flex items-center gap-2 flex-wrap">
                 <span>{dayName}</span>
-                <span style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,0.25)', display:'inline-block' }} />
+                <span className="w-1 h-1 rounded-full bg-white/25 inline-block" />
                 <span>{dateStr}</span>
-                <span style={{ width:4, height:4, borderRadius:'50%', background:'rgba(255,255,255,0.25)', display:'inline-block' }} />
-                <span>Pharmacy module</span>
+                <span className="hidden sm:inline w-1 h-1 rounded-full bg-white/25" />
+                <span className="hidden sm:inline">Pharmacy module</span>
               </p>
             </div>
-            <div style={{ display:'flex', alignItems:'center', gap:8, flexShrink:0, padding:'8px 16px', borderRadius:12, background:'rgba(74,222,128,0.06)', border:'1px solid rgba(74,222,128,0.15)' }}>
-              <span style={{ fontSize:16, fontFamily:'monospace', fontWeight:700, color:'#fff', letterSpacing:'0.05em' }}>{hours}:{minutes}</span>
-              <span style={{ fontSize:11, color:'rgba(74,222,128,0.7)', fontWeight:600 }}>PKT</span>
+            
+            {/* Live Clock */}
+            <div className="flex items-center gap-2 shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-emerald-400/6 border border-emerald-400/15">
+              <span className="text-sm sm:text-base font-mono font-bold text-white tracking-wider">
+                {hours}:{minutes}
+              </span>
+              <span className="text-[10px] sm:text-[11px] text-emerald-400/70 font-semibold">PKT</span>
             </div>
           </div>
 
-          {/* Summary */}
-          <section style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          {/* Summary Cards */}
+          <section className="flex flex-col gap-3">
             <SectionLabel>Summary</SectionLabel>
-            <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               <StatCard title="Today's Sales" icon={ShoppingCart}>
                 <div>
-                  <p style={{ fontSize:28, fontWeight:900, color:'#fff', margin:'0 0 4px' }}>Rs 84,200</p>
-                  <p style={{ fontSize:12, color:'#4ade80', fontWeight:600, margin:0, display:'flex', alignItems:'center', gap:4 }}>
+                  <p className="text-2xl sm:text-[28px] font-black text-white mb-1">Rs 84,200</p>
+                  <p className="text-xs text-emerald-400 font-semibold m-0 flex items-center gap-1">
                     <TrendingUp size={13} />+12% vs yesterday
                   </p>
                 </div>
               </StatCard>
+              
               <StatCard title="Inventory" icon={Archive}>
                 <div>
-                  <p style={{ fontSize:28, fontWeight:900, color:'#fff', margin:'0 0 4px' }}>1,340</p>
-                  <p style={{ fontSize:12, color:'#f59e0b', fontWeight:600, margin:0, display:'flex', alignItems:'center', gap:4 }}>
+                  <p className="text-2xl sm:text-[28px] font-black text-white mb-1">1,340</p>
+                  <p className="text-xs text-amber-400 font-semibold m-0 flex items-center gap-1">
                     <AlertTriangle size={12} />8 items low stock
                   </p>
                 </div>
               </StatCard>
+              
               <StatCard title="Subscription" icon={Crown}>
-                <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                  <div style={{ display:'flex', alignItems:'center', gap:6, padding:'6px 12px', borderRadius:8, width:'fit-content', background:'rgba(74,222,128,0.1)', border:'1px solid rgba(74,222,128,0.22)' }}>
-                    <Check size={13} style={{ color:'#4ade80' }} />
-                    <span style={{ fontSize:13, fontWeight:700, color:'#4ade80' }}>PRO ACTIVE</span>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg w-fit bg-emerald-400/10 border border-emerald-400/20">
+                    <Check size={13} className="text-emerald-400" />
+                    <span className="text-[13px] font-bold text-emerald-400">PRO ACTIVE</span>
                   </div>
-                  <p style={{ fontSize:11, color:'rgba(255,255,255,0.35)', margin:0 }}>Renews Jul 17, 2026</p>
+                  <p className="text-[11px] text-white/35 m-0">Renews Jul 17, 2026</p>
                 </div>
               </StatCard>
             </div>
           </section>
 
           {/* Quick Actions */}
-          <section style={{ display:'flex', flexDirection:'column', gap:12 }}>
+          <section className="flex flex-col gap-3">
             <SectionLabel>Quick Actions</SectionLabel>
-            <div style={{ display:'flex', gap:12, flexWrap:'wrap' }}>
-              <QuickActionCard icon={Plus}      label="Add item"     sub="Add to inventory" onClick={()=>setActive('inventory')} />
-              <QuickActionCard icon={FileText}  label="Create bill"  sub="New transactions" onClick={()=>setActive('billing')}   />
-              <QuickActionCard icon={BarChart2} label="View reports" sub="Sales analytics"  onClick={()=>setActive('reports')}   />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <QuickActionCard 
+                icon={Plus}      
+                label="Add item"     
+                sub="Add to inventory" 
+                onClick={() => handleNavClick('inventory')} 
+              />
+              <QuickActionCard 
+                icon={FileText}  
+                label="Create bill"  
+                sub="New transactions" 
+                onClick={() => handleNavClick('billing')}   
+              />
+              <QuickActionCard 
+                icon={BarChart2} 
+                label="View reports" 
+                sub="Sales analytics"  
+                onClick={() => handleNavClick('reports')}   
+              />
             </div>
           </section>
 
-          {/* Bottom panels */}
-          <div style={{ display:'flex', gap:16, flexWrap:'wrap', paddingBottom:8 }}>
-            <div style={{ flex:1, minWidth:260, background:'rgba(255,255,255,0.025)', border:'1px solid rgba(74,222,128,0.1)', borderRadius:14, padding:20 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-                <Clock size={14} style={{ color:'#4ade80' }} />
-                <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', color:'rgba(74,222,128,0.75)', textTransform:'uppercase' }}>Recent Activity</span>
+          {/* Bottom Panels: Recent Activity & Low Stock */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-2">
+            {/* Recent Activity Panel */}
+            <div className="bg-white/2.5 border border-emerald-400/10 rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Clock size={14} className="text-emerald-400" />
+                <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/75 uppercase">
+                  Recent Activity
+                </span>
               </div>
-              <ul style={{ listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:12 }}>
-                {RECENT_ACTIVITY.map(item => (
-                  <li key={item.id} style={{ display:'flex', alignItems:'center', gap:10 }}>
-                    <span style={{ width:8, height:8, borderRadius:'50%', background:item.color, flexShrink:0 }} />
-                    <span style={{ flex:1, fontSize:13, color:'rgba(255,255,255,0.65)' }}>{item.text}</span>
-                    <span style={{ fontSize:11, color:'rgba(255,255,255,0.28)', flexShrink:0 }}>{item.time}</span>
+              <ul className="list-none m-0 p-0 flex flex-col gap-3">
+                {RECENT_ACTIVITY.map((item) => (
+                  <li key={item.id} className="flex items-center gap-2.5">
+                    <span 
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ backgroundColor: item.color }}
+                    />
+                    <span className="flex-1 text-xs sm:text-[13px] text-white/65">{item.text}</span>
+                    <span className="text-[10px] sm:text-[11px] text-white/30 shrink-0">{item.time}</span>
                   </li>
                 ))}
               </ul>
             </div>
-            <div style={{ flex:1, minWidth:260, background:'rgba(255,255,255,0.025)', border:'1px solid rgba(74,222,128,0.1)', borderRadius:14, padding:20 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:16 }}>
-                <Package size={14} style={{ color:'#4ade80' }} />
-                <span style={{ fontSize:10, fontWeight:700, letterSpacing:'0.12em', color:'rgba(74,222,128,0.75)', textTransform:'uppercase' }}>Low Stock</span>
+
+            {/* Low Stock Panel */}
+            <div className="bg-white/2.5 border border-emerald-400/10 rounded-2xl p-4 sm:p-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Package size={14} className="text-emerald-400" />
+                <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/75 uppercase">
+                  Low Stock
+                </span>
               </div>
-              <ul style={{ listStyle:'none', margin:0, padding:0, display:'flex', flexDirection:'column', gap:14 }}>
-                {LOW_STOCK.map(item => (
-                  <li key={item.name}>
-                    <div style={{ display:'flex', justifyContent:'space-between', marginBottom:6 }}>
-                      <span style={{ fontSize:13, color:'rgba(255,255,255,0.65)' }}>{item.name}</span>
-                      <span style={{ fontSize:12, fontWeight:700, color:item.color }}>{item.qty}</span>
+              <ul className="list-none m-0 p-0 flex flex-col gap-3.5">
+                {LOW_STOCK_ITEMS.map((item) => (
+                  <li key={item.name} className="flex flex-col gap-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-xs sm:text-[13px] text-white/65">{item.name}</span>
+                      <span className="text-xs font-bold" style={{ color: item.color }}>
+                        {item.qty}
+                      </span>
                     </div>
-                    <div style={{ height:5, borderRadius:99, background:'rgba(255,255,255,0.07)', overflow:'hidden' }}>
-                      <div style={{ height:'100%', borderRadius:99, width:((item.qty/item.max)*100)+'%', background:item.color, transition:'width 0.5s ease' }} />
+                    <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
+                      <div 
+                        className="h-full rounded-full transition-all duration-500 ease-out"
+                        style={{ 
+                          width: `${(item.qty / item.max) * 100}%`, 
+                          backgroundColor: item.color 
+                        }}
+                      />
                     </div>
                   </li>
                 ))}
