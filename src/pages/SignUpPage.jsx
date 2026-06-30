@@ -46,14 +46,14 @@ function BrandPanel() {
 
       {/* Stats */}
       <div className="flex gap-3">
-        <div className="flex-1 rounded-xl p-3 bg-white/[0.08]">
+        <div className="flex-1 rounded-xl p-3 bg-white/8">
           <p className="text-[10px] font-medium mb-1 text-white/55">Sales</p>
           <p className="text-white font-bold text-[18px]">$12.4k</p>
           <p className="text-[10px] mt-0.5 flex items-center gap-1 text-green-400">
             <TrendingUp size={10} /> 8% this week
           </p>
         </div>
-        <div className="flex-1 rounded-xl p-3 bg-white/[0.08]">
+        <div className="flex-1 rounded-xl p-3 bg-white/8">
           <p className="text-[10px] font-medium mb-1 text-white/55">Orders</p>
           <p className="text-white font-bold text-[18px]">284</p>
           <p className="text-[10px] mt-0.5 flex items-center gap-1 text-green-400">
@@ -63,7 +63,7 @@ function BrandPanel() {
       </div>
 
       {/* Chart */}
-      <div className="rounded-xl overflow-hidden mt-3 bg-white/[0.06] h-[80px] p-2 pb-1">
+      <div className="rounded-xl overflow-hidden mt-3 bg-white/6 h-20 p-2 pb-1">
         <SparklineChart />
       </div>
     </div>
@@ -189,7 +189,7 @@ export default function SignUpPage() {
           {isError && (
             <div
               role="alert"
-              className="mb-3 px-3 py-[7px] rounded-full bg-red-50 border border-red-200 text-[11.5px] text-red-600 text-center"
+              className="mb-3 px-3 py-1.75 rounded-full bg-red-50 border border-red-200 text-[11.5px] text-red-600 text-center"
             >
               {errorMsg}
             </div>
@@ -282,7 +282,7 @@ export default function SignUpPage() {
               type="submit"
               disabled={isLoading}
               className={[
-                'mt-1 w-full flex items-center justify-center gap-2 py-[11px] rounded-lg',
+                'mt-1 w-full flex items-center justify-center gap-2 py-2.75 rounded-lg',
                 'bg-nexus text-white text-sm font-bold border-none transition-all active:scale-[0.99]',
                 isLoading
                   ? 'cursor-not-allowed opacity-85'
@@ -309,7 +309,7 @@ export default function SignUpPage() {
           {/* Google */}
           <button
             type="button"
-            className="w-full py-[9px] rounded-lg border-[1.5px] border-gray-200 bg-white cursor-pointer flex items-center justify-center gap-2 text-[13px] font-semibold text-gray-900 hover:border-gray-300 hover:shadow-md transition-all"
+            className="w-full py-2.25 rounded-lg border-[1.5px] border-gray-200 bg-white cursor-pointer flex items-center justify-center gap-2 text-[13px] font-semibold text-gray-900 hover:border-gray-300 hover:shadow-md transition-all"
           >
             <GoogleIcon />
             Google

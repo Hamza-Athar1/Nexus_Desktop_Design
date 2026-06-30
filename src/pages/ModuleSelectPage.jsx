@@ -32,7 +32,7 @@ export default function ModuleSelectPage() {
     <div className="min-h-screen w-full flex flex-col nexus-bg">
 
       {/* ── Navbar ──────────────────────────────────────────────────── */}
-      <header className="w-full nexus-navbar flex items-center justify-between px-4 sm:px-7 h-[54px] sm:h-[58px] flex-shrink-0 shadow-[0_2px_16px_rgba(0,0,0,0.2)]">
+      <header className="w-full nexus-navbar flex items-center justify-between px-4 sm:px-7 h-13.5 sm:h-14.5 shrink-0 shadow-[0_2px_16px_rgba(0,0,0,0.2)]">
         {/* Brand */}
         <div className="flex items-center gap-2">
           <NexusLogo size={30} variant="light" />
@@ -45,7 +45,7 @@ export default function ModuleSelectPage() {
           <button
             id="logout-btn"
             onClick={() => navigate('/')}
-            className="flex items-center gap-1.5 bg-white/[0.12] border border-white/20 rounded-lg text-white text-[13px] font-medium px-3 sm:px-3.5 py-1.5 cursor-pointer hover:bg-white/20 transition-all"
+            className="flex items-center gap-1.5 bg-white/12 border border-white/20 rounded-lg text-white text-[13px] font-medium px-3 sm:px-3.5 py-1.5 cursor-pointer hover:bg-white/20 transition-all"
           >
             <LogOut size={14} />
             Logout
@@ -70,7 +70,7 @@ export default function ModuleSelectPage() {
             NOTE: per-module accent colors (border, shadow, bg) are dynamic,
             so a minimal inline style is kept only for those 2-3 properties.
             All structural/layout/typography uses Tailwind. */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 w-full max-w-[900px]" role="list">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 w-full max-w-225" role="list">
           {MODULES.map(mod => {
             const isActive = active === mod.id;
             return (
@@ -90,7 +90,7 @@ export default function ModuleSelectPage() {
                 className={[
                   'relative flex flex-col items-center gap-2 sm:gap-2.5 px-3 sm:px-4 pt-4 sm:pt-6 pb-4 sm:pb-5 rounded-2xl',
                   'cursor-pointer transition-all outline-none group',
-                  !isActive && 'hover:-translate-y-[3px] hover:shadow-[0_8px_20px_rgba(0,0,0,0.10)]',
+                  !isActive && 'hover:-translate-y-0.75 hover:shadow-[0_8px_20px_rgba(0,0,0,0.10)]',
                 ].join(' ')}
               >
                 {/* Checkmark badge */}
@@ -105,7 +105,7 @@ export default function ModuleSelectPage() {
 
                 {/* Icon bubble */}
                 <span
-                  className="flex items-center justify-center w-[46px] h-[46px] sm:w-[58px] sm:h-[58px] rounded-2xl text-[22px] sm:text-[28px] transition-colors"
+                  className="flex items-center justify-center w-11.5 h-11.5 sm:w-14.5 sm:h-14.5 rounded-2xl text-[22px] sm:text-[28px] transition-colors"
                   style={{ background: isActive ? `${mod.accent}18` : '#f4f6f0' }}
                   role="img"
                   aria-label={mod.name}
@@ -142,7 +142,7 @@ export default function ModuleSelectPage() {
         </div>
 
         {/* ── Bottom action bar ──────────────────────────────────── */}
-        <div className="flex flex-col items-center gap-3 w-full max-w-full sm:max-w-[420px]">
+        <div className="flex flex-col items-center gap-3 w-full max-w-full sm:max-w-105">
           {/* Selection status */}
           <div className="h-7 flex items-center justify-center">
             {selectedMod ? (
@@ -160,7 +160,7 @@ export default function ModuleSelectPage() {
             onClick={handleLaunch}
             disabled={!active}
             className={[
-              'w-full flex items-center justify-center gap-2 py-[13px] rounded-[10px]',
+              'w-full flex items-center justify-center gap-2 py-3.25 rounded-[10px]',
               'text-[14px] font-bold border-none transition-all',
               active
                 ? 'bg-nexus text-white cursor-pointer hover:bg-nexus-dark shadow-[0_4px_16px_rgba(30,92,30,0.3)] active:scale-[0.99]'

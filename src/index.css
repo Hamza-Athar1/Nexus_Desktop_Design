@@ -2,7 +2,12 @@
 @import "tailwindcss";
 
 /* ── Design tokens ───────────────────────────────────────────────── */
-
+@theme {
+  --color-nexus:       #1e5c1e;
+  --color-nexus-dark:  #14391a;
+  --color-nexus-cream: #e8d87a;
+  --font-sans: 'Inter', sans-serif;
+}
 
 /* ── Base ────────────────────────────────────────────────────────── */
 html,
@@ -25,8 +30,8 @@ body {
 
   /* Page backgrounds */
   .nexus-bg {
-    background: linear-gradient(135deg, #eaf0cc 0%, #d6e4a2 45%, #cade8e 100%);
-  }
+  background: linear-gradient(135deg, #F1EFC8E5 0%, #eaf0cc 45%, #d6e4a2 100%);
+}
   .nexus-dark-bg {
     background: linear-gradient(160deg, #1a4a1a 0%, #1e5c1e 55%, #14391a 100%);
   }
