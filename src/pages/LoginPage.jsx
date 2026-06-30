@@ -279,7 +279,7 @@ export default function LoginPage() {
               shape="pill"
               text="signin_with"
               theme="outline"
-              width="120%"
+              width="100%"
             />
           </div>
 
