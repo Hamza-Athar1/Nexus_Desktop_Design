@@ -36,7 +36,7 @@ function BrandPanel() {
 
       {/* Hero text */}
       <div className="flex flex-col gap-3 mb-2">
-        <p className="text-[32px] font-black leading-[1.1] tracking-tight text-green-400 uppercase">
+        <p className="text-[32px] font-black leading-[1.1] tracking-tight text-gray-100 uppercase">
           SMART<br />BUSINESS<br />STARTS HERE
         </p>
         <p className="text-[12px] text-white/55 leading-relaxed">
