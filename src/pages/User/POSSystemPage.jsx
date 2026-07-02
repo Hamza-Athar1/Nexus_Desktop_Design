@@ -1,124 +1,104 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import {
   Search,
-  Barcode,
+  ScanLine,
   Plus,
   ShoppingCart,
   Package,
-  Pill,
-  Droplet,
-  Syringe,
+  ReceiptText,
+  BarChart3,
+  User,
+  Settings2,
+  LayoutDashboard,
   Minus,
   CreditCard,
-  DollarSign,
+  Banknote,
+  Pill,
+  Droplets,
+  Syringe,
+  AlertTriangle,
   Menu,
-  X,
-  Bell,
+  MonitorSmartphone,
 } from 'lucide-react';
 import NexusLogo from '../../components/NexusLogo';
 
+
 const NAV_MAIN = [
-  { id: 'dashboard', label: 'Dashboard', icon: ShoppingCart },
-  { id: 'pos', label: 'POS System', icon: ShoppingCart },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'pos', label: 'POS System', icon: MonitorSmartphone },
   { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'billing', label: 'Billing', icon: CreditCard },
-  { id: 'reports', label: 'Reports', icon: DollarSign },
+  { id: 'billing', label: 'Billing', icon: ReceiptText },
+  { id: 'reports', label: 'Reports', icon: BarChart3 },
 ];
 
 const NAV_ACCOUNT = [
-  { id: 'profile', label: 'Edit Profile', icon: Pill },
-  { id: 'settings', label: 'Settings', icon: X },
+  { id: 'profile', label: 'Edit Profile', icon: User },
+  { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
 
-const PRODUCT_CATEGORIES = ['All', 'Antibiotics', 'Painkillers', 'Syrups'];
+const CATEGORIES = ['All', 'Antibiotics', 'Painkillers', 'Syrups'];
 
 const PRODUCTS = [
-  {
-    id: 1,
-    name: 'Panadol 500 mg',
-    price: '45',
-    stock: 240,
-    category: 'Painkillers',
-    detail: 'Strip of 10',
-    icon: Pill,
-  },
-  {
-    id: 2,
-    name: 'Vitamin C 500mg',
-    price: '350',
-    stock: 88,
-    category: 'Syrups',
-    detail: 'Bottle 60 tabs',
-    icon: Syringe,
-  },
-  {
-    id: 3,
-    name: 'ORS Sachet',
-    price: '80',
-    stock: 12,
-    category: 'Syrups',
-    detail: 'Pack of 5',
-    icon: Droplet,
-  },
-  {
-    id: 4,
-    name: 'Flagyl 400mg',
-    price: '180',
-    stock: 56,
-    category: 'Antibiotics',
-    detail: 'Strip of 10',
-    icon: Syringe,
-  },
-  {
-    id: 5,
-    name: 'Augmentin 625mg',
-    price: '45',
-    stock: 240,
-    category: 'Antibiotics',
-    detail: 'Strip of 7',
-    icon: Pill,
-  },
-  {
-    id: 6,
-    name: 'Vitamin C 500mg',
-    price: '320',
-    stock: 3,
-    category: 'Syrups',
-    detail: 'Strip of 10',
-    icon: Droplet,
-    lowStock: true,
-  },
+  { id: 1, name: 'Panadol 500 mg', price: 45, stock: 240, cat: 'Painkillers', detail: 'Strip of 10', icon: Pill },
+  { id: 2, name: 'Vitamin C 500mg', price: 350, stock: 88, cat: 'Syrups', detail: 'Bottle 60 tabs', icon: Syringe },
+  { id: 3, name: 'ORS Sachet', price: 80, stock: 12, cat: 'Syrups', detail: 'Pack of 5', icon: Droplets },
+  { id: 4, name: 'Flagyl 400mg', price: 180, stock: 56, cat: 'Antibiotics', detail: 'Strip of 10', icon: Syringe },
+  { id: 5, name: 'Augmentin 625mg', price: 45, stock: 240, cat: 'Antibiotics', detail: 'Strip of 7', icon: Pill },
+  { id: 6, name: 'Vitamin C 500mg', price: 320, stock: 3, cat: 'Syrups', detail: 'Strip of 10', icon: Droplets, lowStock: true },
 ];
 
 const INITIAL_CART = [
   { id: 1, name: 'Panadol 500mg', qty: 2, price: 45 },
   { id: 3, name: 'ORS Sachet', qty: 1, price: 80 },
-  { id: 2, name: 'Vitamin C 500mg', qty: 1, price: 350 },
+  { id: 2, name: 'Vitamic C 500mg', qty: 1, price: 350 },
 ];
 
-function SidebarButton({ icon: Icon, label, active, onClick }) {
+// Sub-components 
+
+function NavItem({ icon: Icon, label, active, onClick }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-left transition-all duration-200 ${
-        active ? 'bg-[#f0ebca] text-[#0f3719] shadow-[0_0_18px_rgba(15,55,25,0.12)]' : 'text-[#e9e2b4] hover:bg-[#ecf0d0]/20'
-      }`}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '10px',
+        width: '100%',
+        padding: '9px 14px',
+        borderRadius: '999px',
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: '13px',
+        fontWeight: active ? '600' : '500',
+        textAlign: 'left',
+        transition: 'all 0.18s ease',
+        background: active ? '#dce8b2' : 'transparent',
+        color: active ? '#0f2f10' : '#b8c99a',
+      }}
     >
-      <Icon size={16} className={active ? 'text-[#0f3719]' : 'text-[#e9e2b4]'} />
+      <Icon size={15} style={{ color: active ? '#0f2f10' : '#8aab70', flexShrink: 0 }} />
       {label}
     </button>
   );
 }
 
-function CategoryButton({ label, active, onClick }) {
+function CategoryPill({ label, active, onClick }) {
   return (
     <button
       type="button"
       onClick={() => onClick(label)}
-      className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-        active ? 'bg-[#f0ebca] text-[#0f3719]' : 'bg-[#eaf0cf]/80 text-[#123819] hover:bg-[#f2f5d0]'
-      }`}
+      style={{
+        padding: '6px 18px',
+        borderRadius: '999px',
+        border: active ? '1.5px solid #3b7a3b' : '1.5px solid #c8d49a',
+        background: active ? '#c8d49a' : 'transparent',
+        color: active ? '#0f2f10' : '#3a5a2a',
+        fontSize: '13px',
+        fontWeight: '600',
+        cursor: 'pointer',
+        transition: 'all 0.16s ease',
+      }}
     >
       {label}
     </button>
@@ -127,263 +107,370 @@ function CategoryButton({ label, active, onClick }) {
 
 function ProductCard({ item, onAdd }) {
   const Icon = item.icon;
+  const [hovered, setHovered] = useState(false);
+
   return (
-    <div className="rounded-[26px] bg-[#113b16] border border-[#1f551f]/80 p-5 shadow-[0_18px_40px_rgba(16,57,21,0.16)]">
-      <div className="flex items-center justify-between mb-5">
-        <span className="inline-flex items-center justify-center w-11 h-11 rounded-2xl bg-[#1f5a24]/20 border border-[#2f7d36]/40 text-emerald-200">
-          <Icon size={20} />
-        </span>
-        <button
-          type="button"
-          className="rounded-full border border-[#9cdc8d]/20 bg-[#d5e7b4]/15 px-3 py-1 text-xs font-bold uppercase text-[#e9f1da]"
-          onClick={() => onAdd(item)}
-        >
-          Add
-        </button>
+    <div
+      onClick={() => onAdd(item)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        background: '#1a3d1a',
+        borderRadius: '20px',
+        border: '1px solid #2a5a2a',
+        padding: '18px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '14px',
+        cursor: 'pointer',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hovered ? '0 10px 28px rgba(0,0,0,0.28)' : '0 2px 8px rgba(0,0,0,0.12)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+      }}
+    >
+      <div
+        style={{
+          width: '44px',
+          height: '44px',
+          borderRadius: '14px',
+          background: 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#a8d888',
+        }}
+      >
+        <Icon size={20} />
       </div>
-      <div className="space-y-2">
-        <h3 className="text-base font-bold text-[#f0f6d7]">{item.name}</h3>
-        <p className="text-xs text-[#b1c89d]">{item.detail}</p>
-        <p className="text-lg font-black text-[#f4f7d8]">RS {item.price}</p>
-        <p className={`text-sm ${item.lowStock ? 'text-[#f87171]' : 'text-[#a8c696]'}`}>Stock: {item.stock}{item.lowStock ? ' ⚠' : ''}</p>
+
+      <div>
+        <p style={{ color: '#e8f0d0', fontWeight: '700', fontSize: '15px', margin: '0 0 3px' }}>
+          {item.name}
+        </p>
+        <p style={{ color: '#7aaa65', fontSize: '12px', margin: '0 0 8px' }}>
+          {item.detail}
+        </p>
+        <p style={{ color: '#f0f5d8', fontWeight: '900', fontSize: '20px', margin: '0 0 4px' }}>
+          RS {item.price}
+        </p>
+        <p style={{
+          fontSize: '12px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          margin: 0,
+          color: item.lowStock ? '#f87171' : '#88bb70',
+        }}>
+          Stock: {item.stock}
+          {item.lowStock && <AlertTriangle size={12} />}
+        </p>
       </div>
     </div>
   );
 }
 
-function CartItem({ item, onChange }) {
+function CartRow({ item, onChange }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-3 border-b border-[#d4e0b3]/20 last:border-b-0">
-      <div>
-        <p className="text-sm font-semibold text-[#152f16]">{item.name}</p>
-        <p className="text-xs text-[#677754]">Rs {item.price}</p>
-      </div>
-      <div className="flex items-center gap-2">
+    <div style={{ padding: '10px 0' }}>
+      <p style={{ fontSize: '13px', fontWeight: '600', color: '#1a3a1a', margin: '0 0 8px' }}>
+        {item.name}
+      </p>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
         <button
           type="button"
           onClick={() => onChange(item.id, item.qty - 1)}
-          className="h-9 w-9 rounded-lg bg-[#153216] text-[#d8e3b8] flex items-center justify-center"
+          style={{
+            width: '30px', height: '30px', borderRadius: '8px',
+            background: '#1a3a1a', border: 'none', color: '#d0e8b0',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+          }}
         >
-          <Minus size={16} />
+          <Minus size={13} />
         </button>
-        <span className="w-7 text-center text-sm font-bold text-[#142d17]">{item.qty}</span>
+        <span style={{ width: '24px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#1a3a1a' }}>
+          {item.qty}
+        </span>
         <button
           type="button"
           onClick={() => onChange(item.id, item.qty + 1)}
-          className="h-9 w-9 rounded-lg bg-[#153216] text-[#d8e3b8] flex items-center justify-center"
+          style={{
+            width: '30px', height: '30px', borderRadius: '8px',
+            background: '#1a3a1a', border: 'none', color: '#d0e8b0',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0,
+          }}
         >
-          <Plus size={16} />
+          <Plus size={13} />
         </button>
       </div>
     </div>
   );
 }
 
-export default function POSSystemPage() {
-  const [activeTab, setActiveTab] = useState('pos');
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [cartItems, setCartItems] = useState(INITIAL_CART);
+// Main Component 
 
-  const filteredProducts = useMemo(
-    () => PRODUCTS.filter((product) =>
-      selectedCategory === 'All' ? true : product.category === selectedCategory
-    ),
-    [selectedCategory]
+export default function POSSystemPage() {
+  const [activeNav, setActiveNav] = useState('pos');
+  const [category, setCategory] = useState('All');
+  const [cartItems, setCartItems] = useState(INITIAL_CART);
+  const [paymentMode, setPaymentMode] = useState('cash');
+
+  const filtered = useMemo(
+    () => PRODUCTS.filter(p => category === 'All' || p.cat === category),
+    [category]
   );
 
-  const cartTotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + item.qty * item.price, 0),
+  const subtotal = useMemo(
+    () => cartItems.reduce((s, i) => s + i.qty * i.price, 0),
     [cartItems]
   );
+  const gst = Math.round(subtotal * 0.17);
+  const total = subtotal + gst;
 
-  const handleQuantityChange = (id, qty) => {
-    setCartItems((current) =>
-      current
-        .map((item) => (item.id === id ? { ...item, qty: Math.max(1, qty) } : item))
-        .filter((item) => item.qty > 0)
+  const handleQty = (id, qty) =>
+    setCartItems(prev =>
+      prev.map(i => i.id === id ? { ...i, qty: Math.max(1, qty) } : i).filter(i => i.qty > 0)
     );
-  };
 
-  const handleAddToCart = (product) => {
-    setCartItems((current) => {
-      const existing = current.find((item) => item.id === product.id);
-      if (existing) {
-        return current.map((item) =>
-          item.id === product.id ? { ...item, qty: item.qty + 1 } : item
-        );
-      }
-      return [...current, { id: product.id, name: product.name, qty: 1, price: Number(product.price) }];
+  const handleAdd = (product) =>
+    setCartItems(prev => {
+      const exists = prev.find(i => i.id === product.id);
+      if (exists) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+      return [...prev, { id: product.id, name: product.name, qty: 1, price: product.price }];
     });
-  };
+
+  // â”€â”€ Inline style objects â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+  const divider = { height: '1px', background: '#c8d498', margin: '6px 0' };
+
+  const payBtn = (active) => ({
+    flex: 1,
+    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
+    padding: '8px 0',
+    borderRadius: '10px',
+    border: active ? '1.5px solid #1a3a1a' : '1.5px solid #c0cc90',
+    background: active ? 'rgba(26,58,26,0.1)' : 'transparent',
+    color: '#1a3a1a',
+    fontSize: '12px', fontWeight: '700',
+    cursor: 'pointer',
+    transition: 'all 0.15s',
+  });
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#eef0d2] font-inter">
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)} />
-      )}
+    <div style={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden', fontFamily: 'Inter, sans-serif', background: '#cdd8a2' }}>
 
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 bg-[#143a16] border-r border-[#2e5d25]/45 p-5 transition-transform duration-300 lg:static ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <div className="flex items-center gap-3">
-            <NexusLogo size={28} variant="light" />
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.22em] font-bold text-[#e7e2b5]">User-Dashboard</p>
-              <p className="text-[11px] text-[#c1c99f]">POS System</p>
-            </div>
+      {/* â”€â”€ Sidebar â”€ */}
+      <aside style={{
+        width: '210px', minWidth: '210px',
+        background: '#132e14',
+        display: 'flex', flexDirection: 'column',
+        padding: '20px 14px',
+        overflowY: 'auto',
+      }}>
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '28px', paddingLeft: '4px' }}>
+          <NexusLogo size={30} variant="light" />
+          <div>
+            <p style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '0.16em', color: '#e8e4b8', textTransform: 'uppercase', margin: 0 }}>
+              User-Dashboard
+            </p>
+            <p style={{ fontSize: '10px', color: '#8aaa70', margin: 0 }}>POS System</p>
           </div>
-          <button className="lg:hidden text-[#c9d6b0] hover:text-[#f2f4d3]" onClick={() => setIsSidebarOpen(false)}>
-            <X size={20} />
-          </button>
         </div>
 
-        <div className="space-y-3">
-          <p className="text-[9px] uppercase tracking-[0.22em] font-bold text-[#aec18d]">Main</p>
-          {NAV_MAIN.map((item) => (
-            <SidebarButton
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              active={activeTab === item.id}
-              onClick={() => setActiveTab(item.id)}
-            />
-          ))}
+        {/* Main nav */}
+        <p style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.2em', color: '#6a8a55', textTransform: 'uppercase', padding: '0 14px', marginBottom: '6px', marginTop: 0 }}>
+          Main
+        </p>
+        {NAV_MAIN.map(item => (
+          <NavItem key={item.id} icon={item.icon} label={item.label} active={activeNav === item.id} onClick={() => setActiveNav(item.id)} />
+        ))}
 
-          <p className="mt-6 text-[9px] uppercase tracking-[0.22em] font-bold text-[#aec18d]">Account</p>
-          {NAV_ACCOUNT.map((item) => (
-            <SidebarButton
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              active={activeTab === item.id}
-              onClick={() => setActiveTab(item.id)}
-            />
-          ))}
+        {/* Account nav */}
+        <p style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.2em', color: '#6a8a55', textTransform: 'uppercase', padding: '0 14px', marginBottom: '6px', marginTop: '20px' }}>
+          Account
+        </p>
+        {NAV_ACCOUNT.map(item => (
+          <NavItem key={item.id} icon={item.icon} label={item.label} active={activeNav === item.id} onClick={() => setActiveNav(item.id)} />
+        ))}
+
+        {/* Spacer */}
+        <div style={{ flex: 1 }} />
+
+        {/* PRO plan box */}
+        <div style={{ border: '1px solid #2a4a2a', borderRadius: '14px', padding: '14px', background: 'rgba(255,255,255,0.04)' }}>
+          <p style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.16em', color: '#6a8a55', textTransform: 'uppercase', margin: '0 0 2px' }}>Plan</p>
+          <p style={{ fontSize: '18px', fontWeight: '900', color: '#e8e4b8', margin: '0 0 10px' }}>PRO</p>
+          <div style={{ height: '4px', borderRadius: '999px', background: 'rgba(255,255,255,0.12)', marginBottom: '8px', overflow: 'hidden' }}>
+            <div style={{ width: '65%', height: '100%', borderRadius: '999px', background: '#6ab850' }} />
+          </div>
+          <p style={{ fontSize: '11px', color: '#8aaa70', margin: 0 }}>18 days left</p>
         </div>
       </aside>
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between px-4 sm:px-6 h-15 shrink-0 bg-[#173914] border-b border-emerald-500/15">
-          <div className="flex items-center gap-2">
-            <button className="lg:hidden text-[#d9ddc4] hover:text-[#f7f4d8]" onClick={() => setIsSidebarOpen(true)}>
-              <Menu size={22} />
-            </button>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-bold tracking-[0.18em] text-[#f4f2d8] uppercase">USER-DASHBOARD</span>
-              <span className="text-[#8ec876]">/</span>
-              <span className="text-[10px] font-bold tracking-[0.18em] text-[#f4f2d8] uppercase">POS System - Pharmacy</span>
-            </div>
+      {/* â”€â”€ Right side â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€*/}
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <header style={{
+          background: '#173a17',
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '0 24px', height: '54px', flexShrink: 0,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ fontSize: '11px', fontWeight: '800', letterSpacing: '0.16em', color: '#e8e4b8', textTransform: 'uppercase' }}>
+              USER-DASHBOARD
+            </span>
+            <span style={{ color: '#6ab850', fontSize: '14px' }}>/</span>
+            <span style={{ fontSize: '11px', fontWeight: '600', color: '#c0cc90', letterSpacing: '0.04em' }}>
+              POS System - Pharmacy
+            </span>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="rounded-full bg-[#1f491d]/90 p-3 text-[#dbe4c6] hover:bg-[#2f602e] transition-colors">
-              <Bell size={18} />
-            </button>
-            <div className="rounded-full bg-[#1f491d]/10 px-3 py-1.5 text-sm font-semibold text-[#e8f1d3] border border-emerald-400/20">
-              <span className="inline-flex items-center gap-2">
-                <span className="h-2.5 w-2.5 rounded-full bg-emerald-400" />
-                Online
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {/* Online badge */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: '#d8eabb' }}>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#5dd456', boxShadow: '0 0 6px #5dd456', display: 'inline-block' }} />
+              Online
             </div>
-            <button className="hidden sm:inline rounded-full border border-[#7cb968]/30 bg-[#1f491d]/90 px-4 py-1.5 text-sm font-semibold text-[#eef3d3] hover:bg-[#2d5f2d] transition-colors">
+
+            {/* Pharmacy Module btn */}
+            <button
+              type="button"
+              style={{ padding: '6px 16px', borderRadius: '999px', border: '1.5px solid rgba(255,255,255,0.22)', background: 'transparent', color: '#e8e4b8', fontSize: '12px', fontWeight: '600', cursor: 'pointer' }}
+            >
               Pharmacy Module
             </button>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#214d1d] border border-[#88d46f]/30 text-[11px] font-bold text-[#f8f9e2]">
+
+            {/* Avatar */}
+            <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#1f491d', border: '1.5px solid rgba(110,185,80,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '800', color: '#e8f2d8' }}>
               AK
             </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7">
-          <div className="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
-            <div className="space-y-4">
-              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-                <div className="flex-1">
-                  <label className="relative block rounded-[26px] border border-[#4d7b4a]/30 bg-[#eef2d7] px-4 py-3 shadow-[inset_0_2px_4px_rgba(255,255,255,0.35)]">
-                    <input
-                      type="text"
-                      placeholder="Search product by name"
-                      className="w-full bg-transparent text-sm text-[#1f3f1c] placeholder:text-[#7a946c] outline-none"
-                    />
-                    <Search size={18} className="absolute right-4 top-1/2 -translate-y-1/2 text-[#486c46]" />
-                  </label>
-                </div>
-                <div className="flex flex-wrap gap-3">
-                  <button className="rounded-[18px] border border-[#4d7b4a]/30 bg-[#eef2d7] px-5 py-3 text-sm font-semibold text-[#1d401d] shadow-[0_10px_25px_rgba(184,211,144,0.18)] hover:bg-[#f4f7d9] transition-colors flex items-center gap-2">
-                    <Barcode size={18} /> Scan barcode
-                  </button>
-                  <button className="rounded-[18px] bg-[#1f5922] px-5 py-3 text-sm font-semibold text-[#eef3d4] shadow-[0_10px_25px_rgba(20,61,23,0.24)] hover:bg-[#276b2d] transition-colors flex items-center gap-2">
-                    <Plus size={18} /> Add item
-                  </button>
-                </div>
+        {/* Content */}
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', padding: '18px', gap: '14px' }}>
+
+          {/* â”€â”€ Left column â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€*/}
+          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '14px', overflowY: 'auto' }}>
+
+            {/* Toolbar row */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {/* Search */}
+              <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: '#e4ecba', border: '1.5px solid #c4d094', borderRadius: '14px', padding: '10px 16px' }}>
+                <input
+                  type="text"
+                  placeholder="Search product by name"
+                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#1a3a1a', fontFamily: 'Inter, sans-serif' }}
+                />
+                <Search size={16} style={{ color: '#5a7a45', flexShrink: 0 }} />
               </div>
 
-              <div className="rounded-[30px] border border-[#d6dea9]/60 bg-[#f3f6d9] p-4 shadow-[0_18px_40px_rgba(68,94,46,0.08)]">
-                <div className="flex flex-wrap gap-3">
-                  {PRODUCT_CATEGORIES.map((category) => (
-                    <CategoryButton
-                      key={category}
-                      label={category}
-                      active={selectedCategory === category}
-                      onClick={setSelectedCategory}
-                    />
-                  ))}
-                </div>
+              {/* Scan barcode */}
+              <button
+                type="button"
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 18px', borderRadius: '14px', border: '1.5px solid #c4d094', background: '#e4ecba', color: '#1a3a1a', fontSize: '13px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                <ScanLine size={16} />
+                Scan barcode
+              </button>
+
+              {/* Add item */}
+              <button
+                type="button"
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '10px 18px', borderRadius: '14px', border: 'none', background: '#1a3d1a', color: '#e4ecba', fontSize: '13px', fontWeight: '700', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              >
+                <Plus size={15} />
+                + Add item
+              </button>
+            </div>
+
+            {/* Products section */}
+            <div style={{ background: '#d8e4aa', borderRadius: '18px', padding: '16px', border: '1px solid #c4d494', flex: 1, minHeight: 0 }}>
+              <p style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.22em', color: '#5a7a45', textTransform: 'uppercase', margin: '0 0 12px' }}>
+                Products
+              </p>
+
+              {/* Category pills */}
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                {CATEGORIES.map(cat => (
+                  <CategoryPill key={cat} label={cat} active={category === cat} onClick={setCategory} />
+                ))}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                {filteredProducts.map((item) => (
-                  <ProductCard key={item.id} item={item} onAdd={handleAddToCart} />
+              {/* Product grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+                {filtered.map(item => (
+                  <ProductCard key={item.id} item={item} onAdd={handleAdd} />
                 ))}
               </div>
             </div>
-
-            <aside className="rounded-4xl border border-[#a7be86]/40 bg-[#f1f4d7] p-5 shadow-[0_18px_40px_rgba(85,117,58,0.08)]">
-              <div className="flex items-center justify-between mb-5">
-                <div>
-                  <p className="text-[11px] uppercase tracking-[0.22em] font-bold text-[#516d49]">Cart</p>
-                  <p className="text-sm text-[#2f4c24]">Review items</p>
-                </div>
-                <ShoppingCart size={20} className="text-[#4f7a45]" />
-              </div>
-
-              <div className="space-y-3">
-                {cartItems.map((item) => (
-                  <CartItem key={item.id} item={item} onChange={handleQuantityChange} />
-                ))}
-              </div>
-
-              <div className="mt-6 space-y-3 text-sm text-[#4a6340]">
-                <div className="flex items-center justify-between">
-                  <span>Subtotal</span>
-                  <span>Rs {cartTotal}</span>
-                </div>
-                <div className="flex items-center justify-between text-[#7a8e69]">
-                  <span>GST (17%)</span>
-                  <span>Rs {Math.round(cartTotal * 0.17)}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-[#e4e8bf] px-4 py-3 font-bold text-[#22421f]">
-                  <span>Total</span>
-                  <span>Rs {Math.round(cartTotal * 1.17)}</span>
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-3">
-                <button className="rounded-2xl border border-[#4c7b45] bg-[#eef4d8] px-4 py-3 text-sm font-semibold text-[#1e351d] hover:bg-[#f2f8e3] transition-colors">
-                  Cash
-                </button>
-                <button className="rounded-2xl border border-[#4c7b45] bg-[#eef4d8] px-4 py-3 text-sm font-semibold text-[#1e351d] hover:bg-[#f2f8e3] transition-colors">
-                  Card
-                </button>
-              </div>
-
-              <button className="mt-4 w-full rounded-2xl bg-[#214f1f] px-4 py-3 text-sm font-bold text-[#eef4d8] shadow-[0_14px_26px_rgba(18,45,22,0.28)] hover:bg-[#2c6527] transition-colors">
-                Generate Bill
-              </button>
-            </aside>
           </div>
-        </main>
+
+          {/* â”€â”€ Cart panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€*/}
+          <aside style={{ width: '238px', minWidth: '238px', background: '#e0ebb6', border: '1px solid #c8d498', borderRadius: '20px', padding: '18px', display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+
+            {/* Cart header */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <ShoppingCart size={16} style={{ color: '#2a5a2a' }} />
+              <span style={{ fontSize: '13px', fontWeight: '800', letterSpacing: '0.12em', color: '#1a3a1a', textTransform: 'uppercase' }}>
+                Cart
+              </span>
+            </div>
+
+            <div style={divider} />
+
+            {/* Cart items */}
+            {cartItems.map((item, idx) => (
+              <div key={item.id}>
+                <CartRow item={item} onChange={handleQty} />
+                {idx < cartItems.length - 1 && <div style={divider} />}
+              </div>
+            ))}
+
+            <div style={divider} />
+
+            {/* Totals */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#5a7a45', padding: '4px 0' }}>
+              <span>Subtotal</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#7a9a65', padding: '2px 0' }}>
+              <span>GST (17%)</span>
+            </div>
+
+            <div style={divider} />
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', fontWeight: '800', color: '#1a3a1a', padding: '6px 0' }}>
+              <span>Total</span>
+            </div>
+
+            {/* Payment buttons */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+              <button type="button" style={payBtn(paymentMode === 'cash')} onClick={() => setPaymentMode('cash')}>
+                <Banknote size={13} /> Cash
+              </button>
+              <button type="button" style={payBtn(paymentMode === 'card')} onClick={() => setPaymentMode('card')}>
+                <CreditCard size={13} /> Card
+              </button>
+            </div>
+
+            {/* Generate Bill */}
+            <button
+              type="button"
+              style={{ marginTop: '10px', width: '100%', padding: '12px 0', borderRadius: '12px', border: 'none', background: '#1a3a1a', color: '#e4ecba', fontSize: '13px', fontWeight: '800', cursor: 'pointer', letterSpacing: '0.02em', transition: 'background 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#234f23'}
+              onMouseLeave={e => e.currentTarget.style.background = '#1a3a1a'}
+            >
+              Generate Bill
+            </button>
+          </aside>
+        </div>
       </div>
     </div>
   );
 }
+
