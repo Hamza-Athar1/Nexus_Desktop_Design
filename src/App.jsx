@@ -4,6 +4,7 @@ import SignUpPage         from './pages/SignUpPage';
 import ModuleSelectPage  from './pages/ModuleSelectPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardPage     from './pages/User/DashboardPage';
+import POSSystemPage     from './pages/User/POSSystemPage';
 import AdminDashboardPage from './pages/Admin/AdminDashboardPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/signup"          element={<SignUpPage />} />
       <Route path="/modules"         element={<ModuleSelectPage />} />
       <Route path="/dashboard"        element={<DashboardPage />} />
+      <Route path="/pos"              element={<POSSystemPage />} />
       <Route path="/admin"            element={<AdminDashboardPage />} />
       <Route path="/super-admin"      element={<SuperAdminDashboardPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
