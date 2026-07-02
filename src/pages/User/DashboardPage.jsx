@@ -308,7 +308,7 @@ export default function DashboardPage() {
             </button>
             
             {/* User Avatar */}
-            <div className="w-8.5 h-8.5 rounded-full bg-gradient-to-br from-[#1d5e2f] to-[#114923] border-2 border-emerald-500/20 flex items-center justify-center text-xs font-bold text-[#f6f1d4] shrink-0">
+            <div className="w-8.5 h-8.5 rounded-full bg-linear-to-br from-[#1d5e2f] to-[#114923] border-2 border-emerald-500/20 flex items-center justify-center text-xs font-bold text-[#f6f1d4] shrink-0">
               AK
             </div>
           </div>

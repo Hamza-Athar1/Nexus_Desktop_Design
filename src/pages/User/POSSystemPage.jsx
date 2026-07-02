@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+﻿import { useMemo, useState } from 'react';
 import {
   Search,
   ScanLine,
@@ -12,15 +12,15 @@ import {
   Syringe,
   AlertTriangle,
   Menu,
+  X,
+  Package,
+  BarChart3,
+  UserCircle2,
+  LogOut,
 } from 'lucide-react';
 import NexusLogo from '../../components/NexusLogo';
-import UserSidebar from '../../components/UserSidebar';
-
-
 
 const CATEGORIES = ['All', 'Antibiotics', 'Painkillers', 'Syrups'];
-
-
 
 const PRODUCTS = [
   { id: 1, name: 'Panadol 500 mg', price: 45, stock: 240, cat: 'Painkillers', detail: 'Strip of 10', icon: Pill },
@@ -37,25 +37,40 @@ const INITIAL_CART = [
   { id: 2, name: 'Vitamic C 500mg', qty: 1, price: 350 },
 ];
 
+const NAV_MAIN = [
+  { id: 'pos', label: 'POS', icon: ShoppingCart },
+  { id: 'inventory', label: 'Inventory', icon: Package },
+  { id: 'reports', label: 'Reports', icon: BarChart3 },
+];
 
-// Sub-components
+const NAV_ACCOUNT = [
+  { id: 'profile', label: 'Profile', icon: UserCircle2 },
+  { id: 'logout', label: 'Logout', icon: LogOut },
+];
+
+function NavItem({ icon: Icon, label, active, onClick }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex items-center gap-2 rounded-xl px-3 py-2 text-left text-[12px] font-semibold transition-colors ${
+        active ? 'bg-white/10 text-[#f0f4d7]' : 'text-[#8aaa70] hover:bg-white/5 hover:text-[#d6e6a8]'
+      }`}
+    >
+      <Icon size={15} />
+      <span>{label}</span>
+    </button>
+  );
+}
 
 function CategoryPill({ label, active, onClick }) {
   return (
     <button
       type="button"
       onClick={() => onClick(label)}
-      style={{
-        padding: '6px 18px',
-        borderRadius: '999px',
-        border: active ? '1.5px solid #3b7a3b' : '1.5px solid #c8d49a',
-        background: active ? '#c8d49a' : 'transparent',
-        color: active ? '#0f2f10' : '#3a5a2a',
-        fontSize: '13px',
-        fontWeight: '600',
-        cursor: 'pointer',
-        transition: 'all 0.16s ease',
-      }}
+      className={`cursor-pointer rounded-full border px-4.5 py-1.5 text-[13px] font-semibold transition-all duration-150 ${
+        active ? 'border-[#3b7a3b] bg-[#c8d49a] text-[#0f2f10]' : 'border-[#c8d49a] bg-transparent text-[#3a5a2a]'
+      }`}
     >
       {label}
     </button>
@@ -64,100 +79,47 @@ function CategoryPill({ label, active, onClick }) {
 
 function ProductCard({ item, onAdd }) {
   const Icon = item.icon;
-  const [hovered, setHovered] = useState(false);
 
   return (
-    <div
+    <button
+      type="button"
       onClick={() => onAdd(item)}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: '#1a3d1a',
-        borderRadius: '20px',
-        border: '1px solid #2a5a2a',
-        padding: '18px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '14px',
-        cursor: 'pointer',
-        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
-        boxShadow: hovered ? '0 10px 28px rgba(0,0,0,0.28)' : '0 2px 8px rgba(0,0,0,0.12)',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease',
-      }}
+      className="group flex cursor-pointer flex-col gap-3.5 rounded-[20px] border border-[#2a5a2a] bg-[#1a3d1a] p-4.5 text-left shadow-[0_2px_8px_rgba(0,0,0,0.12)] transition-all duration-150 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_rgba(0,0,0,0.28)]"
     >
-      <div
-        style={{
-          width: '44px',
-          height: '44px',
-          borderRadius: '14px',
-          background: 'rgba(255,255,255,0.08)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: '#a8d888',
-        }}
-      >
+      <div className="flex h-11 w-11 items-center justify-center rounded-[14px] border border-white/10 bg-white/10 text-[#a8d888]">
         <Icon size={20} />
       </div>
 
       <div>
-        <p style={{ color: '#e8f0d0', fontWeight: '700', fontSize: '15px', margin: '0 0 3px' }}>
-          {item.name}
-        </p>
-        <p style={{ color: '#7aaa65', fontSize: '12px', margin: '0 0 8px' }}>
-          {item.detail}
-        </p>
-        <p style={{ color: '#f0f5d8', fontWeight: '900', fontSize: '20px', margin: '0 0 4px' }}>
-          RS {item.price}
-        </p>
-        <p style={{
-          fontSize: '12px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          margin: 0,
-          color: item.lowStock ? '#f87171' : '#88bb70',
-        }}>
+        <p className="mb-0.75 text-[15px] font-bold text-[#e8f0d0]">{item.name}</p>
+        <p className="mb-2 text-[12px] text-[#7aaa65]">{item.detail}</p>
+        <p className="mb-1 text-[20px] font-black text-[#f0f5d8]">RS {item.price}</p>
+        <p className={`flex items-center gap-1 text-[12px] ${item.lowStock ? 'text-[#f87171]' : 'text-[#88bb70]'}`}>
           Stock: {item.stock}
           {item.lowStock && <AlertTriangle size={12} />}
         </p>
       </div>
-    </div>
+    </button>
   );
 }
 
 function CartRow({ item, onChange }) {
   return (
-    <div style={{ padding: '10px 0' }}>
-      <p style={{ fontSize: '13px', fontWeight: '600', color: '#1a3a1a', margin: '0 0 8px' }}>
-        {item.name}
-      </p>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+    <div className="py-2.5">
+      <p className="mb-2 text-[13px] font-semibold text-[#1a3a1a]">{item.name}</p>
+      <div className="flex items-center gap-2">
         <button
           type="button"
           onClick={() => onChange(item.id, item.qty - 1)}
-          style={{
-            width: '30px', height: '30px', borderRadius: '8px',
-            background: '#1a3a1a', border: 'none', color: '#d0e8b0',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', flexShrink: 0,
-          }}
+          className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg border-none bg-[#1a3a1a] text-[#d0e8b0]"
         >
           <Minus size={13} />
         </button>
-        <span style={{ width: '24px', textAlign: 'center', fontSize: '13px', fontWeight: '700', color: '#1a3a1a' }}>
-          {item.qty}
-        </span>
+        <span className="w-6 text-center text-[13px] font-bold text-[#1a3a1a]">{item.qty}</span>
         <button
           type="button"
           onClick={() => onChange(item.id, item.qty + 1)}
-          style={{
-            width: '30px', height: '30px', borderRadius: '8px',
-            background: '#1a3a1a', border: 'none', color: '#d0e8b0',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', flexShrink: 0,
-          }}
+          className="flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-lg border-none bg-[#1a3a1a] text-[#d0e8b0]"
         >
           <Plus size={13} />
         </button>
@@ -165,8 +127,6 @@ function CartRow({ item, onChange }) {
     </div>
   );
 }
-
-//  Main Component 
 
 export default function POSSystemPage() {
   const [activeNav, setActiveNav] = useState('pos');
@@ -176,328 +136,204 @@ export default function POSSystemPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
 
-  const filtered = useMemo(
-    () => PRODUCTS.filter(p => category === 'All' || p.cat === category),
-    [category]
-  );
+  const filtered = useMemo(() => PRODUCTS.filter((p) => category === 'All' || p.cat === category), [category]);
 
-  const subtotal = useMemo(
-    () => cartItems.reduce((s, i) => s + i.qty * i.price, 0),
-    [cartItems]
-  );
+  const subtotal = useMemo(() => cartItems.reduce((s, i) => s + i.qty * i.price, 0), [cartItems]);
   const gst = Math.round(subtotal * 0.17);
   const total = subtotal + gst;
   const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
 
   const handleQty = (id, qty) =>
-    setCartItems(prev =>
-      prev.map(i => i.id === id ? { ...i, qty: Math.max(1, qty) } : i).filter(i => i.qty > 0)
-    );
+    setCartItems((prev) => prev.map((i) => (i.id === id ? { ...i, qty: Math.max(1, qty) } : i)).filter((i) => i.qty > 0));
 
   const handleAdd = (product) =>
-    setCartItems(prev => {
-      const exists = prev.find(i => i.id === product.id);
-      if (exists) return prev.map(i => i.id === product.id ? { ...i, qty: i.qty + 1 } : i);
+    setCartItems((prev) => {
+      const exists = prev.find((i) => i.id === product.id);
+      if (exists) return prev.map((i) => (i.id === product.id ? { ...i, qty: i.qty + 1 } : i));
       return [...prev, { id: product.id, name: product.name, qty: 1, price: product.price }];
     });
 
-  const divider = { height: '1px', background: '#c8d498', margin: '6px 0' };
+  const dividerClass = 'my-[6px] h-px bg-[#c8d498]';
+  const payBtnClass = (active) =>
+    `flex flex-1 items-center justify-center gap-[6px] rounded-[10px] border px-0 py-[8px] text-[12px] font-bold transition-all duration-150 ${
+      active ? 'border-[#1a3a1a] bg-[rgba(26,58,26,0.1)] text-[#1a3a1a]' : 'border-[#c0cc90] bg-transparent text-[#1a3a1a]'
+    }`;
 
-  const payBtn = (active) => ({
-    flex: 1,
-    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-    padding: '8px 0',
-    borderRadius: '10px',
-    border: active ? '1.5px solid #1a3a1a' : '1.5px solid #c0cc90',
-    background: active ? 'rgba(26,58,26,0.1)' : 'transparent',
-    color: '#1a3a1a',
-    fontSize: '12px', fontWeight: '700',
-    cursor: 'pointer',
-    transition: 'all 0.15s',
-  });
-
-  //  Cart panel inner content (shared between drawer + sidebar) 
   const CartPanelContent = (
     <>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
-        <ShoppingCart size={16} style={{ color: '#2a5a2a' }} />
-        <span style={{ fontSize: '13px', fontWeight: '800', letterSpacing: '0.12em', color: '#1a3a1a', textTransform: 'uppercase' }}>
-          Cart
-        </span>
+      <div className="mb-2.5 flex items-center gap-2">
+        <ShoppingCart size={16} className="text-[#2a5a2a]" />
+        <span className="text-[13px] font-extrabold uppercase tracking-[0.12em] text-[#1a3a1a]">Cart</span>
       </div>
 
-      <div style={divider} />
+      <div className={dividerClass} />
 
       {cartItems.map((item, idx) => (
         <div key={item.id}>
           <CartRow item={item} onChange={handleQty} />
-          {idx < cartItems.length - 1 && <div style={divider} />}
+          {idx < cartItems.length - 1 && <div className={dividerClass} />}
         </div>
       ))}
 
-      <div style={divider} />
+      <div className={dividerClass} />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#5a7a45', padding: '4px 0' }}>
+      <div className="flex items-center justify-between px-0 py-1 text-[12px] text-[#5a7a45]">
         <span>Subtotal</span>
         <span>Rs {subtotal}</span>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: '#7a9a65', padding: '2px 0' }}>
+      <div className="flex items-center justify-between px-0 py-0.5 text-[12px] text-[#7a9a65]">
         <span>GST (17%)</span>
         <span>Rs {gst}</span>
       </div>
 
-      <div style={divider} />
+      <div className={dividerClass} />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '14px', fontWeight: '800', color: '#1a3a1a', padding: '6px 0' }}>
+      <div className="flex items-center justify-between px-0 py-1.5 text-[14px] font-extrabold text-[#1a3a1a]">
         <span>Total</span>
         <span>Rs {total}</span>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
-        <button type="button" style={payBtn(paymentMode === 'cash')} onClick={() => setPaymentMode('cash')}>
+      <div className="mt-2.5 flex gap-2">
+        <button type="button" className={payBtnClass(paymentMode === 'cash')} onClick={() => setPaymentMode('cash')}>
           <Banknote size={13} /> Cash
         </button>
-        <button type="button" style={payBtn(paymentMode === 'card')} onClick={() => setPaymentMode('card')}>
+        <button type="button" className={payBtnClass(paymentMode === 'card')} onClick={() => setPaymentMode('card')}>
           <CreditCard size={13} /> Card
         </button>
       </div>
 
-      <button
-        type="button"
-        style={{ marginTop: '10px', width: '100%', padding: '12px 0', borderRadius: '12px', border: 'none', background: '#1a3a1a', color: '#e4ecba', fontSize: '13px', fontWeight: '800', cursor: 'pointer', letterSpacing: '0.02em', transition: 'background 0.15s' }}
-        onMouseEnter={e => e.currentTarget.style.background = '#234f23'}
-        onMouseLeave={e => e.currentTarget.style.background = '#1a3a1a'}
-      >
+      <button type="button" className="mt-2.5 w-full rounded-xl border-none bg-[#1a3a1a] px-0 py-3 text-[13px] font-extrabold tracking-[0.02em] text-[#e4ecba] transition-colors duration-150 hover:bg-[#234f23]" onClick={() => setCartOpen(false)}>
         Generate Bill
       </button>
     </>
   );
 
   return (
-    <div className="flex h-screen w-full overflow-hidden font-[Inter,sans-serif]" style={{ background: '#cdd8a2' }}>
+    <div className="flex h-screen w-full overflow-hidden bg-[#cdd8a2] font-[Inter,sans-serif]">
+      {sidebarOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+      {cartOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setCartOpen(false)} />}
 
-      {/*  Mobile overlays ”€ */}
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
-      {cartOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setCartOpen(false)} />
-      )}
-
-      {/*  Sidebar ”€ */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-y-auto transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}
-        style={{ width: '210px', minWidth: '210px', background: '#132e14', padding: '20px 14px' }}
-      >
-        {/* Logo + close */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <aside className={`fixed inset-y-0 left-0 z-50 flex w-52.5 min-w-52.5 flex-col overflow-y-auto bg-[#132e14] px-3.5 py-5 transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="mb-7 flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
             <NexusLogo size={30} variant="light" />
             <div>
-              <p style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '0.16em', color: '#e8e4b8', textTransform: 'uppercase', margin: 0 }}>
-                User-Dashboard
-              </p>
-              <p style={{ fontSize: '10px', color: '#8aaa70', margin: 0 }}>POS System</p>
+              <p className="m-0 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#e8e4b8]">User-Dashboard</p>
+              <p className="m-0 text-[10px] text-[#8aaa70]">POS System</p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden"
-            style={{ background: 'none', border: 'none', color: '#8aaa70', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
-          >
+          <button type="button" onClick={() => setSidebarOpen(false)} className="rounded p-1 text-[#8aaa70] lg:hidden" aria-label="Close menu">
             <X size={18} />
           </button>
         </div>
 
-        {/* Main nav */}
-        <p style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.2em', color: '#6a8a55', textTransform: 'uppercase', padding: '0 14px', marginBottom: '6px', marginTop: 0 }}>
-          Main
-        </p>
-        {NAV_MAIN.map(item => (
+        <p className="mb-1.5 mt-0 px-3.5 text-[9px] font-extrabold uppercase tracking-[0.2em] text-[#6a8a55]">Main</p>
+        {NAV_MAIN.map((item) => (
           <NavItem key={item.id} icon={item.icon} label={item.label} active={activeNav === item.id} onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }} />
         ))}
 
-        {/* Account nav */}
-        <p style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.2em', color: '#6a8a55', textTransform: 'uppercase', padding: '0 14px', marginBottom: '6px', marginTop: '20px' }}>
-          Account
-        </p>
-        {NAV_ACCOUNT.map(item => (
+        <p className="mb-1.5 mt-5 px-3.5 text-[9px] font-extrabold uppercase tracking-[0.2em] text-[#6a8a55]">Account</p>
+        {NAV_ACCOUNT.map((item) => (
           <NavItem key={item.id} icon={item.icon} label={item.label} active={activeNav === item.id} onClick={() => { setActiveNav(item.id); setSidebarOpen(false); }} />
         ))}
 
-        <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
-        {/* PRO plan box */}
-        <div style={{ border: '1px solid #2a4a2a', borderRadius: '14px', padding: '14px', background: 'rgba(255,255,255,0.04)' }}>
-          <p style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.16em', color: '#6a8a55', textTransform: 'uppercase', margin: '0 0 2px' }}>Plan</p>
-          <p style={{ fontSize: '18px', fontWeight: '900', color: '#e8e4b8', margin: '0 0 10px' }}>PRO</p>
-          <div style={{ height: '4px', borderRadius: '999px', background: 'rgba(255,255,255,0.12)', marginBottom: '8px', overflow: 'hidden' }}>
-            <div style={{ width: '65%', height: '100%', borderRadius: '999px', background: '#6ab850' }} />
+        <div className="rounded-[14px] border border-[#2a4a2a] bg-white/5 p-3.5">
+          <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.16em] text-[#6a8a55]">Plan</p>
+          <p className="mb-2.5 text-[18px] font-black text-[#e8e4b8]">PRO</p>
+          <div className="mb-2 h-1 overflow-hidden rounded-full bg-white/10">
+            <div className="h-full w-[65%] rounded-full bg-[#6ab850]" />
           </div>
-          <p style={{ fontSize: '11px', color: '#8aaa70', margin: 0 }}>18 days left</p>
+          <p className="m-0 text-[11px] text-[#8aaa70]">18 days left</p>
         </div>
       </aside>
 
-      {/*  Right side  */}
-      <div className="flex flex-1 min-w-0 flex-col overflow-hidden">
-
-        {/* Header */}
-        <header
-          className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-5 shrink-0"
-          style={{ background: '#173a17', borderBottom: '1px solid rgba(255,255,255,0.06)', height: '54px' }}
-        >
-          {/* Left: hamburger + breadcrumb */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <button
-              type="button"
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden shrink-0"
-              style={{ background: 'none', border: 'none', color: '#c8d898', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
-            >
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-13.5 shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#173a17] px-3 sm:gap-4 sm:px-5">
+          <div className="flex min-w-0 items-center gap-2 sm:gap-3">
+            <button type="button" onClick={() => setSidebarOpen(true)} className="shrink-0 rounded p-1 text-[#c8d898] lg:hidden" aria-label="Open menu">
               <Menu size={20} />
             </button>
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 overflow-hidden">
-              <span className="hidden sm:block text-[11px] font-[800] tracking-[0.16em] uppercase whitespace-nowrap" style={{ color: '#e8e4b8' }}>
-                USER-DASHBOARD
-              </span>
-              <span className="hidden sm:block" style={{ color: '#6ab850', fontSize: '14px' }}>/</span>
-              <span className="text-[11px] font-[600] truncate" style={{ color: '#c0cc90', letterSpacing: '0.04em' }}>
-                POS System - Pharmacy
-              </span>
+            <div className="flex min-w-0 items-center gap-1.5 overflow-hidden sm:gap-2">
+              <span className="hidden whitespace-nowrap text-[11px] font-extrabold uppercase tracking-[0.16em] text-[#e8e4b8] sm:block">USER-DASHBOARD</span>
+              <span className="hidden text-[14px] text-[#6ab850] sm:block">/</span>
+              <span className="truncate text-[11px] font-semibold uppercase tracking-[0.04em] text-[#c0cc90]">POS System - Pharmacy</span>
             </div>
           </div>
 
-          {/* Right: online + module btn + avatar */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <div className="flex items-center gap-1.5 text-[12px] font-[600]" style={{ color: '#d8eabb' }}>
-              <span className="w-2 h-2 rounded-full inline-block" style={{ background: '#5dd456', boxShadow: '0 0 6px #5dd456' }} />
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#d8eabb]">
+              <span className="inline-block h-2 w-2 rounded-full bg-[#5dd456] shadow-[0_0_6px_#5dd456]" />
               <span className="hidden sm:inline">Online</span>
             </div>
 
-            <button
-              type="button"
-              className="hidden md:block text-[12px] font-[600]"
-              style={{ padding: '6px 14px', borderRadius: '999px', border: '1.5px solid rgba(255,255,255,0.22)', background: 'transparent', color: '#e8e4b8', cursor: 'pointer', whiteSpace: 'nowrap' }}
-            >
+            <button type="button" className="hidden whitespace-nowrap rounded-full border border-white/20 bg-transparent px-3.5 py-1.5 text-[12px] font-semibold text-[#e8e4b8] md:block">
               Pharmacy Module
             </button>
 
-            <div
-              className="flex items-center justify-center rounded-full shrink-0"
-              style={{ width: '32px', height: '32px', background: '#1f491d', border: '1.5px solid rgba(110,185,80,0.3)', fontSize: '11px', fontWeight: '800', color: '#e8f2d8' }}
-            >
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[rgba(110,185,80,0.3)] bg-[#1f491d] text-[11px] font-extrabold text-[#e8f2d8]">
               AK
             </div>
           </div>
         </header>
 
-        {/* Content wrapper */}
-        <div className="flex flex-1 min-h-0 overflow-hidden p-3 sm:p-4 gap-3">
-
-          {/*  Left column  */}
-          <div className="flex flex-1 min-w-0 flex-col gap-3 overflow-y-auto">
-
-            {/* Toolbar */}
+        <div className="flex min-h-0 flex-1 gap-3 overflow-hidden p-3 sm:p-4">
+          <div className="flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto">
             <div className="flex flex-wrap gap-2">
-              {/* Search  full width on mobile, flex-1 on sm */}
-              <div
-                className="flex items-center gap-2 flex-1 min-w-[180px]"
-                style={{ background: '#e4ecba', border: '1.5px solid #c4d094', borderRadius: '14px', padding: '9px 14px' }}
-              >
-                <input
-                  type="text"
-                  placeholder="Search product by name"
-                  style={{ flex: 1, background: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#1a3a1a', fontFamily: 'Inter, sans-serif', minWidth: 0 }}
-                />
-                <Search size={15} style={{ color: '#5a7a45', flexShrink: 0 }} />
+              <div className="flex min-w-45 flex-1 items-center gap-2 rounded-[14px] border border-[#c4d094] bg-[#e4ecba] px-3.5 py-2.25">
+                <input type="text" placeholder="Search product by name" className="min-w-0 flex-1 border-none bg-transparent text-[13px] text-[#1a3a1a] outline-none" />
+                <Search size={15} className="shrink-0 text-[#5a7a45]" />
               </div>
 
-              {/* Scan barcode */}
-              <button
-                type="button"
-                className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-[700]"
-                style={{ padding: '9px 14px', borderRadius: '14px', border: '1.5px solid #c4d094', background: '#e4ecba', color: '#1a3a1a', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >
+              <button type="button" className="flex items-center gap-1.5 whitespace-nowrap rounded-[14px] border border-[#c4d094] bg-[#e4ecba] px-3.5 py-2.25 text-[12px] font-bold text-[#1a3a1a] sm:text-[13px]">
                 <ScanLine size={15} />
                 <span className="hidden xs:inline">Scan barcode</span>
                 <span className="xs:hidden">Scan</span>
               </button>
 
-              {/* Add item */}
-              <button
-                type="button"
-                className="flex items-center gap-1.5 text-[12px] sm:text-[13px] font-[700]"
-                style={{ padding: '9px 14px', borderRadius: '14px', border: 'none', background: '#1a3d1a', color: '#e4ecba', cursor: 'pointer', whiteSpace: 'nowrap' }}
-              >
+              <button type="button" className="flex items-center gap-1.5 whitespace-nowrap rounded-[14px] border-none bg-[#1a3d1a] px-3.5 py-2.25 text-[12px] font-bold text-[#e4ecba] sm:text-[13px]">
                 <Plus size={15} />
                 <span className="hidden xs:inline">+ Add item</span>
                 <span className="xs:hidden">Add</span>
               </button>
             </div>
 
-            {/* Products section */}
-            <div className="flex-1 min-h-0 rounded-[18px] p-3 sm:p-4" style={{ background: '#d8e4aa', border: '1px solid #c4d494' }}>
-              <p style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.22em', color: '#5a7a45', textTransform: 'uppercase', margin: '0 0 10px' }}>
-                Products
-              </p>
+            <div className="min-h-0 flex-1 rounded-[18px] border border-[#c4d494] bg-[#d8e4aa] p-3 sm:p-4">
+              <p className="mb-2.5 text-[9px] font-extrabold uppercase tracking-[0.22em] text-[#5a7a45]">Products</p>
 
-              {/* Category pills  horizontally scrollable on mobile */}
-              <div className="flex gap-2 mb-3 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-                {CATEGORIES.map(cat => (
+              <div className="mb-3 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                {CATEGORIES.map((cat) => (
                   <CategoryPill key={cat} label={cat} active={category === cat} onClick={setCategory} />
                 ))}
               </div>
 
-              {/* Product grid  1 col  2 col  3 col */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3">
-                {filtered.map(item => (
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 sm:gap-3 lg:grid-cols-3">
+                {filtered.map((item) => (
                   <ProductCard key={item.id} item={item} onAdd={handleAdd} />
                 ))}
               </div>
             </div>
           </div>
 
-          {/*  Cart panel  desktop static sidebar  */}
-          <aside
-            className="hidden lg:flex flex-col overflow-y-auto flex-shrink-0"
-            style={{ width: '238px', background: '#e0ebb6', border: '1px solid #c8d498', borderRadius: '20px', padding: '18px' }}
-          >
+          <aside className="hidden w-59.5 shrink-0 flex-col overflow-y-auto rounded-[20px] border border-[#c8d498] bg-[#e0ebb6] p-4.5 lg:flex">
             {CartPanelContent}
           </aside>
         </div>
       </div>
 
-      {/*  Mobile cart drawer (slide up from bottom)  */}
-      <div
-        className={`fixed inset-x-0 bottom-0 z-50 lg:hidden transition-transform duration-300 ${cartOpen ? 'translate-y-0' : 'translate-y-full'}`}
-        style={{ background: '#e0ebb6', border: '1px solid #c8d498', borderRadius: '20px 20px 0 0', padding: '20px 18px', maxHeight: '82vh', overflowY: 'auto' }}
-      >
-        {/* Drawer handle */}
-        <div className="flex justify-center mb-4">
-          <div style={{ width: '36px', height: '4px', borderRadius: '999px', background: '#b0c490' }} />
+      <div className={`fixed inset-x-0 bottom-0 z-50 max-h-[82vh] overflow-y-auto rounded-[20px_20px_0_0] border border-[#c8d498] bg-[#e0ebb6] px-4.5 py-5 transition-transform duration-300 lg:hidden ${cartOpen ? 'translate-y-0' : 'translate-y-full'}`}>
+        <div className="mb-4 flex justify-center">
+          <div className="h-1 w-9 rounded-full bg-[#b0c490]" />
         </div>
         {CartPanelContent}
       </div>
 
-      {/*  Floating cart button (mobile only)  */}
-      <button
-        type="button"
-        onClick={() => setCartOpen(prev => !prev)}
-        className="fixed bottom-5 right-5 z-50 lg:hidden flex items-center gap-2 shadow-xl"
-        style={{ background: '#1a3a1a', color: '#e4ecba', border: 'none', borderRadius: '999px', padding: '12px 18px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}
-      >
+      <button type="button" onClick={() => setCartOpen((prev) => !prev)} className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full border-none bg-[#1a3a1a] px-4.5 py-3 text-[13px] font-bold text-[#e4ecba] shadow-xl lg:hidden">
         <ShoppingCart size={17} />
         Cart
-        {cartCount > 0 && (
-          <span
-            style={{ background: '#6ab850', color: '#fff', fontSize: '11px', fontWeight: '800', borderRadius: '999px', padding: '1px 7px', marginLeft: '2px' }}
-          >
-            {cartCount}
-          </span>
-        )}
+        {cartCount > 0 && <span className="ml-0.5 rounded-full bg-[#6ab850] px-1.75 py-px text-[11px] font-extrabold text-white">{cartCount}</span>}
       </button>
     </div>
   );
 }
-
