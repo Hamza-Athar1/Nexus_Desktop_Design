@@ -142,7 +142,7 @@ function SubmitButton({ isLoading, onClick }) {
           <span className="loading-dots">
             <span>.</span><span>.</span><span>.</span>
           </span>
-        </> 
+        </>
       ) : (
         'Login'
       )}
@@ -270,13 +270,13 @@ function LoginForm({
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  
+
   // Form state
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [remember, setRemember] = useState(false);
   const [showPass, setShowPass] = useState(false);
-  
+
   // UI state
   const [status, setStatus] = useState('idle'); // idle | error | loading | success
 
@@ -286,17 +286,17 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!username.trim() || !password.trim()) {
       setStatus('error');
       return;
     }
-    
+
     setStatus('loading');
-    
+
     // Simulate API call
     await new Promise((res) => setTimeout(res, 2000));
-    
+
     setStatus('success');
     setTimeout(() => navigate('/modules'), 1600);
   };
@@ -304,7 +304,7 @@ export default function LoginPage() {
   const handleGoogleSuccess = (credentialResponse) => {
     console.log('Google Login Success:', credentialResponse);
     setStatus('loading');
-    
+
     setTimeout(() => {
       setStatus('success');
       setTimeout(() => navigate('/modules'), 1600);
@@ -327,9 +327,9 @@ export default function LoginPage() {
   };
 
   const handleShowPassToggle = () => setShowPass((prev) => !prev);
-  
+
   const handleRememberChange = (e) => setRemember(e.target.checked);
-  
+
   const handleForgotPassword = () => navigate('/forgot-password');
 
   // ==========================================================================
