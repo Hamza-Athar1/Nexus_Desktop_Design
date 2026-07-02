@@ -11,16 +11,16 @@ import {
 import NexusLogo from './NexusLogo';
 
 const NAV_MAIN = [
-  { id: 'dashboard', label: 'Dashboard',  icon: LayoutDashboard },
-  { id: 'pos',       label: 'POS System', icon: MonitorSmartphone },
-  { id: 'inventory', label: 'Inventory',  icon: Package },
-  { id: 'billing',   label: 'Billing',    icon: ReceiptText },
-  { id: 'reports',   label: 'Reports',    icon: BarChart3 },
+  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'pos', label: 'POS System', icon: MonitorSmartphone },
+  { id: 'inventory', label: 'Inventory', icon: Package },
+  { id: 'billing', label: 'Billing', icon: ReceiptText },
+  { id: 'reports', label: 'Reports', icon: BarChart3 },
 ];
 
 const NAV_ACCOUNT = [
-  { id: 'profile',  label: 'Edit Profile', icon: User },
-  { id: 'settings', label: 'Settings',     icon: Settings2 },
+  { id: 'profile', label: 'Edit Profile', icon: User },
+  { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
 
 function NavItem({ icon: Icon, label, active, onClick }) {
@@ -28,38 +28,18 @@ function NavItem({ icon: Icon, label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        width: '100%',
-        padding: '9px 14px',
-        borderRadius: '999px',
-        border: 'none',
-        cursor: 'pointer',
-        fontSize: '13px',
-        fontWeight: active ? '600' : '500',
-        textAlign: 'left',
-        transition: 'all 0.18s ease',
-        background: active ? '#dce8b2' : 'transparent',
-        color: active ? '#0f2f10' : '#b8c99a',
-      }}
+      className={`flex w-full items-center gap-3 rounded-full border-none px-3 py-2.5 text-[13px] font-semibold text-left transition-all duration-200 ${
+        active
+          ? 'bg-[#f0ebca] text-[#0f3719] shadow-[0_0_18px_rgba(15,55,25,0.12)]'
+          : 'bg-transparent text-[#e9e2b4] hover:bg-[#ecf0d0]/20'
+      }`}
     >
-      <Icon size={15} style={{ color: active ? '#0f2f10' : '#8aab70', flexShrink: 0 }} />
+      <Icon size={16} className={`shrink-0 ${active ? 'text-[#0f3719]' : 'text-[#e9e2b4]'}`} />
       {label}
     </button>
   );
 }
 
-/**
- * UserSidebar — responsive off-canvas sidebar for User Dashboard pages.
- *
- * Props:
- *   isOpen      {boolean}  — whether the mobile drawer is open
- *   onClose     {function} — called when the close button or a nav item is tapped
- *   activeNav   {string}   — id of the currently active nav item
- *   onNavChange {function} — called with the new nav id when a nav item is clicked
- */
 export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange }) {
   const handleNav = (id) => {
     onNavChange(id);
@@ -68,71 +48,67 @@ export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange })
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex flex-col overflow-y-auto transition-transform duration-300 lg:static lg:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-50 flex h-full w-[210px] min-w-[210px] flex-col overflow-y-auto border-r border-[#2f5e2c]/50 bg-[#113d1a] transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
-      style={{ width: '210px', minWidth: '210px', background: '#132e14', padding: '20px 14px' }}
     >
-      {/* Logo + close button */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '28px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <NexusLogo size={30} variant="light" />
-          <div>
-            <p style={{ fontSize: '10px', fontWeight: '800', letterSpacing: '0.16em', color: '#e8e4b8', textTransform: 'uppercase', margin: 0 }}>
-              User-Dashboard
-            </p>
-            <p style={{ fontSize: '10px', color: '#8aaa70', margin: 0 }}>POS System</p>
-          </div>
+      <div className="flex h-15 shrink-0 items-center justify-between gap-2.5 border-b border-[#2f5e2c]/30 bg-[#143915] px-5">
+        <div className="flex items-center gap-2.5">
+          <NexusLogo size={26} variant="light" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#efe9c4]">
+            User-Dashboard
+          </span>
         </div>
         <button
           type="button"
           onClick={onClose}
-          className="lg:hidden"
-          style={{ background: 'none', border: 'none', color: '#8aaa70', cursor: 'pointer', padding: '4px', lineHeight: 1 }}
+          className="text-[#d9ddc4] transition-colors hover:text-[#f7f4d8] lg:hidden"
+          aria-label="Close menu"
         >
-          <X size={18} />
+          <X size={20} />
         </button>
       </div>
 
-      {/* Main nav */}
-      <p style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.2em', color: '#6a8a55', textTransform: 'uppercase', padding: '0 14px', marginBottom: '6px', marginTop: 0 }}>
-        Main
-      </p>
-      {NAV_MAIN.map(item => (
-        <NavItem
-          key={item.id}
-          icon={item.icon}
-          label={item.label}
-          active={activeNav === item.id}
-          onClick={() => handleNav(item.id)}
-        />
-      ))}
+      <nav className="flex flex-1 flex-col overflow-y-auto p-5">
+        <p className="mb-2 mt-0 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[#efe9c4]">
+          Main
+        </p>
+        {NAV_MAIN.map((item) => (
+          <NavItem
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            active={activeNav === item.id}
+            onClick={() => handleNav(item.id)}
+          />
+        ))}
 
-      {/* Account nav */}
-      <p style={{ fontSize: '9px', fontWeight: '800', letterSpacing: '0.2em', color: '#6a8a55', textTransform: 'uppercase', padding: '0 14px', marginBottom: '6px', marginTop: '20px' }}>
-        Account
-      </p>
-      {NAV_ACCOUNT.map(item => (
-        <NavItem
-          key={item.id}
-          icon={item.icon}
-          label={item.label}
-          active={activeNav === item.id}
-          onClick={() => handleNav(item.id)}
-        />
-      ))}
+        <p className="mb-2 mt-5 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[#efe9c4]">
+          Account
+        </p>
+        {NAV_ACCOUNT.map((item) => (
+          <NavItem
+            key={item.id}
+            icon={item.icon}
+            label={item.label}
+            active={activeNav === item.id}
+            onClick={() => handleNav(item.id)}
+          />
+        ))}
 
-      <div style={{ flex: 1 }} />
+        <div className="flex-1" />
 
-      {/* PRO plan box */}
-      <div style={{ border: '1px solid #2a4a2a', borderRadius: '14px', padding: '14px', background: 'rgba(255,255,255,0.04)' }}>
-        <p style={{ fontSize: '9px', fontWeight: '700', letterSpacing: '0.16em', color: '#6a8a55', textTransform: 'uppercase', margin: '0 0 2px' }}>Plan</p>
-        <p style={{ fontSize: '18px', fontWeight: '900', color: '#e8e4b8', margin: '0 0 10px' }}>PRO</p>
-        <div style={{ height: '4px', borderRadius: '999px', background: 'rgba(255,255,255,0.12)', marginBottom: '8px', overflow: 'hidden' }}>
-          <div style={{ width: '65%', height: '100%', borderRadius: '999px', background: '#6ab850' }} />
+        <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-[#163d15]/90 p-3.5">
+          <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-300/70">
+            Plan
+          </p>
+          <p className="mb-2 text-xl font-black leading-tight text-[#eff0d0]">PRO</p>
+          <div className="mb-1.5 h-1 overflow-hidden rounded-full bg-[#dbe2bb]/70">
+            <div className="h-full rounded-full bg-emerald-400" style={{ width: '82%' }} />
+          </div>
+          <p className="m-0 text-[11px] text-[#c8d2a2]">18 days left</p>
         </div>
-        <p style={{ fontSize: '11px', color: '#8aaa70', margin: 0 }}>18 days left</p>
-      </div>
+      </nav>
     </aside>
   );
 }
