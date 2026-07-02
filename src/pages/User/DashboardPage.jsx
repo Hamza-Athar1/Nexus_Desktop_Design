@@ -6,7 +6,7 @@ import {
   TrendingUp, Package, Crown, Clock, AlertTriangle, Check,
   Menu, X, ChevronRight,
 } from 'lucide-react';
-import NexusLogo from '../components/NexusLogo';
+import NexusLogo from '../../components/NexusLogo';
 
 // Navigation configuration
 const NAV_MAIN = [
@@ -333,10 +333,10 @@ export default function DashboardPage() {
             
             {/* Live Clock */}
             <div className="flex items-center gap-2 shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-[#285f34]/10 border border-emerald-500/20">
-              <span className="text-sm sm:text-base font-mono font-bold text-[#f7f4d9] tracking-wider">
+              <span className="text-sm sm:text-base font-mono font-bold text-[#123e20] tracking-wider">
                 {hours}:{minutes}
               </span>
-              <span className="text-[10px] sm:text-[11px] text-emerald-400/70 font-semibold">PKT</span>
+              <span className="text-[10px] sm:text-[11px] text-[#123e20] font-semibold">PKT</span>
             </div>
           </div>
 

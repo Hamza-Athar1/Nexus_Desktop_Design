@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, Users, CreditCard, ReceiptText, UserCog,
@@ -6,7 +6,7 @@ import {
   TrendingUp, UserCheck, DollarSign, Clock, Check,
   Menu, X, MoreHorizontal,
 } from 'lucide-react';
-import NexusLogo from '../components/NexusLogo';
+import NexusLogo from '../../components/NexusLogo';
 
 // Navigation configuration
 const NAV_MAIN = [
