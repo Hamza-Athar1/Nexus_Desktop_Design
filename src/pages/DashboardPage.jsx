@@ -74,7 +74,7 @@ function useClock() {
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/70 uppercase">
+      <span className="text-[10px] font-bold tracking-[0.12em] text-[#123e20] uppercase">
         {children}
       </span>
       <div className="flex-1 h-px bg-emerald-400/10" />
@@ -85,7 +85,7 @@ function SectionLabel({ children }) {
 // Statistics Card Component
 function StatCard({ title, icon: Icon, children }) {
   return (
-    <div className="flex-1 min-w-70 sm:min-w-0 bg-white/3 border border-emerald-400/10 rounded-2xl p-4 sm:p-[18px_20px] flex flex-col gap-3">
+    <div className="flex-1 min-w-70 sm:min-w-0 bg-[#0d3b15]/95 border border-emerald-500/20 rounded-2xl p-4 sm:p-[18px_20px] flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-300/80 uppercase">
           {title}
@@ -110,8 +110,8 @@ function QuickActionCard({ icon: Icon, label, sub, onClick }) {
         flex-1 min-w-50 sm:min-w-0 rounded-2xl p-4 flex items-center gap-4
         cursor-pointer transition-all duration-200 text-left
         ${isHovered 
-          ? 'bg-emerald-950/60 border-emerald-400/35' 
-          : 'bg-white/3 border-emerald-400/10'
+          ? 'bg-[#214f2d]/90 border-emerald-400/35' 
+          : 'bg-[#113715]/90 border-emerald-500/20'
         }
         border
       `}
@@ -128,8 +128,8 @@ function QuickActionCard({ icon: Icon, label, sub, onClick }) {
         <Icon size={18} className="text-emerald-400" />
       </span>
       <div>
-        <p className="text-sm font-bold text-white m-0">{label}</p>
-        <p className="text-[11px] text-white/40 m-0">{sub}</p>
+        <p className="text-sm font-bold text-[#f7f4d9] m-0">{label}</p>
+        <p className="text-[11px] text-[#c8d39d] m-0">{sub}</p>
       </div>
     </button>
   );
@@ -166,7 +166,7 @@ export default function DashboardPage() {
   const dateStr = `${currentTime.getDate()} ${MONTHS[currentTime.getMonth()]} ${currentTime.getFullYear()}`;
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#0a1f0a] font-inter">
+    <div className="flex h-screen w-full overflow-hidden bg-[#f1e8c4] font-inter">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
@@ -180,22 +180,22 @@ export default function DashboardPage() {
         fixed lg:static inset-y-0 left-0 z-50
         w-70 sm:w-[320px] lg:w-52.5 shrink-0 
         flex flex-col h-full 
-        bg-linear-to-b from-[#0d2b0d] to-[#0a1f0a] 
-        border-r border-emerald-400/8
+        bg-[#113d1a]
+        border-r border-[#2f5e2c]/50
         transition-transform duration-300 ease-in-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Logo Section */}
-        <div className="flex items-center justify-between gap-2.5 px-5 h-15 shrink-0 border-b border-emerald-400/8">
+        <div className="flex items-center justify-between gap-2.5 px-5 h-15 shrink-0 border-b border-[#2f5e2c]/30 bg-[#143915]">
           <div className="flex items-center gap-2.5">
             <NexusLogo size={26} variant="light" />
-            <span className="text-white/55 text-[10px] font-bold tracking-[0.18em] uppercase">
+            <span className="text-[#efe9c4] text-[10px] font-bold tracking-[0.18em] uppercase">
               User-Dashboard
             </span>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden text-white/45 hover:text-white/70 transition-colors"
+            className="lg:hidden text-[#d9ddc4] hover:text-[#f7f4d8] transition-colors"
           >
             <X size={20} />
           </button>
@@ -203,7 +203,7 @@ export default function DashboardPage() {
         
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-5 flex flex-col gap-0.5">
-          <p className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2 mb-2 mt-0">
+          <p className="text-[9px] font-bold tracking-[0.18em] text-[#efe9c4] uppercase px-2 mb-2 mt-0">
             Main
           </p>
           {NAV_MAIN.map(({ id, label, icon: Icon }) => {
@@ -213,24 +213,24 @@ export default function DashboardPage() {
                 key={id}
                 onClick={() => handleNavClick(id)}
                 className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-[13px] font-semibold
                   border-none cursor-pointer transition-all duration-200
                   ${isActive 
-                    ? 'bg-[#1e5c1e] text-white shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
-                    : 'bg-transparent text-white/45 hover:bg-white/5'
+                    ? 'bg-[#f0ebca] text-[#0f3719] shadow-[0_0_18px_rgba(15,55,25,0.12)]' 
+                    : 'bg-transparent text-[#e9e2b4] hover:bg-[#ecf0d0]/20'
                   }
                 `}
               >
                 <Icon 
                   size={16} 
-                  className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-current'}`} 
+                  className={`shrink-0 ${isActive ? 'text-[#0f3719]' : 'text-[#e9e2b4]'}`} 
                 />
                 {label}
               </button>
             );
           })}
           
-          <p className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2 mb-2 mt-5">
+          <p className="text-[9px] font-bold tracking-[0.18em] text-[#efe9c4] uppercase px-2 mb-2 mt-5">
             Account
           </p>
           {NAV_ACCOUNT.map(({ id, label, icon: Icon }) => {
@@ -240,17 +240,17 @@ export default function DashboardPage() {
                 key={id}
                 onClick={() => handleNavClick(id)}
                 className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-[13px] font-semibold
                   border-none cursor-pointer transition-all duration-200
                   ${isActive 
-                    ? 'bg-[#1e5c1e] text-white shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
-                    : 'bg-transparent text-white/45 hover:bg-white/5'
+                    ? 'bg-[#f0ebca] text-[#0f3719] shadow-[0_0_18px_rgba(15,55,25,0.12)]' 
+                    : 'bg-transparent text-[#e9e2b4] hover:bg-[#ecf0d0]/20'
                   }
                 `}
               >
                 <Icon 
                   size={16} 
-                  className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-current'}`} 
+                  className={`shrink-0 ${isActive ? 'text-[#0f3719]' : 'text-[#e9e2b4]'}`} 
                 />
                 {label}
               </button>
@@ -259,56 +259,56 @@ export default function DashboardPage() {
         </nav>
         
         {/* Plan Card */}
-        <div className="mx-3 mb-4 p-3.5 rounded-2xl bg-emerald-400/6 border border-emerald-400/15">
-          <p className="text-[9px] text-emerald-400/60 font-bold tracking-[0.18em] uppercase mb-0.5">
+        <div className="mx-3 mb-4 p-3.5 rounded-2xl bg-[#163d15]/90 border border-emerald-500/20">
+          <p className="text-[9px] text-emerald-300/70 font-bold tracking-[0.18em] uppercase mb-0.5">
             Plan
           </p>
-          <p className="text-xl font-black text-white mb-2 leading-tight">PRO</p>
-          <div className="h-1 rounded-full bg-white/8 overflow-hidden mb-1.5">
+          <p className="text-xl font-black text-[#eff0d0] mb-2 leading-tight">PRO</p>
+          <div className="h-1 rounded-full bg-[#dbe2bb]/70 overflow-hidden mb-1.5">
             <div className="h-full rounded-full bg-emerald-400" style={{ width: '82%' }} />
           </div>
-          <p className="text-[11px] text-white/40 m-0">18 days left</p>
+          <p className="text-[11px] text-[#c8d2a2] m-0">18 days left</p>
         </div>
       </aside>
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Header / Topbar */}
-        <header className="flex items-center justify-between px-4 sm:px-6 h-15 shrink-0 bg-[#0d2b0d] border-b border-emerald-400/8">
+        <header className="flex items-center justify-between px-4 sm:px-6 h-15 shrink-0 bg-[#0c3410] border-b border-emerald-500/15">
           <div className="flex items-center gap-2">
             {/* Mobile Menu Button */}
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden text-white/45 hover:text-white/70 transition-colors"
+              className="lg:hidden text-[#d9ddc4] hover:text-[#f7f4d8] transition-colors"
             >
               <Menu size={22} />
             </button>
             <NexusLogo size={22} variant="light" />
-            <span className="hidden sm:inline text-white/45 text-[10px] font-bold tracking-[0.18em] uppercase">
+            <span className="hidden sm:inline text-[#e5e1c0] text-[10px] font-bold tracking-[0.18em] uppercase">
               USER-DASHBOARD
             </span>
           </div>
           
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Notification Bell */}
-            <button className="relative bg-none border-none cursor-pointer text-white/45 flex items-center hover:text-white/70 transition-colors">
+            <button className="relative bg-none border-none cursor-pointer text-[#d9ddc4] flex items-center hover:text-[#f7f4d8] transition-colors">
               <Bell size={18} />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400" />
             </button>
             
             {/* Online Status - Hidden on very small screens */}
-            <div className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-emerald-400/8 border border-emerald-400/20">
+            <div className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[#356837]/15 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-              <span className="text-xs text-emerald-400 font-semibold">Online</span>
+              <span className="text-xs text-emerald-300 font-semibold">Online</span>
             </div>
             
             {/* Module Selector - Hidden on small screens */}
-            <button className="hidden md:block px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white/75 bg-transparent cursor-pointer border border-emerald-400/25 hover:bg-emerald-400/5 transition-colors">
+            <button className="hidden md:block px-3.5 py-1.5 rounded-lg text-xs font-semibold text-[#dee1c4] bg-transparent cursor-pointer border border-emerald-500/20 hover:bg-[#c7d8b0]/20 transition-colors">
               Pharmacy Module
             </button>
             
             {/* User Avatar */}
-            <div className="w-8.5 h-8.5 rounded-full bg-linear-to-br from-emerald-700 to-emerald-800 border-2 border-emerald-400/30 flex items-center justify-center text-xs font-bold text-white shrink-0">
+            <div className="w-8.5 h-8.5 rounded-full bg-gradient-to-br from-[#1d5e2f] to-[#114923] border-2 border-emerald-500/20 flex items-center justify-center text-xs font-bold text-[#f6f1d4] shrink-0">
               AK
             </div>
           </div>
@@ -319,21 +319,21 @@ export default function DashboardPage() {
           {/* Greeting Section */}
           <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl sm:text-[30px] font-black text-white mb-1.5 leading-tight">
+              <h1 className="text-2xl sm:text-[30px] font-black text-[#123e20] mb-1.5 leading-tight">
                 {getGreeting()}, Ahmed
               </h1>
-              <p className="text-xs sm:text-[13px] text-white/40 m-0 flex items-center gap-2 flex-wrap">
+              <p className="text-xs sm:text-[13px] text-[#41603d] m-0 flex items-center gap-2 flex-wrap">
                 <span>{dayName}</span>
-                <span className="w-1 h-1 rounded-full bg-white/25 inline-block" />
+                <span className="w-1 h-1 rounded-full bg-[#f1eac0]/50 inline-block" />
                 <span>{dateStr}</span>
-                <span className="hidden sm:inline w-1 h-1 rounded-full bg-white/25" />
+                <span className="hidden sm:inline w-1 h-1 rounded-full bg-[#f1eac0]/50" />
                 <span className="hidden sm:inline">Pharmacy module</span>
               </p>
             </div>
             
             {/* Live Clock */}
-            <div className="flex items-center gap-2 shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-emerald-400/6 border border-emerald-400/15">
-              <span className="text-sm sm:text-base font-mono font-bold text-white tracking-wider">
+            <div className="flex items-center gap-2 shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-[#285f34]/10 border border-emerald-500/20">
+              <span className="text-sm sm:text-base font-mono font-bold text-[#f7f4d9] tracking-wider">
                 {hours}:{minutes}
               </span>
               <span className="text-[10px] sm:text-[11px] text-emerald-400/70 font-semibold">PKT</span>
@@ -346,7 +346,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               <StatCard title="Today's Sales" icon={ShoppingCart}>
                 <div>
-                  <p className="text-2xl sm:text-[28px] font-black text-white mb-1">Rs 84,200</p>
+                  <p className="text-2xl sm:text-[28px] font-black text-[#f7f4d9] mb-1">Rs 84,200</p>
                   <p className="text-xs text-emerald-400 font-semibold m-0 flex items-center gap-1">
                     <TrendingUp size={13} />+12% vs yesterday
                   </p>
@@ -355,7 +355,7 @@ export default function DashboardPage() {
               
               <StatCard title="Inventory" icon={Archive}>
                 <div>
-                  <p className="text-2xl sm:text-[28px] font-black text-white mb-1">1,340</p>
+                  <p className="text-2xl sm:text-[28px] font-black text-[#f7f4d9] mb-1">1,340</p>
                   <p className="text-xs text-amber-400 font-semibold m-0 flex items-center gap-1">
                     <AlertTriangle size={12} />8 items low stock
                   </p>
@@ -368,7 +368,7 @@ export default function DashboardPage() {
                     <Check size={13} className="text-emerald-400" />
                     <span className="text-[13px] font-bold text-emerald-400">PRO ACTIVE</span>
                   </div>
-                  <p className="text-[11px] text-white/35 m-0">Renews Jul 17, 2026</p>
+                  <p className="text-[11px] text-[#c7d6a7] m-0">Renews Jul 17, 2026</p>
                 </div>
               </StatCard>
             </div>
@@ -402,10 +402,10 @@ export default function DashboardPage() {
           {/* Bottom Panels: Recent Activity & Low Stock */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-2">
             {/* Recent Activity Panel */}
-            <div className="bg-white/2.5 border border-emerald-400/10 rounded-2xl p-4 sm:p-5">
+            <div className="bg-[#0f3d13]/90 border border-emerald-500/20 rounded-2xl p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Clock size={14} className="text-emerald-400" />
-                <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/75 uppercase">
+                <Clock size={14} className="text-emerald-300" />
+                <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-300/80 uppercase">
                   Recent Activity
                 </span>
               </div>
@@ -416,18 +416,18 @@ export default function DashboardPage() {
                       className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: item.color }}
                     />
-                    <span className="flex-1 text-xs sm:text-[13px] text-white/65">{item.text}</span>
-                    <span className="text-[10px] sm:text-[11px] text-white/30 shrink-0">{item.time}</span>
+                    <span className="flex-1 text-xs sm:text-[13px] text-[#d3d7b8]">{item.text}</span>
+                    <span className="text-[10px] sm:text-[11px] text-[#b9c595] shrink-0">{item.time}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
             {/* Low Stock Panel */}
-            <div className="bg-white/2.5 border border-emerald-400/10 rounded-2xl p-4 sm:p-5">
+            <div className="bg-[#0f3d13]/90 border border-emerald-500/20 rounded-2xl p-4 sm:p-5">
               <div className="flex items-center gap-2 mb-4">
-                <Package size={14} className="text-emerald-400" />
-                <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/75 uppercase">
+                <Package size={14} className="text-emerald-300" />
+                <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-300/80 uppercase">
                   Low Stock
                 </span>
               </div>
@@ -435,7 +435,7 @@ export default function DashboardPage() {
                 {LOW_STOCK_ITEMS.map((item) => (
                   <li key={item.name} className="flex flex-col gap-1.5">
                     <div className="flex justify-between">
-                      <span className="text-xs sm:text-[13px] text-white/65">{item.name}</span>
+                      <span className="text-xs sm:text-[13px] text-[#d3d7b8]">{item.name}</span>
                       <span className="text-xs font-bold" style={{ color: item.color }}>
                         {item.qty}
                       </span>

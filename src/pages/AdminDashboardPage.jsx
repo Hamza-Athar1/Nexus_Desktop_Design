@@ -69,7 +69,7 @@ const DAYS = [
 function SectionLabel({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-400/70 uppercase">
+      <span className="text-[10px] font-bold tracking-[0.12em] text-[#123e20] uppercase">
         {children}
       </span>
       <div className="flex-1 h-px bg-emerald-400/10" />
@@ -83,20 +83,20 @@ function StatCard({ title, icon: Icon, value, sub, subColor, highlight }) {
     <div className={`
       flex-1 min-w-62.5 sm:min-w-0 rounded-2xl p-4 sm:p-[18px_20px] flex flex-col gap-2.5
       ${highlight 
-        ? 'bg-yellow-400/5 border border-yellow-400/25' 
-        : 'bg-white/3 border border-emerald-400/10'
+        ? 'bg-[#0d3b13]/95 border border-emerald-500/20 shadow-[0_0_18px_rgba(74,222,128,0.08)]' 
+        : 'bg-[#0d3b13]/95 border border-emerald-500/20'
       }
     `}>
       <div className="flex items-center justify-between">
         <span className={`
           text-[10px] font-bold tracking-[0.12em] uppercase
-          ${highlight ? 'text-yellow-400/75' : 'text-emerald-300/80'}
+          ${highlight ? 'text-emerald-300/80' : 'text-emerald-300/80'}
         `}>
           {title}
         </span>
-        <Icon size={16} className={highlight ? 'text-yellow-400/45' : 'text-emerald-400/40'} />
+        <Icon size={16} className={highlight ? 'text-emerald-400/45' : 'text-emerald-400/40'} />
       </div>
-      <p className="text-2xl sm:text-[30px] font-black text-white leading-none m-0">
+      <p className="text-2xl sm:text-[30px] font-black text-[#eef0d0] leading-none m-0">
         {value}
       </p>
       <p 
@@ -138,8 +138,8 @@ function QuickLink({ label, sub, icon: Icon, onClick }) {
         flex-1 min-w-40 rounded-2xl p-4 flex items-center gap-3.5
         cursor-pointer transition-all duration-200 text-left
         ${isHovered 
-          ? 'bg-emerald-950/60 border-emerald-400/35' 
-          : 'bg-white/2.5 border-emerald-400/10'
+          ? 'bg-[#16421b]/90 border-emerald-400/35' 
+          : 'bg-[#0c3010]/90 border-emerald-500/20'
         }
         border
       `}
@@ -156,8 +156,8 @@ function QuickLink({ label, sub, icon: Icon, onClick }) {
         <Icon size={17} className="text-emerald-400" />
       </span>
       <div>
-        <p className="text-[13px] font-bold text-white m-0">{label}</p>
-        <p className="text-[11px] text-white/40 m-0">{sub}</p>
+        <p className="text-[13px] font-bold text-[#eef0d0] m-0">{label}</p>
+        <p className="text-[11px] text-[#d9ddc4]/80 m-0">{sub}</p>
       </div>
     </button>
   );
@@ -168,18 +168,18 @@ function MobileQueueCard({ row, onApprove, onReject }) {
   const [showActions, setShowActions] = useState(false);
 
   return (
-    <div className="bg-white/2 border border-emerald-400/10 rounded-xl p-4">
+    <div className="bg-[#0d3b14]/90 border border-emerald-500/20 rounded-xl p-4">
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1">
-          <h4 className="text-sm font-bold text-white mb-1">{row.business}</h4>
+          <h4 className="text-sm font-bold text-[#f3f1d5] mb-1">{row.business}</h4>
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-emerald-400/75 font-medium">{row.module}</span>
+            <span className="text-xs text-emerald-300/80 font-medium">{row.module}</span>
             <PlanBadge plan={row.plan} bg={row.planBg} text={row.planText} />
           </div>
         </div>
         <button 
           onClick={() => setShowActions(!showActions)}
-          className="text-white/40 hover:text-white/60 transition-colors"
+          className="text-[#c9d4a0] hover:text-[#eef0d2] transition-colors"
         >
           <MoreHorizontal size={18} />
         </button>
@@ -192,7 +192,7 @@ function MobileQueueCard({ row, onApprove, onReject }) {
               <Check size={12} />Approved
             </span>
           ) : (
-            <span className="text-xs font-medium text-white/30">Pending</span>
+            <span className="text-xs font-medium text-[#d6d9bb]/75">Pending</span>
           )}
         </span>
         
@@ -252,7 +252,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#0a1f0a] font-inter">
+    <div className="flex h-screen w-full overflow-hidden bg-[#efe7be] font-inter">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
         <div 
@@ -266,22 +266,22 @@ export default function AdminDashboardPage() {
         fixed lg:static inset-y-0 left-0 z-50
         w-70 sm:w-[320px] lg:w-50 shrink-0 
         flex flex-col h-full 
-        bg-linear-to-b from-[#0d2b0d] to-[#0a1f0a] 
-        border-r border-emerald-400/8
+        bg-[#113d1a]
+        border-r border-[#2f5e2c]/50
         transition-transform duration-300 ease-in-out
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
         {/* Logo Section */}
-        <div className="flex items-center justify-between gap-2.5 px-4.5 h-16 shrink-0 border-b border-emerald-400/8">
+        <div className="flex items-center justify-between gap-2.5 px-4.5 h-16 shrink-0 border-b border-[#2f5e2c]/30 bg-[#143915]">
           <div className="flex items-center gap-2.5">
             <NexusLogo size={26} variant="light" />
-            <span className="text-white/55 text-[10px] font-bold tracking-[0.18em] uppercase">
+            <span className="text-[#efe9c4] text-[10px] font-bold tracking-[0.18em] uppercase">
               Admin-Dashboard
             </span>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden text-white/45 hover:text-white/70 transition-colors"
+            className="lg:hidden text-[#d9ddc4] hover:text-[#f7f4d8] transition-colors"
           >
             <X size={20} />
           </button>
@@ -289,7 +289,7 @@ export default function AdminDashboardPage() {
         
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto p-5 flex flex-col gap-0.5">
-          <p className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2 mb-2">
+          <p className="text-[9px] font-bold tracking-[0.18em] text-[#efe9c4] uppercase px-2 mb-2">
             Main
           </p>
           {NAV_MAIN.map(({ id, label, icon: Icon }) => {
@@ -299,24 +299,24 @@ export default function AdminDashboardPage() {
                 key={id}
                 onClick={() => handleNavClick(id)}
                 className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium
+                  w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-[13px] font-semibold
                   border-none cursor-pointer transition-all duration-200
                   ${isActive 
-                    ? 'bg-[#1e5c1e] text-white shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
-                    : 'bg-transparent text-white/45 hover:bg-white/5'
+                    ? 'bg-[#f0ebca] text-[#0f3719] shadow-[0_0_18px_rgba(15,55,25,0.12)]' 
+                    : 'bg-transparent text-[#e9e2b4] hover:bg-[#ecf0d0]/20'
                   }
                 `}
               >
                 <Icon 
                   size={15} 
-                  className={`shrink-0 ${isActive ? 'text-emerald-400' : 'text-current'}`} 
+                  className={`shrink-0 ${isActive ? 'text-[#0f3719]' : 'text-[#e9e2b4]'}`} 
                 />
                 {label}
               </button>
             );
           })}
           
-          <p className="text-[9px] font-bold tracking-[0.18em] text-white/30 uppercase px-2 mb-2 mt-5">
+          <p className="text-[9px] font-bold tracking-[0.18em] text-[#efe9c4] uppercase px-2 mb-2 mt-5">
             Account
           </p>
           {NAV_ACCOUNT.map(({ id, label, icon: Icon }) => {
@@ -329,8 +329,8 @@ export default function AdminDashboardPage() {
                   w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13px] font-medium
                   border-none cursor-pointer transition-all duration-200
                   ${isActive 
-                    ? 'bg-[#1e5c1e] text-white shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
-                    : 'bg-transparent text-white/45 hover:bg-white/5'
+                    ? 'bg-[#1e5c1e] text-[#eef0d0] shadow-[0_0_14px_rgba(74,222,128,0.15)]' 
+                    : 'bg-transparent text-[#d9ddc4] hover:bg-[#eff1d3]/50'
                   }
                 `}
               >
@@ -348,23 +348,23 @@ export default function AdminDashboardPage() {
       {/* Main Content */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex items-center justify-between px-4 sm:px-7 h-16 shrink-0 bg-[#0d2b0d] border-b border-emerald-400/8">
+        <header className="flex items-center justify-between px-4 sm:px-7 h-16 shrink-0 bg-[#0b3510] border-b border-emerald-500/15">
           <div className="flex items-center gap-2">
             {/* Mobile Menu Button */}
             <button 
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden text-white/45 hover:text-white/70 transition-colors"
+              className="lg:hidden text-[#dae0c2] hover:text-[#f7f4d8] transition-colors"
             >
               <Menu size={22} />
             </button>
             <NexusLogo size={22} variant="light" />
-            <span className="hidden sm:inline text-white/45 text-[10px] font-bold tracking-[0.18em] uppercase">
+            <span className="hidden sm:inline text-[#d9ddc4] text-[10px] font-bold tracking-[0.18em] uppercase">
               ADMIN-DASHBOARD
             </span>
           </div>
           
           <div className="flex items-center gap-2 sm:gap-3.5">
-            <button className="relative bg-none border-none cursor-pointer text-white/45 flex items-center hover:text-white/70 transition-colors">
+            <button className="relative bg-none border-none cursor-pointer text-[#d9ddc4] flex items-center hover:text-[#f7f5d8] transition-colors">
               <Bell size={18} />
               {pendingCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-yellow-400" />
@@ -389,7 +389,7 @@ export default function AdminDashboardPage() {
               </div>
             )}
             
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-linear-to-br from-emerald-700 to-emerald-800 border-2 border-emerald-400/30 flex items-center justify-center text-[10px] sm:text-xs font-bold text-white shrink-0">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-br from-[#1f6a2d] to-[#0f5224] border-2 border-emerald-500/20 flex items-center justify-center text-[10px] sm:text-xs font-bold text-[#f7f4d9] shrink-0">
               AA
             </div>
           </div>
@@ -400,15 +400,15 @@ export default function AdminDashboardPage() {
           {/* Welcome Section */}
           <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-[32px] font-black text-white mb-1.5 leading-tight">
+              <h1 className="text-2xl sm:text-[32px] font-black text-[#133d1b] mb-1.5 leading-tight">
                 Welcome, Ali
               </h1>
-              <p className="text-xs sm:text-[13px] text-white/40 m-0">
+              <p className="text-xs sm:text-[13px] text-[#415f38] m-0">
                 Control Centre · {dateStr}
               </p>
             </div>
-            <button className="px-4 sm:px-5 py-2 rounded-full text-xs sm:text-[13px] font-bold cursor-pointer bg-transparent border border-emerald-400/35 text-emerald-400 flex items-center gap-1.5 shrink-0 hover:bg-emerald-400/5 transition-colors">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+            <button className="px-4 sm:px-5 py-2 rounded-full text-xs sm:text-[13px] font-bold cursor-pointer bg-transparent border border-[#123e20] text-[#123e20] flex items-center gap-1.5 shrink-0 hover:bg-emerald-400/5 transition-colors">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
               System healthy
             </button>
           </div>
@@ -454,9 +454,9 @@ export default function AdminDashboardPage() {
             <SectionLabel>Approval Queue</SectionLabel>
             
             {/* Desktop Table View */}
-            <div className="hidden lg:block bg-white/2 border border-emerald-400/10 rounded-2xl overflow-hidden">
+            <div className="hidden lg:block bg-[#0f3e15]/95 border border-emerald-500/20 rounded-2xl overflow-hidden">
               {/* Table Header */}
-              <div className="grid grid-cols-[1.4fr_1fr_0.8fr_0.9fr_1.1fr] px-6 py-3 border-b border-emerald-400/8 bg-emerald-400/3">
+              <div className="grid grid-cols-[1.4fr_1fr_0.8fr_0.9fr_1.1fr] px-6 py-3 border-b border-emerald-500/15 bg-[#1f532a]/20">
                 {['Business', 'Module', 'Plan', 'Status', 'Action'].map((header) => (
                   <span 
                     key={header} 
@@ -469,7 +469,7 @@ export default function AdminDashboardPage() {
               
               {/* Empty State */}
               {approvalQueue.length === 0 && (
-                <div className="px-6 py-8 text-center text-white/30 text-[13px]">
+                <div className="px-6 py-8 text-center text-[#d6d9bb]/75 text-[13px]">
                   No pending approvals
                 </div>
               )}
@@ -483,7 +483,7 @@ export default function AdminDashboardPage() {
                     ${index < approvalQueue.length - 1 ? 'border-b border-emerald-400/5' : ''}
                   `}
                 >
-                  <span className="text-sm font-bold text-white">{row.business}</span>
+                  <span className="text-sm font-bold text-[#eef0d0]">{row.business}</span>
                   <span className="text-[13px] text-emerald-400/75 font-medium">{row.module}</span>
                   <span>
                     <PlanBadge plan={row.plan} bg={row.planBg} text={row.planText} />
@@ -494,7 +494,7 @@ export default function AdminDashboardPage() {
                         <Check size={13} />Approved
                       </span>
                     ) : (
-                      <span className="text-[13px] font-medium text-white/30">Pending</span>
+                      <span className="text-[13px] font-medium text-[#d9ddc4]/70">Pending</span>
                     )}
                   </span>
                   <div className="flex gap-2">
@@ -526,7 +526,7 @@ export default function AdminDashboardPage() {
             {/* Mobile Card View */}
             <div className="lg:hidden flex flex-col gap-3">
               {approvalQueue.length === 0 && (
-                <div className="py-8 text-center text-white/30 text-[13px]">
+                <div className="py-8 text-center text-[#dce4c7]/80 text-[13px]">
                   No pending approvals
                 </div>
               )}
