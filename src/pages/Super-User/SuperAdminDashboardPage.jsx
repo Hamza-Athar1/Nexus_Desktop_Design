@@ -149,9 +149,8 @@ function NavItem({ icon: Icon, label, active, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition ${
-        active ? 'bg-[#f4f0cc] text-[#153216]' : 'text-[#d7e0b8] hover:bg-[#c7d4a4]/20'
-      }`}
+      className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition ${active ? 'bg-[#f4f0cc] text-[#153216]' : 'text-[#d7e0b8] hover:bg-[#c7d4a4]/20'
+        }`}
     >
       <Icon size={16} className={active ? 'text-[#153216]' : 'text-[#c7d4a6]'} />
       <span className="font-semibold text-sm">{label}</span>
@@ -161,14 +160,18 @@ function NavItem({ icon: Icon, label, active, onClick }) {
 
 function QueueRow({ row }) {
   return (
-    <div className="grid grid-cols-[1.3fr_0.8fr_0.8fr_0.9fr_0.9fr] gap-4 px-5 py-4 items-center text-sm text-[#eef7dc] bg-[#16390f] border-b border-[#70a85d]/10 last:border-b-0">
+    <div className="grid grid-cols-[1.4fr_0.65fr_0.65fr_0.85fr_0.85fr] gap-2 px-4 py-3.5 items-center text-sm text-[#eef7dc] bg-[#16390f] border-b border-[#70a85d]/10 last:border-b-0">
       <span className="font-medium text-[#f4f9e4]">{row.module}</span>
       <span className="text-[#c4d6ab]/90">{row.users}</span>
       <span className={`text-sm font-semibold ${row.version === 'v2.5.0' ? 'text-[#f0c444]' : 'text-[#c4d6ab]/90'}`}>{row.version}</span>
-      <span className={`inline-flex w-24 justify-center rounded-full px-3 py-1 text-[11px] font-semibold ${row.badge}`}>{row.status}</span>
-      <button className={`inline-flex justify-center rounded-full w-28 px-3 py-2 text-[12px] font-semibold ${row.actionClass}`}>
-        {row.action}
-      </button>
+      <div className="flex justify-center">
+        <span className={`inline-flex justify-center rounded-full px-3 py-1 text-[11px] font-semibold ${row.badge}`}>{row.status}</span>
+      </div>
+      <div className="flex justify-center">
+        <button className={`inline-flex justify-center rounded-full px-4 py-1.5 text-[12px] font-semibold ${row.actionClass}`}>
+          {row.action}
+        </button>
+      </div>
     </div>
   );
 }
@@ -246,24 +249,29 @@ export default function SuperAdminDashboardPage() {
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="flex items-center justify-between gap-4 px-5 py-4 bg-[#1d490f] border-b border-[#456d2a] shadow-[0_8px_20px_rgba(15,44,15,0.15)] text-[#f1f4d6]">
-          <div className="flex items-center gap-3">
-            <button className="lg:hidden text-[#c7d6a7] hover:text-[#edf6d8]" onClick={() => setIsSidebarOpen(true)}>
+        <header className="flex items-center justify-between gap-2 sm:gap-4 px-4 sm:px-5 py-3 sm:py-4 bg-[#1d490f] border-b border-[#456d2a] shadow-[0_8px_20px_rgba(15,44,15,0.15)] text-[#f1f4d6]">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <button className="lg:hidden shrink-0 text-[#c7d6a7] hover:text-[#edf6d8]" onClick={() => setIsSidebarOpen(true)}>
               <Menu size={22} />
             </button>
-            <div className="rounded-full bg-[#1a4212]/90 px-4 py-2 text-[10px] uppercase tracking-[0.24em] font-bold border border-[#84c55f]/20">
-              SUPER ADMIN-DASHBOARD
+            <div className="hidden sm:block rounded-full bg-[#1a4212]/90 px-3 sm:px-4 py-2 text-[10px] uppercase tracking-[0.18em] sm:tracking-[0.24em] font-bold border border-[#84c55f]/20 whitespace-nowrap">
+              <span className="hidden lg:inline">SUPER ADMIN-DASHBOARD</span>
+              <span className="lg:hidden">SUPER ADMIN</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button className="rounded-full bg-[#204917]/90 p-3 text-[#e6f1d8] hover:bg-[#2d5c22] transition-colors">
-              <Bell size={18} />
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+            <button className="rounded-full bg-[#204917]/90 p-2.5 sm:p-3 text-[#e6f1d8] hover:bg-[#2d5c22] transition-colors">
+              <Bell size={17} />
             </button>
-            <button className="rounded-full bg-[#f1eab5] px-4 py-2 text-sm font-semibold text-[#22511d] border border-[#c8c27d] hover:bg-[#e5dfa0] transition-colors">
-              Backened access
+            <button
+              title="Backend access"
+              className="rounded-full bg-[#f1eab5] px-2.5 sm:px-4 py-2 text-sm font-semibold text-[#22511d] border border-[#c8c27d] hover:bg-[#e5dfa0] transition-colors flex items-center gap-2"
+            >
+              <Server size={14} className="shrink-0" />
+              <span className="hidden sm:inline">Backend access</span>
             </button>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#254e1c] border-2 border-[#89d267]/30 text-[11px] font-bold text-[#f7f7db]">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-full bg-[#254e1c] border-2 border-[#89d267]/30 text-[11px] font-bold text-[#f7f7db] shrink-0">
               AZ
             </div>
           </div>
@@ -301,12 +309,12 @@ export default function SuperAdminDashboardPage() {
             </div>
 
             <div className="hidden lg:block rounded-[28px] overflow-hidden border border-[#acc285]/20">
-              <div className="grid grid-cols-[1.3fr_0.8fr_0.8fr_0.9fr_0.9fr] gap-4 px-6 py-4 bg-[#2f7c2c] text-[10px] uppercase tracking-[0.22em] font-bold text-[#eef8e5]">
+              <div className="grid grid-cols-[1.4fr_0.65fr_0.65fr_0.85fr_0.85fr] gap-2 px-4 py-3 bg-[#2f7c2c] text-[10px] uppercase tracking-[0.22em] font-bold text-[#eef8e5]">
                 <span>Module</span>
                 <span>Users</span>
                 <span>Version</span>
-                <span>Status</span>
-                <span>Action</span>
+                <span className="text-center">Status</span>
+                <span className="text-center">Action</span>
               </div>
               {APPROVAL_QUEUE.map((row) => (
                 <QueueRow key={row.id} row={row} />
