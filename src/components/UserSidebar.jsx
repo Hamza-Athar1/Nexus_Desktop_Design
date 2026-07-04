@@ -8,6 +8,7 @@ import {
   MonitorSmartphone,
   X,
 } from 'lucide-react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import NexusLogo from './NexusLogo';
 
 const NAV_MAIN = [
@@ -41,10 +42,39 @@ function NavItem({ icon: Icon, label, active, onClick }) {
 }
 
 export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange }) {
-  const handleNav = (id) => {
-    onNavChange(id);
-    onClose();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const pathMap = {
+    dashboard: '/dashboard',
+    pos: '/pos',
+    inventory: '/inventory',
+    billing: '/billing',
+    reports: '/reports',
+    profile: '/profile',
+    settings: '/settings',
   };
+
+  const mapPathToId = (path) => {
+    if (path.startsWith('/dashboard')) return 'dashboard';
+    if (path.startsWith('/pos')) return 'pos';
+    if (path.startsWith('/inventory')) return 'inventory';
+    if (path.startsWith('/billing')) return 'billing';
+    if (path.startsWith('/reports')) return 'reports';
+    if (path.startsWith('/profile')) return 'profile';
+    if (path.startsWith('/settings')) return 'settings';
+    return null;
+  };
+
+  const handleNav = (id) => {
+    if (onNavChange) onNavChange(id);
+    if (onClose) onClose();
+    const to = pathMap[id];
+    if (to) navigate(to);
+  };
+
+  const activeFromPath = mapPathToId(location.pathname || '');
+  const activeKey = activeFromPath || activeNav;
 
   return (
     <aside
@@ -78,7 +108,7 @@ export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange })
             key={item.id}
             icon={item.icon}
             label={item.label}
-            active={activeNav === item.id}
+            active={activeKey === item.id}
             onClick={() => handleNav(item.id)}
           />
         ))}
@@ -91,7 +121,7 @@ export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange })
             key={item.id}
             icon={item.icon}
             label={item.label}
-            active={activeNav === item.id}
+            active={activeKey === item.id}
             onClick={() => handleNav(item.id)}
           />
         ))}

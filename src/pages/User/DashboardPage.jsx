@@ -7,6 +7,7 @@ import {
   Menu, X, ChevronRight,
 } from 'lucide-react';
 import NexusLogo from '../../components/NexusLogo';
+import UserSidebar from '../../components/UserSidebar';
 
 // Navigation configuration
 const NAV_MAIN = [
@@ -175,101 +176,13 @@ export default function DashboardPage() {
         />
       )}
 
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-70 sm:w-[320px] lg:w-52.5 shrink-0 
-        flex flex-col h-full 
-        bg-[#113d1a]
-        border-r border-[#2f5e2c]/50
-        transition-transform duration-300 ease-in-out
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        {/* Logo Section */}
-        <div className="flex items-center justify-between gap-2.5 px-5 h-15 shrink-0 border-b border-[#2f5e2c]/30 bg-[#143915]">
-          <div className="flex items-center gap-2.5">
-            <NexusLogo size={26} variant="light" />
-            <span className="text-[#efe9c4] text-[10px] font-bold tracking-[0.18em] uppercase">
-              User-Dashboard
-            </span>
-          </div>
-          <button 
-            onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden text-[#d9ddc4] hover:text-[#f7f4d8] transition-colors"
-          >
-            <X size={20} />
-          </button>
-        </div>
-        
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-5 flex flex-col gap-0.5">
-          <p className="text-[9px] font-bold tracking-[0.18em] text-[#efe9c4] uppercase px-2 mb-2 mt-0">
-            Main
-          </p>
-          {NAV_MAIN.map(({ id, label, icon: Icon }) => {
-            const isActive = activeTab === id;
-            return (
-              <button
-                key={id}
-                onClick={() => handleNavClick(id)}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-[13px] font-semibold
-                  border-none cursor-pointer transition-all duration-200
-                  ${isActive 
-                    ? 'bg-[#f0ebca] text-[#0f3719] shadow-[0_0_18px_rgba(15,55,25,0.12)]' 
-                    : 'bg-transparent text-[#e9e2b4] hover:bg-[#ecf0d0]/20'
-                  }
-                `}
-              >
-                <Icon 
-                  size={16} 
-                  className={`shrink-0 ${isActive ? 'text-[#0f3719]' : 'text-[#e9e2b4]'}`} 
-                />
-                {label}
-              </button>
-            );
-          })}
-          
-          <p className="text-[9px] font-bold tracking-[0.18em] text-[#efe9c4] uppercase px-2 mb-2 mt-5">
-            Account
-          </p>
-          {NAV_ACCOUNT.map(({ id, label, icon: Icon }) => {
-            const isActive = activeTab === id;
-            return (
-              <button
-                key={id}
-                onClick={() => handleNavClick(id)}
-                className={`
-                  w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-[13px] font-semibold
-                  border-none cursor-pointer transition-all duration-200
-                  ${isActive 
-                    ? 'bg-[#f0ebca] text-[#0f3719] shadow-[0_0_18px_rgba(15,55,25,0.12)]' 
-                    : 'bg-transparent text-[#e9e2b4] hover:bg-[#ecf0d0]/20'
-                  }
-                `}
-              >
-                <Icon 
-                  size={16} 
-                  className={`shrink-0 ${isActive ? 'text-[#0f3719]' : 'text-[#e9e2b4]'}`} 
-                />
-                {label}
-              </button>
-            );
-          })}
-        </nav>
-        
-        {/* Plan Card */}
-        <div className="mx-3 mb-4 p-3.5 rounded-2xl bg-[#163d15]/90 border border-emerald-500/20">
-          <p className="text-[9px] text-emerald-300/70 font-bold tracking-[0.18em] uppercase mb-0.5">
-            Plan
-          </p>
-          <p className="text-xl font-black text-[#eff0d0] mb-2 leading-tight">PRO</p>
-          <div className="h-1 rounded-full bg-[#dbe2bb]/70 overflow-hidden mb-1.5">
-            <div className="h-full rounded-full bg-emerald-400" style={{ width: '82%' }} />
-          </div>
-          <p className="text-[11px] text-[#c8d2a2] m-0">18 days left</p>
-        </div>
-      </aside>
+      {/* Sidebar (shared component) */}
+      <UserSidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        activeNav={activeTab}
+        onNavChange={(id) => handleNavClick(id)}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">

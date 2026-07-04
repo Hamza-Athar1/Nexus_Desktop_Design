@@ -5,6 +5,9 @@ import ModuleSelectPage  from './pages/ModuleSelectPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import DashboardPage     from './pages/User/DashboardPage';
 import POSSystemPage     from './pages/User/POSSystemPage';
+import InventoryPage     from './pages/User/InventoryPage';
+import BillingPage       from './pages/User/BillingPage';
+import EditProfilePage   from './pages/User/EditProfilePage';
 import AdminDashboardPage from './pages/Admin/AdminDashboardPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 
@@ -17,9 +20,13 @@ export default function App() {
       <Route path="/modules"         element={<ModuleSelectPage />} />
       <Route path="/dashboard"        element={<DashboardPage />} />
       <Route path="/pos"              element={<POSSystemPage />} />
+      <Route path="/inventory"        element={<InventoryPage />} />
+      <Route path="/billing"          element={<BillingPage />} />
+      <Route path="/profile"          element={<EditProfilePage />} />
       <Route path="/admin"            element={<AdminDashboardPage />} />
       <Route path="/super-admin"      element={<SuperAdminDashboardPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      
       <Route path="*"                element={<Navigate to="/" replace />} />
     </Routes>
   );
