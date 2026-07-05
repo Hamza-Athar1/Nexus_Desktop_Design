@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, TrendingUp, ShoppingCart } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import NexusLogo from '../components/NexusLogo';
+import { API_BASE_URL } from '../lib/api';
 
 /* ── Eye toggle ───────────────────────────────────────────────────── */
 const EyeToggle = ({ open }) => open ? <EyeOff size={14} /> : <Eye size={14} />;
@@ -121,10 +122,31 @@ export default function SignUpPage() {
     e.preventDefault();
     const err = validate();
     if (err) { setErrorMsg(err); setStatus('error'); return; }
+
     setStatus('loading');
-    await new Promise(res => setTimeout(res, 2000));
-    setStatus('success');
-    setTimeout(() => navigate('/'), 2000);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.message || 'Something went wrong. Please try again.');
+        setStatus('error');
+        return;
+      }
+
+      setStatus('success');
+      setTimeout(() => navigate('/'), 2000);
+    } catch (err) {
+      setErrorMsg('Unable to reach the server. Please try again.');
+      setStatus('error');
+    }
   };
 
   const handleGoogleSuccess = (credentialResponse) => {
