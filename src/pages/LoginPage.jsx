@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, TrendingUp, ShoppingCart } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import NexusLogo from '../components/NexusLogo';
+import { API_BASE_URL } from '../lib/api';
 
 // ============================================================================
 // Constants
@@ -279,26 +280,53 @@ export default function LoginPage() {
 
   // UI state
   const [status, setStatus] = useState('idle'); // idle | error | loading | success
+  const [errorMsg, setErrorMsg] = useState('Invalid username or password');
 
   // ==========================================================================
   // Handlers
   // ==========================================================================
 
+  // Where each role lands after a successful login.
+  const ROLE_REDIRECTS = {
+    user: '/modules',
+    admin: '/admin',
+    'super-admin': '/super-admin',
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!username.trim() || !password.trim()) {
+      setErrorMsg('Please enter your username and password');
       setStatus('error');
       return;
     }
 
     setStatus('loading');
 
-    // Simulate API call
-    await new Promise((res) => setTimeout(res, 2000));
+    try {
+      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // required so the browser stores the httpOnly cookies
+        body: JSON.stringify({ username, password }),
+      });
 
-    setStatus('success');
-    setTimeout(() => navigate('/modules'), 1600);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setErrorMsg(data.message || 'Invalid username or password');
+        setStatus('error');
+        return;
+      }
+
+      setStatus('success');
+      const destination = ROLE_REDIRECTS[data.user?.role] || '/modules';
+      setTimeout(() => navigate(destination), 1600);
+    } catch (err) {
+      setErrorMsg('Unable to reach the server. Please try again.', err);
+      setStatus('error');
+    }
   };
 
   const handleGoogleSuccess = (credentialResponse) => {
@@ -375,7 +403,7 @@ export default function LoginPage() {
             <>
               {/* Error State */}
               {isError && (
-                <ErrorBanner message="Invalid username or password" />
+                <ErrorBanner message={errorMsg} />
               )}
 
               {/* Login Form */}
