@@ -78,7 +78,7 @@ export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange })
 
   return (
     <aside
-      className={`fixed inset-y-0 left-0 z-50 flex h-full w-[210px] min-w-[210px] flex-col overflow-y-auto border-r border-[#2f5e2c]/50 bg-[#113d1a] transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
+      className={`fixed inset-y-0 left-0 z-50 flex h-full w-52.5 min-w-52.5 flex-col overflow-y-auto border-r border-[#2f5e2c]/50 bg-[#113d1a] transition-transform duration-300 ease-in-out lg:static lg:translate-x-0 ${
         isOpen ? 'translate-x-0' : '-translate-x-full'
       }`}
     >

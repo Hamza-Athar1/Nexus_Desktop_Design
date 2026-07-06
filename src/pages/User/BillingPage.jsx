@@ -7,11 +7,15 @@ const INITIAL_CART = [
   { id: 2, name: 'ORS Sachet', qty: 1, price: 80 },
 ];
 
-function CustomerField({ label, placeholder }) {
+function CustomerField({ label, placeholder, variant = 'light' }) {
+  const isDark = variant === 'dark';
   return (
     <div className="mb-2">
-      <p className="text-[11px] text-[#356837] font-bold mb-1">{label}</p>
-      <input className="w-full rounded-lg border-none bg-[#eaf1ce] px-3 py-2 text-sm text-[#163d15] outline-none" placeholder={placeholder} />
+      <p className={`text-[11px] font-bold mb-1 ${isDark ? 'text-[#dfead1]' : 'text-[#356837]'}`}>{label}</p>
+      <input
+        className={`w-full rounded-lg border-none px-3 py-2 text-sm outline-none ${isDark ? 'bg-[#f3edc7] text-[#163d15]' : 'bg-[#eaf1ce] text-[#163d15]'}`}
+        placeholder={placeholder}
+      />
     </div>
   );
 }
@@ -65,40 +69,42 @@ export default function BillingPage() {
               </div>
 
               <div className="flex items-center gap-3">
-                <button className="flex items-center gap-2 rounded-lg border border-[#c4d094] bg-[#e4ecba] px-4 py-2 text-[13px] font-bold text-[#1a3a1a]">
-                  <Printer size={14} /> Print
-                </button>
-                <button className="flex items-center gap-2 rounded-lg bg-[#1a3d1a] px-4 py-2 text-[13px] font-bold text-[#e4ecba]">
-                  Finalize bill
-                </button>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <button className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-[#f3edc7] px-4 py-3 text-[13px] font-bold text-[#163d15] border border-[#d8c98c] shadow-md">
+                      Finalize bill
+                    </button>
+                    <button className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl border border-[#c4d094] bg-transparent px-4 py-3 text-[13px] font-bold text-[#1a3a1a] shadow-sm">
+                      <Printer size={16} /> Print
+                    </button>
+                  </div>
               </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-              <div className="col-span-2 rounded-2xl bg-[#eaf1ce] p-4">
-                <p className="text-sm font-bold text-[#163d15] mb-2">Customer Details</p>
+              <div className="col-span-2 rounded-2xl bg-[#0f3d13]/95 p-4 text-[#e8f0d0] border border-emerald-500/20 shadow-md">
+                <p className="text-sm font-bold text-[#e8f0d0] mb-2">Customer Details</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <CustomerField label="Customer Name" placeholder="Enter Name" />
-                  <CustomerField label="Phone Number" placeholder="03XX-XXXXXXX" />
-                  <CustomerField label="Doctorate Name (optional)" placeholder="Dr. Ahmed" />
-                  <CustomerField label="Prescription No." placeholder="RX-XXXX" />
+                  <CustomerField label="Customer Name" placeholder="Enter Name" variant="dark" />
+                  <CustomerField label="Phone Number" placeholder="03XX-XXXXXXX" variant="dark" />
+                  <CustomerField label="Doctorate Name (optional)" placeholder="Dr. Ahmed" variant="dark" />
+                  <CustomerField label="Prescription No." placeholder="RX-XXXX" variant="dark" />
                 </div>
               </div>
 
-              <div className="rounded-2xl bg-[#eaf1ce] p-4">
+              <div className="rounded-2xl bg-[#f3edc7] p-4 border border-[#cfc089]">
                 <p className="text-sm font-bold text-[#163d15] mb-2">Payment Method</p>
-                <div className="flex gap-2 mb-3">
-                  <button onClick={() => setPaymentMode('cash')} className={`flex-1 rounded-md px-3 py-2 border ${paymentMode === 'cash' ? 'bg-[#1a3d1a] text-[#e4ecba] border-none' : 'bg-transparent text-[#163d15] border-[#c8d49a]'}`}>
-                    <Banknote size={16} /> Cash
+                <div className="flex flex-col sm:flex-row gap-3 mb-3">
+                  <button onClick={() => setPaymentMode('cash')} className={`w-full sm:flex-1 rounded-2xl px-4 py-3 border ${paymentMode === 'cash' ? 'bg-[#15421b] text-[#f3efcf] border-emerald-600/30' : 'bg-transparent text-[#163d15] border-[#c8d49a]'}`}>
+                    <div className="flex items-center gap-3 justify-center"><Banknote size={18} /> <span>Cash</span></div>
                   </button>
-                  <button onClick={() => setPaymentMode('card')} className={`flex-1 rounded-md px-3 py-2 border ${paymentMode === 'card' ? 'bg-[#1a3d1a] text-[#e4ecba] border-none' : 'bg-transparent text-[#163d15] border-[#c8d49a]'}`}>
-                    <CreditCard size={16} /> Card
+                  <button onClick={() => setPaymentMode('card')} className={`w-full sm:flex-1 rounded-2xl px-4 py-3 border ${paymentMode === 'card' ? 'bg-[#15421b] text-[#f3efcf] border-emerald-600/30' : 'bg-transparent text-[#163d15] border-[#c8d49a]'}`}>
+                    <div className="flex items-center gap-3 justify-center"><CreditCard size={18} /> <span>Card</span></div>
                   </button>
                 </div>
 
                 <div>
                   <p className="text-[12px] text-[#163d15] mb-1">Cash Received</p>
-                  <input value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="w-full rounded-lg border-none bg-[#fff] px-3 py-2 text-sm text-[#163d15] outline-none" placeholder="Rs 0.00" />
+                  <input value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} className="w-full rounded-lg border border-[#c8d49a] bg-white px-3 py-3 text-sm text-[#163d15] outline-none" placeholder="Rs 0.00" />
                 </div>
               </div>
             </div>
@@ -106,7 +112,7 @@ export default function BillingPage() {
             <div className="mt-2 rounded-2xl bg-[#163d15] p-4 text-[#e8f0d0]">
               <p className="text-sm font-bold mb-3">Customer Details</p>
               <div className="rounded-lg bg-[#113d1a] p-3 overflow-x-auto">
-                <table className="w-full min-w-[600px] text-left">
+                <table className="w-full min-w-0 sm:min-w-150 text-left">
                   <thead>
                     <tr className="text-[13px] text-[#cfe3b8]">
                       <th className="px-4 py-2">Product</th>
@@ -133,7 +139,7 @@ export default function BillingPage() {
           <aside className="hidden lg:flex lg:w-80 flex-col gap-4">
             <div className="rounded-2xl bg-[#f3edc7] p-4 border border-[#d8c98c]">
               <p className="text-sm font-bold text-[#163d15]">Bill Summary</p>
-              <div className="mt-3 text-[13px] text-[#7a9a65]">
+              <div className="mt-3 text-[13px] text-[#38462e]">
                 <div className="flex justify-between"><span>Subtotal</span><span>Rs {subtotal}</span></div>
                 <div className="flex justify-between"><span>Discount</span><span>Rs 0</span></div>
                 <div className="flex justify-between"><span>GST (17%)</span><span>Rs {gst}</span></div>
@@ -142,9 +148,9 @@ export default function BillingPage() {
 
               <div className="mt-4 border-t pt-3 text-[#163d15]">
                 <div className="flex justify-between text-[18px] font-extrabold"> <span>Total</span> <span>Rs {total}</span></div>
-                <div className="mt-3 grid gap-2">
-                  <button className="rounded-lg bg-[#1a3d1a] py-2 text-[14px] font-bold text-[#e4ecba]">Generate & print bill</button>
-                  <button className="rounded-lg border border-[#c8d49a] py-2 text-[14px] font-bold text-[#163d15]">Save draft</button>
+                <div className="mt-3 grid gap-3">
+                  <button className="w-full rounded-2xl bg-linear-to-b from-[#15421b] to-[#103616] py-3 text-[14px] font-bold text-[#f3efcf] shadow-sm border border-emerald-600/20">Generate & print bill</button>
+                  <button className="w-full rounded-2xl border border-[#c8d49a] py-3 text-[14px] font-bold text-[#163d15]">Save draft</button>
                 </div>
               </div>
             </div>
@@ -157,8 +163,8 @@ export default function BillingPage() {
                 <div className="text-lg font-extrabold text-[#163d15]">Rs {total}</div>
               </div>
               <div className="flex gap-2">
-                <button className="rounded-lg bg-[#1a3d1a] px-3 py-2 text-sm font-bold text-[#e4ecba]">Generate</button>
-                <button className="rounded-lg border border-[#c8d49a] px-3 py-2 text-sm font-bold text-[#163d15]">Save</button>
+                <button className="rounded-2xl bg-linear-to-b from-[#15421b] to-[#103616] px-3 py-2 text-sm font-bold text-[#f3efcf]">Generate</button>
+                <button className="rounded-2xl border border-[#c8d49a] px-3 py-2 text-sm font-bold text-[#163d15]">Save</button>
               </div>
             </div>
           </div>

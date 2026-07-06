@@ -159,7 +159,7 @@ export default function ReportsPage() {
                   <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-300/80 uppercase">Quick Exports</span>
                 </div>
                 <div className="grid gap-2">
-                  <button className="w-full rounded-lg bg-gradient-to-b from-[#15421b] to-[#103616] py-3 text-[13px] font-bold text-[#f3efcf] shadow-sm border border-emerald-600/20 hover:from-[#1b5d24] hover:to-[#14421a] transition-colors">
+                  <button className="w-full rounded-lg bg-linear-to-b from-[#15421b] to-[#103616] py-3 text-[13px] font-bold text-[#f3efcf] shadow-sm border border-emerald-600/20 hover:from-[#1b5d24] hover:to-[#14421a] transition-colors">
                     Export Sales CSV
                   </button>
                   <button className="w-full rounded-lg bg-transparent py-3 text-[13px] font-bold text-[#bcd59a] border border-emerald-400/20 hover:bg-white/2 transition-colors">

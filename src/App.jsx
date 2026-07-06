@@ -11,6 +11,7 @@ import EditProfilePage   from './pages/User/EditProfilePage';
 import AdminDashboardPage from './pages/Admin/AdminDashboardPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 import ReportsPage from './pages/User/ReportsPage';
+import SettingsPage from './pages/User/SettingsPage';
 
 
 export default function App() {
@@ -24,6 +25,7 @@ export default function App() {
       <Route path="/inventory"        element={<InventoryPage />} />
       <Route path="/billing"          element={<BillingPage />} />
       <Route path="/reports"          element={<ReportsPage />} />
+      <Route path="/settings"         element={<SettingsPage />} />
       <Route path="/profile"          element={<EditProfilePage />} />
       <Route path="/admin"            element={<AdminDashboardPage />} />
       <Route path="/super-admin"      element={<SuperAdminDashboardPage />} />
