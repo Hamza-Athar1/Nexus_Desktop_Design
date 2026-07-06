@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import {
-  BarChart2, FileText, Calendar, Download, Filter, Menu
+  BarChart2, FileText, Calendar, Download, Filter, Menu, 
+  TrendingUp, TrendingDown, PieChart, Package, DollarSign,
+  Receipt, Activity, Clock,CreditCard
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -11,8 +13,52 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  PieChart as RePieChart,
+  Pie,
+  Cell,
 } from 'recharts';
 import UserSidebar from '../../components/UserSidebar';
+
+function Badge({ children, variant = 'primary' }) {
+  const styles = {
+    primary: 'bg-[#163d15] text-[#eaf7d9]',
+    secondary: 'bg-[#eaf1ce] text-[#163d15]',
+    success: 'bg-emerald-500/20 text-emerald-700 border border-emerald-400/30',
+    danger: 'bg-red-500/20 text-red-700 border border-red-400/30',
+  };
+  return (
+    <span className={`px-2.5 py-0.5 rounded-lg text-[9px] font-bold uppercase tracking-wide ${styles[variant]}`}>
+      {children}
+    </span>
+  );
+}
+
+function StatCard({ icon: Icon, title, value, change, trend = 'up', variant = 'dark' }) {
+  const isDark = variant === 'dark';
+  const trendIcon = trend === 'up' ? TrendingUp : TrendingDown;
+  const trendColor = trend === 'up' ? 'text-emerald-400' : 'text-red-400';
+  
+  return (
+    <div className={`rounded-2xl p-4 ${isDark ? 'bg-[#0f3d13]/95 border border-emerald-500/20' : 'bg-[#f3edc7] border border-[#cfc089]'}`}>
+      <div className="flex items-start justify-between">
+        <div>
+          <p className={`text-[10px] font-bold uppercase tracking-wider ${isDark ? 'text-emerald-300/80' : 'text-[#6a8f4b]'}`}>{title}</p>
+          <p className={`text-2xl font-black mt-1 ${isDark ? 'text-[#f7f4d9]' : 'text-[#163d15]'}`}>{value}</p>
+        </div>
+        <div className={`p-2 rounded-xl ${isDark ? 'bg-emerald-500/10' : 'bg-[#163d15]/5'}`}>
+          <Icon size={18} className={isDark ? 'text-emerald-400' : 'text-[#163d15]'} />
+        </div>
+      </div>
+      <div className="flex items-center gap-2 mt-2">
+        <span className={`text-[11px] font-semibold flex items-center gap-1 ${trendColor}`}>
+          <trendIcon size={14} />
+          {change}
+        </span>
+        <span className={`text-[10px] ${isDark ? 'text-emerald-300/60' : 'text-[#6a8f4b]'}`}>vs last month</span>
+      </div>
+    </div>
+  );
+}
 
 function SectionLabel({ children }) {
   return (
@@ -23,152 +69,269 @@ function SectionLabel({ children }) {
   );
 }
 
-function StatTile({ title, value }) {
-  return (
-    <div className="flex-1 bg-[#0d3b15]/95 border border-emerald-500/20 rounded-2xl p-4 flex flex-col gap-2">
-      <span className="text-[10px] font-bold text-emerald-300/80 uppercase">{title}</span>
-      <div className="text-2xl font-black text-[#f7f4d9]">{value}</div>
-    </div>
-  );
-}
-
 export default function ReportsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState('reports');
   const [range, setRange] = useState('30d');
 
-  const mockReports = [
-    { id: 1, name: 'Daily Sales', date: '2026-07-01', size: '24 KB' },
-    { id: 2, name: 'Inventory Valuation', date: '2026-06-29', size: '48 KB' },
-    { id: 3, name: 'Tax Summary', date: '2026-06-28', size: '12 KB' },
+  const chartData = [
+    { day: '1', sales: 4000 },
+    { day: '2', sales: 3000 },
+    { day: '3', sales: 2000 },
+    { day: '4', sales: 2780 },
+    { day: '5', sales: 1890 },
+    { day: '6', sales: 2390 },
+    { day: '7', sales: 3490 },
+    { day: '8', sales: 4200 },
+    { day: '9', sales: 3800 },
+    { day: '10', sales: 4500 },
+    { day: '11', sales: 3200 },
+    { day: '12', sales: 2800 },
+    { day: '13', sales: 5100 },
+    { day: '14', sales: 4300 },
+    { day: '15', sales: 3600 },
   ];
 
-  const chartData = [
-    { name: 'Day 1', sales: 4000 },
-    { name: 'Day 2', sales: 3000 },
-    { name: 'Day 3', sales: 2000 },
-    { name: 'Day 4', sales: 2780 },
-    { name: 'Day 5', sales: 1890 },
-    { name: 'Day 6', sales: 2390 },
-    { name: 'Day 7', sales: 3490 },
+  const categoryData = [
+    { name: 'Antibiotics', value: 45 },
+    { name: 'Painkillers', value: 30 },
+    { name: 'Vitamins', value: 25 },
   ];
+
+  const paymentData = [
+    { name: 'Cash', value: 68 },
+    { name: 'Card', value: 32 },
+  ];
+
+  const COLORS = ['#4ade80', '#fbbf24', '#60a5fa'];
+  const PAYMENT_COLORS = ['#4ade80', '#60a5fa'];
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#f1e8c4] font-inter">
+    <div className="flex h-screen w-full overflow-hidden bg-[#f3edd0] font-['Inter',sans-serif]">
       {sidebarOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <UserSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} activeNav={activeNav} onNavChange={(id) => { setActiveNav(id); setSidebarOpen(false); }} />
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between px-4 sm:px-6 h-15 shrink-0 bg-[#0c3410] border-b border-emerald-500/15">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-[#234f24]/20 bg-[#0b3a11] px-4">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#d9ddc4] hover:text-[#f7f4d8]">
-              <Menu size={22} />
+            <button type="button" onClick={() => setSidebarOpen(true)} className="shrink-0 rounded-lg p-1.5 text-[#c8d898] hover:bg-[#1f491d] transition-colors lg:hidden" aria-label="Open menu">
+              <Menu size={18} />
             </button>
-            <div className="text-[#e5e1c0] text-[10px] font-bold tracking-[0.18em] uppercase">USER-DASHBOARD</div>
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#e9e6cf]/70">USER-DASHBOARD / Reports - Pharmacy</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#356837]/15 border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-              <span className="text-xs text-emerald-300 font-semibold">Online</span>
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#d8e0b4]">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#5dd456] shadow-[0_0_6px_#5dd456]" />
+              <span className="hidden sm:inline">Online</span>
             </div>
-            <div className="w-8.5 h-8.5 rounded-full bg-linear-to-br from-[#1d5e2f] to-[#114923] border-2 border-emerald-500/20 flex items-center justify-center text-xs font-bold text-[#f6f1d4]">AK</div>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1f491d] border border-[rgba(110,185,80,0.3)] text-[10px] font-extrabold text-[#e8f2d8]">AK</div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 flex flex-col gap-4 sm:gap-6">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-[28px] font-black text-[#123e20] mb-1.5">Reports</h1>
-              <p className="text-xs text-[#41603d] m-0">Analytics and exports for your store</p>
-            </div>
-
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full">
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-[#eaf1ce] rounded-lg p-2 border border-[#d8c98c] flex-1">
-                <select value={range} onChange={(e) => setRange(e.target.value)} className="w-full sm:w-auto flex-1 bg-transparent outline-none text-sm text-[#163d15]">
-                  <option value="7d">Last 7 days</option>
-                  <option value="30d">Last 30 days</option>
-                  <option value="90d">Last 90 days</option>
-                </select>
-                <button className="w-full sm:w-auto px-3 py-2 rounded-md bg-[#1a3d1a] text-[#e4ecba] flex items-center justify-center gap-2"><Filter size={14} /> Filter</button>
+        <main className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-extrabold text-[#163d15] tracking-tight">Reports</h1>
+                <p className="text-sm text-[#6a8f4b] mt-0.5">Sales analytics • Pharmacy module</p>
               </div>
-              <button className="w-full sm:w-auto px-3 py-2 rounded-lg bg-[#1a3d1a] text-[#e4ecba] flex items-center justify-center gap-2"><Download size={14} /> Export</button>
-            </div>
-          </div>
-
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 flex flex-col gap-4">
-              <SectionLabel>Overview</SectionLabel>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <StatTile title="Total Sales" value="Rs 124,800" />
-                <StatTile title="Bills" value="1,240" />
-                <StatTile title="Avg. Order" value="Rs 100" />
-              </div>
-
-              <div className="mt-2 bg-[#0f3d13]/90 border border-emerald-500/20 rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-emerald-300">
-                    <BarChart2 size={16} />
-                    <span className="text-[10px] font-bold uppercase">Sales chart</span>
-                  </div>
-                  <div className="text-[11px] text-[#b9c595]">{range === '7d' ? 'Last 7 days' : range === '30d' ? 'Last 30 days' : 'Last 90 days'}</div>
+              <div className="flex flex-wrap gap-2">
+                <div className="flex bg-[#eaf1ce] rounded-xl p-1 border border-[#d8c98c]">
+                  {['7d', '30d', '90d', '180d', '365d'].map((r) => (
+                    <button
+                      key={r}
+                      onClick={() => setRange(r)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+                        range === r 
+                          ? 'bg-[#163d15] text-[#f3efcf]' 
+                          : 'text-[#163d15] hover:bg-[#163d15]/10'
+                      }`}
+                    >
+                      {r === '7d' ? '7 Days' : r === '30d' ? '30 Days' : r === '90d' ? '3 months' : r === '180d' ? '6 months' : '1 year'}
+                    </button>
+                  ))}
                 </div>
-                <div className="rounded-lg bg-white/5 p-2">
-                  <div className="h-40 sm:h-56 md:h-64 lg:h-56">
+                <button className="rounded-xl bg-[#163d15] px-4 py-1.5 text-sm font-bold text-[#f3efcf] flex items-center gap-1.5 hover:bg-[#1f4a1d] transition-colors">
+                  <Download size={14} />
+                  Export
+                </button>
+              </div>
+            </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <StatCard 
+                icon={DollarSign} 
+                title="Total Revenue" 
+                value="Rs 2.4M" 
+                change="+18%" 
+                trend="up" 
+              />
+              <StatCard 
+                icon={Receipt} 
+                title="Total Bills" 
+                value="1,042" 
+                change="+9%" 
+                trend="up" 
+              />
+              <StatCard 
+                icon={Activity} 
+                title="Avg Bill Value" 
+                value="Rs 2,304" 
+                change="+8%" 
+                trend="up" 
+              />
+              <StatCard 
+                icon={Package} 
+                title="Items Sold" 
+                value="8,340" 
+                change="-3%" 
+                trend="down" 
+              />
+            </div>
+
+            {/* Charts Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {/* Sales Chart */}
+              <div className="lg:col-span-2 rounded-2xl bg-[#0f3d13]/95 p-5 border border-emerald-500/20 shadow-lg">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <BarChart2 size={16} className="text-emerald-400" />
+                    <h3 className="text-xs font-bold text-[#e8f0d0] uppercase tracking-wider">Daily Sales - June 2026</h3>
+                  </div>
+                  <Badge variant="primary">{range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : range === '90d' ? '3 Months' : range === '180d' ? '6 Months' : '1 Year'}</Badge>
+                </div>
+                <div className="rounded-xl bg-emerald-500/5 p-2">
+                  <div className="h-52">
                     <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#0b2a11" />
-                      <XAxis dataKey="name" stroke="#cfe3b8" />
-                      <YAxis stroke="#cfe3b8" />
-                      <Tooltip contentStyle={{ background: '#0b2a11', border: 'none', color: '#cfe3b8' }} />
-                      <Legend />
-                      <Bar dataKey="sales" fill="#4ade80" />
-                    </BarChart>
+                      <BarChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1a4a1e" />
+                        <XAxis dataKey="day" stroke="#8aaa6a" fontSize={10} />
+                        <YAxis stroke="#8aaa6a" fontSize={10} />
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: '#0b3a11', 
+                            border: '1px solid #1a4a1e',
+                            borderRadius: '8px',
+                            color: '#e8f0d0',
+                            fontSize: '12px'
+                          }} 
+                        />
+                        <Bar dataKey="sales" fill="#4ade80" radius={[4, 4, 0, 0]} />
+                      </BarChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
+                <div className="flex items-center justify-center gap-6 mt-3 text-[10px] text-[#8aaa6a]">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                    Cream bar = highest sales day
+                  </span>
+                </div>
+              </div>
+
+              {/* Right Column */}
+              <div className="space-y-4">
+                {/* Top Categories */}
+                <div className="rounded-2xl bg-[#f3edc7] p-5 border border-[#cfc089] shadow-sm">
+                  <h4 className="text-xs font-bold text-[#163d15] mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <PieChart size={14} />
+                    Top Categories
+                  </h4>
+                  <div className="h-32">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RePieChart>
+                        <Pie
+                          data={categoryData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={30}
+                          outerRadius={50}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {categoryData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: '#f3edc7', 
+                            border: '1px solid #cfc089',
+                            borderRadius: '8px',
+                            color: '#163d15',
+                            fontSize: '12px'
+                          }} 
+                        />
+                      </RePieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-center gap-4 mt-2">
+                    {categoryData.map((item, index) => (
+                      <div key={item.name} className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index] }} />
+                        <span className="text-[10px] font-semibold text-[#163d15]">{item.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Payment Split */}
+                <div className="rounded-2xl bg-[#f3edc7] p-5 border border-[#cfc089] shadow-sm">
+                  <h4 className="text-xs font-bold text-[#163d15] mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <CreditCard size={14} />
+                    Payment Split
+                  </h4>
+                  <div className="h-24">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RePieChart>
+                        <Pie
+                          data={paymentData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={20}
+                          outerRadius={40}
+                          paddingAngle={5}
+                          dataKey="value"
+                        >
+                          {paymentData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          contentStyle={{ 
+                            background: '#f3edc7', 
+                            border: '1px solid #cfc089',
+                            borderRadius: '8px',
+                            color: '#163d15',
+                            fontSize: '12px'
+                          }} 
+                        />
+                      </RePieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-center gap-6 mt-1">
+                    {paymentData.map((item, index) => (
+                      <div key={item.name} className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full" style={{ backgroundColor: PAYMENT_COLORS[index] }} />
+                        <span className="text-[10px] font-semibold text-[#163d15]">{item.name} {item.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <aside className="flex flex-col gap-4">
-              <div className="bg-[#eaf1ce] rounded-2xl p-4 border border-[#d8c98c]">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-bold text-[#163d15]">Saved Reports</span>
-                  <button className="text-sm text-[#1a3d1a] font-bold">New</button>
-                </div>
-                <ul className="flex flex-col gap-2">
-                  {mockReports.map(r => (
-                    <li key={r.id} className="flex items-center justify-between text-sm text-[#163d15] gap-2">
-                      <div className="flex items-center gap-2">
-                        <FileText size={16} className="text-[#1a3d1a]" />
-                        <div>
-                          <div className="font-bold">{r.name}</div>
-                          <div className="text-[12px] text-[#6a8f4b]">{r.date} · {r.size}</div>
-                        </div>
-                      </div>
-                      <button className="text-sm text-[#163d15] bg-[#f3edc7] px-2 py-1 rounded-md sm:px-3 sm:py-1">Download</button>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              <div className="bg-[#0f3d13]/90 border border-emerald-500/20 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Calendar size={14} className="text-emerald-300" />
-                  <span className="text-[10px] font-bold tracking-[0.12em] text-emerald-300/80 uppercase">Quick Exports</span>
-                </div>
-                <div className="grid gap-2">
-                  <button className="w-full rounded-lg bg-linear-to-b from-[#15421b] to-[#103616] py-3 text-[13px] font-bold text-[#f3efcf] shadow-sm border border-emerald-600/20 hover:from-[#1b5d24] hover:to-[#14421a] transition-colors">
-                    Export Sales CSV
-                  </button>
-                  <button className="w-full rounded-lg bg-transparent py-3 text-[13px] font-bold text-[#bcd59a] border border-emerald-400/20 hover:bg-white/2 transition-colors">
-                    Export Inventory
-                  </button>
-                </div>
-              </div>
-            </aside>
-          </section>
+            {/* Footer Plan Indicator */}
+            <div className="flex items-center justify-center gap-3 px-3 py-1.5 bg-[#163d15]/10 rounded-full mx-auto w-fit">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#6a8f4b]">Plan</span>
+              <Badge variant="primary">Pro</Badge>
+              <span className="text-[9px] font-semibold text-[#6a8f4b]">18 days left</span>
+            </div>
+          </div>
         </main>
       </div>
     </div>

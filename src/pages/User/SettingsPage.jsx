@@ -1,12 +1,74 @@
 import { useState } from 'react';
-import { Menu, Sun, Moon, Check, Save } from 'lucide-react';
+import { Menu, Sun, Moon, Check, Save, Palette, Bell, Speaker, Globe, Lock, Image, ShoppingCart, AlertCircle } from 'lucide-react';
 import UserSidebar from '../../components/UserSidebar';
 
 function SectionTitle({ children }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-[10px] font-bold tracking-[0.12em] text-[#0f3a18] uppercase">{children}</span>
+      <span className="text-[10px] font-bold tracking-[0.12em] text-[#123e20] uppercase">{children}</span>
       <div className="flex-1 h-px bg-emerald-400/10" />
+    </div>
+  );
+}
+
+function Toggle({ label, description, checked, onChange }) {
+  return (
+    <label className="flex items-start justify-between gap-4 py-2.5 border-b border-emerald-500/10 last:border-0">
+      <div className="flex-1">
+        <div className="text-[13px] font-semibold text-[#e8f0d0]">{label}</div>
+        {description && <div className="text-[11px] text-[#8aaa6a]/70 mt-0.5">{description}</div>}
+      </div>
+      <div className="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-0.5">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
+        <span className={`w-12 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-emerald-400' : 'bg-[#2a4a2a]'}`} />
+        <span className={`absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-0'}`} />
+      </div>
+    </label>
+  );
+}
+
+function SettingsToggle({ label, description, checked, onChange, variant = 'dark' }) {
+  const isDark = variant === 'dark';
+  return (
+    <label className={`flex items-start justify-between gap-4 py-2.5 border-b ${isDark ? 'border-emerald-500/10' : 'border-[#163d15]/10'} last:border-0 cursor-pointer`}>
+      <div className="flex-1">
+        <div className={`text-[13px] font-semibold ${isDark ? 'text-[#e8f0d0]' : 'text-[#163d15]'}`}>{label}</div>
+        {description && <div className={`text-[11px] mt-0.5 ${isDark ? 'text-[#8aaa6a]/70' : 'text-[#6a8f4b]'}`}>{description}</div>}
+      </div>
+      <div className="relative inline-flex items-center flex-shrink-0 mt-0.5">
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
+        <span className={`w-11 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-emerald-400' : (isDark ? 'bg-[#2a4a2a]' : 'bg-gray-300')}`} />
+        <span className={`absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${checked ? 'translate-x-5' : 'translate-x-0'}`} />
+      </div>
+    </label>
+  );
+}
+
+function ColorOption({ id, color, selected, onClick }) {
+  return (
+    <button 
+      onClick={() => onClick(id)} 
+      className={`w-10 h-10 rounded-xl border-2 transition-all ${selected ? 'border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.3)] ring-2 ring-emerald-400/50' : 'border-transparent hover:border-emerald-400/50'}`} 
+      style={{ background: color }} 
+      aria-label={id}
+    />
+  );
+}
+
+function SelectField({ label, value, options, onChange, variant = 'dark' }) {
+  const isDark = variant === 'dark';
+  return (
+    <div>
+      <p className={`text-[11px] font-semibold mb-1.5 ${isDark ? 'text-[#e8f0d0]/80' : 'text-[#163d15]'}`}>{label}</p>
+      <select 
+        value={value} 
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full rounded-xl px-4 py-2.5 text-sm outline-none border ${isDark ? 'bg-[#1a4a1e]/60 border-emerald-500/20 text-[#e8f0d0]' : 'bg-[#eaf1ce] border-[#c8d49a]/50 text-[#163d15]'}`}
+      >
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
     </div>
   );
 }
@@ -21,173 +83,293 @@ export default function SettingsPage() {
   const [showImages, setShowImages] = useState(false);
   const [requirePassword, setRequirePassword] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState(10);
+  const [lowStockAlerts, setLowStockAlerts] = useState(true);
+  const [dailySalesSummary, setDailySalesSummary] = useState(true);
+  const [subscriptionReminder, setSubscriptionReminder] = useState(true);
+  const [billSound, setBillSound] = useState(true);
+  const [barcodeBeep, setBarcodeBeep] = useState(false);
+  const [desktopNotifications, setDesktopNotifications] = useState(false);
+  const [language, setLanguage] = useState('en');
+  const [currency, setCurrency] = useState('pkr');
+  const [timezone, setTimezone] = useState('pkt');
 
   const saveChanges = () => {
-    // placeholder for persist logic
-    alert('Settings saved');
+    alert('Settings saved successfully!');
   };
 
   const colorOptions = [
-    { id: 'forest', color: '#0f5a2b' },
-    { id: 'navy', color: '#1f4b6b' },
-    { id: 'crimson', color: '#8b1e2f' },
-    { id: 'royal', color: '#5b3fbf' },
-    { id: 'midnight', color: '#0b0f1a' },
+    { id: 'forest', color: '#0F4A15' },
+    { id: 'navy', color: '#1a365d' },
+    { id: 'crimson', color: '#7f1d1d' },
+    { id: 'royal', color: '#4c1d95' },
+    { id: 'midnight', color: '#0f172a' },
   ];
 
+  const themeNames = {
+    forest: 'Forest green',
+    navy: 'Navy blue',
+    crimson: 'Crimson red',
+    royal: 'Royal purple',
+    midnight: 'Midnight black'
+  };
+
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#f3edd0] font-inter">
+    <div className="flex h-screen w-full overflow-hidden bg-[#f3edd0] font-['Inter',sans-serif]">
       {sidebarOpen && <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
       <UserSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} activeNav={activeNav} onNavChange={(id) => { setActiveNav(id); setSidebarOpen(false); }} />
 
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        <header className="flex items-center justify-between px-4 sm:px-6 h-15 shrink-0 bg-[#0b3a11] border-b border-[#234f24]/15">
+      <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-2 border-b border-[#234f24]/20 bg-[#0b3a11] px-4">
           <div className="flex items-center gap-3">
-            <button onClick={() => setSidebarOpen(true)} className="lg:hidden text-[#d9ddc4] hover:text-[#f7f4d8]"><Menu size={22} /></button>
-            <div className="text-[#e9e6cf] text-[10px] font-bold tracking-[0.18em] uppercase">USER-DASHBOARD</div>
+            <button type="button" onClick={() => setSidebarOpen(true)} className="shrink-0 rounded-lg p-1.5 text-[#c8d898] hover:bg-[#1f491d] transition-colors lg:hidden" aria-label="Open menu">
+              <Menu size={18} />
+            </button>
+            <span className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-[#e9e6cf]/70">USER-DASHBOARD / Settings - Pharmacy</span>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-full bg-[#356837]/15 border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-              <span className="text-xs text-emerald-300 font-semibold">Online</span>
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold text-[#d8e0b4]">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-[#5dd456] shadow-[0_0_6px_#5dd456]" />
+              <span className="hidden sm:inline">Online</span>
             </div>
-            <div className="w-8.5 h-8.5 rounded-full bg-linear-to-br from-[#1d5e2f] to-[#114923] border-2 border-[#2f7840]/20 flex items-center justify-center text-xs font-bold text-[#f6f1d4]">AK</div>
+            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[#1f491d] border border-[rgba(110,185,80,0.3)] text-[10px] font-extrabold text-[#e8f2d8]">AK</div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 flex flex-col gap-4 sm:gap-6">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-[28px] font-black text-[#0f3a18] mb-1.5">Settings</h1>
-              <p className="text-xs text-[#3f5e39] m-0">Customize your Nexus POS experience</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button onClick={saveChanges} className="flex items-center gap-2 bg-[#f3edc7] px-4 py-2 rounded-lg border border-[#d8c98c] text-[#163d15] font-bold">
-                <Save size={16} /> Save changes
+        <main className="flex-1 overflow-y-auto p-4">
+          <div className="space-y-4">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+              <div>
+                <h1 className="text-xl font-extrabold text-[#163d15] tracking-tight">Settings</h1>
+                <p className="text-sm text-[#6a8f4b] mt-0.5">Customize your Nexus POS experience</p>
+              </div>
+              <button onClick={saveChanges} className="rounded-xl bg-gradient-to-b from-[#15421b] to-[#103616] px-5 py-2 text-sm font-bold text-[#f3efcf] shadow-sm hover:shadow-md transition-all flex items-center gap-2">
+                <Save size={16} />
+                Save changes
               </button>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <SectionTitle>Theme</SectionTitle>
-              <div className="bg-[#0d3b15]/85 p-4 rounded-2xl border border-[#cfc089]">
-                <div className="mb-3 text-sm font-bold text-[#eaf1ce]">Color Theme</div>
-                <div className="flex items-center gap-3 mb-4">
-                  {colorOptions.map(opt => (
-                    <button key={opt.id} onClick={() => setTheme(opt.id)} className={`w-9 h-9 rounded-md border ${theme===opt.id? 'ring-2 ring-emerald-400':''}`} style={{ background: opt.color }} aria-label={opt.id} />
-                  ))}
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Left Column */}
+              <div className="space-y-4">
+                {/* Theme */}
+                <section className="rounded-2xl bg-[#0f3d13]/95 p-5 border border-emerald-500/20 shadow-lg">
+                  <h3 className="text-xs font-bold text-[#e8f0d0] mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <Palette size={14} className="text-emerald-400" />
+                    Theme
+                  </h3>
+                  
+                  <div className="mb-4">
+                    <p className="text-[11px] font-semibold text-[#e8f0d0]/80 mb-2">Color Theme</p>
+                    <div className="flex items-center gap-2">
+                      {colorOptions.map(opt => (
+                        <ColorOption 
+                          key={opt.id} 
+                          id={opt.id} 
+                          color={opt.color} 
+                          selected={theme === opt.id} 
+                          onClick={setTheme} 
+                        />
+                      ))}
+                    </div>
+                  </div>
 
-                <div className="flex items-center gap-3 mb-3">
-                  <button onClick={() => setMode('light')} className={`flex items-center gap-2 px-3 py-2 rounded-md ${mode==='light'? 'bg-[#1a3d1a] text-[#e4ecba]':'bg-transparent text-[#163d15] border border-[#c8d49a]'}`}><Sun size={16} /> Light Mode</button>
-                  <button onClick={() => setMode('dark')} className={`flex items-center gap-2 px-3 py-2 rounded-md ${mode==='dark'? 'bg-[#1a3d1a] text-[#e4ecba]':'bg-transparent text-[#163d15] border border-[#c8d49a]'}`}><Moon size={16} /> Dark Mode</button>
-                </div>
+                  <div className="mb-4">
+                    <p className="text-[11px] font-semibold text-[#e8f0d0]/80 mb-2">Interface Mode</p>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => setMode('light')} 
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${
+                          mode === 'light' 
+                            ? 'bg-[#eaf1ce] text-[#163d15] border-[#eaf1ce] shadow-[0_0_20px_rgba(52,211,153,0.15)]' 
+                            : 'bg-transparent text-[#e8f0d0] border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/5'
+                        }`}
+                      >
+                        <Sun size={16} /> Light Mode
+                        {mode === 'light' && <Check size={14} className="ml-1" />}
+                      </button>
+                      <button 
+                        onClick={() => setMode('dark')} 
+                        className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-bold transition-all ${
+                          mode === 'dark' 
+                            ? 'bg-[#1a4a1e] text-[#e8f0d0] border-[#1a4a1e] shadow-[0_0_20px_rgba(52,211,153,0.15)]' 
+                            : 'bg-transparent text-[#e8f0d0] border-emerald-500/30 hover:border-emerald-500/50 hover:bg-emerald-500/5'
+                        }`}
+                      >
+                        <Moon size={16} /> Dark Mode
+                        {mode === 'dark' && <Check size={14} className="ml-1" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl bg-[#1a4a1e]/60 p-3 border border-emerald-500/10">
+                    <p className="text-[11px] text-[#8aaa6a]">
+                      <span className="font-semibold">Accent Color Preview</span>
+                      <span className="mx-2">•</span>
+                      <span style={{ color: colorOptions.find(c => c.id === theme)?.color }}>
+                        {themeNames[theme]} - {colorOptions.find(c => c.id === theme)?.color}
+                      </span>
+                    </p>
+                  </div>
+                </section>
+
+                {/* POS Behaviour */}
+                <section className="rounded-2xl bg-[#0f3d13]/95 p-5 border border-emerald-500/20 shadow-lg">
+                  <h3 className="text-xs font-bold text-[#e8f0d0] mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <ShoppingCart size={14} className="text-emerald-400" />
+                    POS Behaviour
+                  </h3>
+                  
+                  <div className="space-y-0">
+                    <SettingsToggle 
+                      label="Auto clear cart after bill" 
+                      description="Empty cart automatically after generating bill"
+                      checked={autoClear}
+                      onChange={setAutoClear}
+                    />
+                    <SettingsToggle 
+                      label="Show product images" 
+                      description="Display product images in POS grid"
+                      checked={showImages}
+                      onChange={setShowImages}
+                    />
+                    <SettingsToggle 
+                      label="Require password on open" 
+                      description="Lock POS on idle, require PIN to resume"
+                      checked={requirePassword}
+                      onChange={setRequirePassword}
+                    />
+                    <div className="flex items-center gap-3 pt-2.5">
+                      <div className="flex-1">
+                        <p className="text-[11px] font-semibold text-[#e8f0d0]/80">Low stock threshold</p>
+                        <p className="text-[10px] text-[#8aaa6a]/70">Alert when quantity falls below this number</p>
+                      </div>
+                      <input 
+                        type="number" 
+                        value={lowStockThreshold} 
+                        onChange={(e) => setLowStockThreshold(Number(e.target.value))} 
+                        className="w-20 rounded-xl px-3 py-2 text-sm border border-emerald-500/20 bg-[#1a4a1e]/60 text-[#e8f0d0] outline-none focus:border-emerald-400" 
+                      />
+                    </div>
+                  </div>
+                </section>
               </div>
 
-              <SectionTitle>POS Behaviour</SectionTitle>
-              <div className="bg-[#0d3b15]/85 p-4 rounded-2xl border border-[#cfc089] space-y-3">
-                <label className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-[#eaf1ce]">Auto clear cart after bill</div>
-                    <div className="text-xs text-[#96c76e]">Empty cart automatically after generating bill</div>
+              {/* Right Column */}
+              <div className="space-y-4">
+                {/* Notifications */}
+                <section className="rounded-2xl bg-[#f3edc7] p-5 border border-[#cfc089] shadow-sm">
+                  <h3 className="text-xs font-bold text-[#163d15] mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <Bell size={14} />
+                    Notifications
+                  </h3>
+                  
+                  <div className="mb-4">
+                    <p className="text-[11px] font-semibold text-[#163d15]/80 mb-2">In-App Alerts</p>
+                    <div className="space-y-0">
+                      <SettingsToggle 
+                        label="Low stock alerts" 
+                        description="Alert when items fall below minimum quantity"
+                        checked={lowStockAlerts}
+                        onChange={setLowStockAlerts}
+                        variant="light"
+                      />
+                      <SettingsToggle 
+                        label="Daily sales summary" 
+                        description="End of day sales notification"
+                        checked={dailySalesSummary}
+                        onChange={setDailySalesSummary}
+                        variant="light"
+                      />
+                      <SettingsToggle 
+                        label="Subscription reminder" 
+                        description="Alert 7 days before plan expires"
+                        checked={subscriptionReminder}
+                        onChange={setSubscriptionReminder}
+                        variant="light"
+                      />
+                    </div>
                   </div>
-                  <input type="checkbox" checked={autoClear} onChange={(e)=>setAutoClear(e.target.checked)} className="w-5 h-5" />
-                </label>
 
-                <label className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm font-bold text-[#eaf1ce]">Show product images</div>
-                    <div className="text-xs text-[#96c76e]">Display product images in POS grid</div>
+                    <p className="text-[11px] font-semibold text-[#163d15]/80 mb-2">Sound and Display</p>
+                    <div className="space-y-0">
+                      <SettingsToggle 
+                        label="Bill Confirmation sound" 
+                        description="Play sound when bill is generated"
+                        checked={billSound}
+                        onChange={setBillSound}
+                        variant="light"
+                      />
+                      <SettingsToggle 
+                        label="Barcode scan beep" 
+                        description="Beep on successful barcode scan"
+                        checked={barcodeBeep}
+                        onChange={setBarcodeBeep}
+                        variant="light"
+                      />
+                      <SettingsToggle 
+                        label="Desktop notifications" 
+                        description="Show system tray notification"
+                        checked={desktopNotifications}
+                        onChange={setDesktopNotifications}
+                        variant="light"
+                      />
+                    </div>
                   </div>
-                  <input type="checkbox" checked={showImages} onChange={(e)=>setShowImages(e.target.checked)} className="w-5 h-5" />
-                </label>
+                </section>
 
-                <label className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-[#eaf1ce]">Require password on open</div>
-                    <div className="text-xs text-[#96c76e]">Lock POS on idle, require PIN to resume</div>
+                {/* Language and Region */}
+                <section className="rounded-2xl bg-[#f3edc7] p-5 border border-[#cfc089] shadow-sm">
+                  <h3 className="text-xs font-bold text-[#163d15] mb-3 flex items-center gap-2 uppercase tracking-wider">
+                    <Globe size={14} />
+                    Language and Region
+                  </h3>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <SelectField 
+                      label="Language" 
+                      value={language} 
+                      onChange={setLanguage}
+                      options={[
+                        { value: 'en', label: 'English' },
+                        { value: 'ur', label: 'Urdu' },
+                        { value: 'ar', label: 'Arabic' },
+                      ]}
+                      variant="light"
+                    />
+                    <SelectField 
+                      label="Currency" 
+                      value={currency} 
+                      onChange={setCurrency}
+                      options={[
+                        { value: 'pkr', label: 'PKR - Rs' },
+                        { value: 'usd', label: 'USD - $' },
+                        { value: 'eur', label: 'EUR - €' },
+                      ]}
+                      variant="light"
+                    />
+                    <SelectField 
+                      label="Timezone" 
+                      value={timezone} 
+                      onChange={setTimezone}
+                      options={[
+                        { value: 'pkt', label: 'PKT' },
+                        { value: 'gmt', label: 'GMT' },
+                        { value: 'est', label: 'EST' },
+                      ]}
+                      variant="light"
+                    />
                   </div>
-                  <input type="checkbox" checked={requirePassword} onChange={(e)=>setRequirePassword(e.target.checked)} className="w-5 h-5" />
-                </label>
+                </section>
 
-                <div className="flex items-center gap-3">
-                  <div className="text-sm text-[#eaf1ce]">Low stock threshold</div>
-                  <input type="number" value={lowStockThreshold} onChange={(e)=>setLowStockThreshold(Number(e.target.value))} className="w-20 rounded-md px-2 py-1 border border-[#c8d49a] bg-white text-[#163d15]" />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <SectionTitle>Notifications</SectionTitle>
-              <div className="bg-[#f3edc7] p-4 rounded-2xl border border-[#cfc089] space-y-3">
-                <label className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-[#163d15]">Low stock alerts</div>
-                    <div className="text-xs text-[#6a8f4b]">Alert when items fall below minimum quantity</div>
-                  </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5" />
-                </label>
-
-                <label className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-[#163d15]">Daily sales summary</div>
-                    <div className="text-xs text-[#6a8f4b]">End of day sales notification</div>
-                  </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5" />
-                </label>
-
-                <label className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-[#163d15]">Subscription reminder</div>
-                    <div className="text-xs text-[#6a8f4b]">Alert 7 days before plan expires</div>
-                  </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5" />
-                </label>
-              </div>
-
-              <SectionTitle>Sound and Display</SectionTitle>
-              <div className="bg-[#f3edc7] p-4 rounded-2xl border border-[#cfc089] space-y-3">
-                <label className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-[#163d15]">Bill Confirmation sound</div>
-                    <div className="text-xs text-[#6a8f4b]">Play sound when bill is generated</div>
-                  </div>
-                  <input type="checkbox" defaultChecked className="w-5 h-5" />
-                </label>
-
-                <label className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-[#163d15]">Barcode scan beep</div>
-                    <div className="text-xs text-[#6a8f4b]">Beep on successful barcode scan</div>
-                  </div>
-                  <input type="checkbox" className="w-5 h-5" />
-                </label>
-
-                <label className="flex items-center justify-between">
-                  <div>
-                    <div className="text-sm font-bold text-[#163d15]">Desktop notifications</div>
-                    <div className="text-xs text-[#6a8f4b]">Show system tray notification</div>
-                  </div>
-                  <input type="checkbox" className="w-5 h-5" />
-                </label>
-              </div>
-
-              <SectionTitle>Language and Region</SectionTitle>
-              <div className="bg-[#f3edc7] p-4 rounded-2xl border border-[#cfc089] space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  <select className="rounded-md px-3 py-2 border border-[#c8d49a] bg-white text-[#163d15]">
-                    <option>English</option>
-                  </select>
-                  <select className="rounded-md px-3 py-2 border border-[#c8d49a] bg-white text-[#163d15]">
-                    <option>PKR - Rs</option>
-                  </select>
-                  <select className="rounded-md px-3 py-2 border border-[#c8d49a] bg-white text-[#163d15]">
-                    <option>PKT</option>
-                  </select>
+                {/* Footer Plan Indicator */}
+                <div className="flex items-center justify-center gap-3 px-3 py-1.5 bg-[#163d15]/10 rounded-full">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#6a8f4b]">Plan</span>
+                  <span className="px-2.5 py-0.5 rounded-lg bg-[#163d15] text-[#eaf7d9] text-[9px] font-bold uppercase tracking-wide">Pro</span>
+                  <span className="text-[9px] font-semibold text-[#6a8f4b]">18 days left</span>
                 </div>
               </div>
             </div>
