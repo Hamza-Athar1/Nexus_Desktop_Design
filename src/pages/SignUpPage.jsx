@@ -106,7 +106,10 @@ export default function SignUpPage() {
 
   const set = (field) => (e) => {
     setForm(prev => ({ ...prev, [field]: e.target.value }));
-    if (status === 'error') setStatus('idle');
+    if (status === 'error') {
+      setStatus('idle');
+      setErrorMsg('');
+    }
   };
 
   const validate = () => {
@@ -118,22 +121,45 @@ export default function SignUpPage() {
     return null;
   };
 
+  const requestJson = async (url, options = {}) => {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      ...options,
+    });
+
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    return { res, data };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const err = validate();
-    if (err) { setErrorMsg(err); setStatus('error'); return; }
+    if (err) {
+      setErrorMsg(err);
+      setStatus('error');
+      return;
+    }
 
     setStatus('loading');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/signup`, {
+      const { res, data } = await requestJson(`${API_BASE_URL}/auth/signup`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          businessName: form.businessName.trim(),
+          businessType: form.businessType.trim(),
+          email: form.email.trim(),
+          username: form.username.trim(),
+          password: form.password,
+        }),
       });
-
-      const data = await res.json();
 
       if (!res.ok) {
         setErrorMsg(data.message || 'Something went wrong. Please try again.');
@@ -142,8 +168,8 @@ export default function SignUpPage() {
       }
 
       setStatus('success');
-      setTimeout(() => navigate('/'), 2000);
-    } catch (err) {
+      window.setTimeout(() => navigate('/'), 2000);
+    } catch {
       setErrorMsg('Unable to reach the server. Please try again.');
       setStatus('error');
     }

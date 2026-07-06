@@ -293,6 +293,23 @@ export default function LoginPage() {
     'super-admin': '/super-admin',
   };
 
+  const requestJson = async (url, options = {}) => {
+    const res = await fetch(url, {
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      ...options,
+    });
+
+    let data = {};
+    try {
+      data = await res.json();
+    } catch {
+      data = {};
+    }
+
+    return { res, data };
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -305,14 +322,10 @@ export default function LoginPage() {
     setStatus('loading');
 
     try {
-      const res = await fetch(`${API_BASE_URL}/auth/login`, {
+      const { res, data } = await requestJson(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // required so the browser stores the httpOnly cookies
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username: username.trim(), password }),
       });
-
-      const data = await res.json();
 
       if (!res.ok) {
         setErrorMsg(data.message || 'Invalid username or password');
@@ -322,9 +335,9 @@ export default function LoginPage() {
 
       setStatus('success');
       const destination = ROLE_REDIRECTS[data.user?.role] || '/modules';
-      setTimeout(() => navigate(destination), 1600);
-    } catch (err) {
-      setErrorMsg('Unable to reach the server. Please try again.', err);
+      window.setTimeout(() => navigate(destination), 1600);
+    } catch {
+      setErrorMsg('Unable to reach the server. Please try again.');
       setStatus('error');
     }
   };
