@@ -117,16 +117,6 @@ const DAYS = [
   'Thursday', 'Friday', 'Saturday',
 ];
 
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#dfd7ac]">
-        {children}
-      </span>
-      <div className="flex-1 h-px bg-[#d7d0aa]/40" />
-    </div>
-  );
-}
 
 function StatCard({ title, value, sub, highlight }) {
   const baseStyles = highlight

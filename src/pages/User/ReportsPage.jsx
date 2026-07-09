@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import {
-  BarChart2, FileText, Calendar, Download, Filter, Menu, 
+  BarChart2, Download, Menu,
   TrendingUp, TrendingDown, PieChart, Package, DollarSign,
-  Receipt, Activity, Clock,CreditCard
+  Receipt, Activity, CreditCard
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -12,7 +12,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   PieChart as RePieChart,
   Pie,
   Cell,
@@ -35,9 +34,9 @@ function Badge({ children, variant = 'primary' }) {
 
 function StatCard({ icon: Icon, title, value, change, trend = 'up', variant = 'dark' }) {
   const isDark = variant === 'dark';
-  const trendIcon = trend === 'up' ? TrendingUp : TrendingDown;
+  const TrendIcon = trend === 'up' ? TrendingUp : TrendingDown;
   const trendColor = trend === 'up' ? 'text-emerald-400' : 'text-red-400';
-  
+
   return (
     <div className={`rounded-2xl p-4 ${isDark ? 'bg-[#0f3d13]/95 border border-emerald-500/20' : 'bg-[#f3edc7] border border-[#cfc089]'}`}>
       <div className="flex items-start justify-between">
@@ -51,7 +50,7 @@ function StatCard({ icon: Icon, title, value, change, trend = 'up', variant = 'd
       </div>
       <div className="flex items-center gap-2 mt-2">
         <span className={`text-[11px] font-semibold flex items-center gap-1 ${trendColor}`}>
-          <trendIcon size={14} />
+          <TrendIcon size={14} />
           {change}
         </span>
         <span className={`text-[10px] ${isDark ? 'text-emerald-300/60' : 'text-[#6a8f4b]'}`}>vs last month</span>
@@ -60,14 +59,7 @@ function StatCard({ icon: Icon, title, value, change, trend = 'up', variant = 'd
   );
 }
 
-function SectionLabel({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[10px] font-bold tracking-[0.12em] text-[#123e20] uppercase">{children}</span>
-      <div className="flex-1 h-px bg-emerald-400/10" />
-    </div>
-  );
-}
+
 
 export default function ReportsPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -144,11 +136,10 @@ export default function ReportsPage() {
                     <button
                       key={r}
                       onClick={() => setRange(r)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
-                        range === r 
-                          ? 'bg-[#163d15] text-[#f3efcf]' 
-                          : 'text-[#163d15] hover:bg-[#163d15]/10'
-                      }`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${range === r
+                        ? 'bg-[#163d15] text-[#f3efcf]'
+                        : 'text-[#163d15] hover:bg-[#163d15]/10'
+                        }`}
                     >
                       {r === '7d' ? '7 Days' : r === '30d' ? '30 Days' : r === '90d' ? '3 months' : r === '180d' ? '6 months' : '1 year'}
                     </button>
@@ -163,33 +154,33 @@ export default function ReportsPage() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-              <StatCard 
-                icon={DollarSign} 
-                title="Total Revenue" 
-                value="Rs 2.4M" 
-                change="+18%" 
-                trend="up" 
+              <StatCard
+                icon={DollarSign}
+                title="Total Revenue"
+                value="Rs 2.4M"
+                change="+18%"
+                trend="up"
               />
-              <StatCard 
-                icon={Receipt} 
-                title="Total Bills" 
-                value="1,042" 
-                change="+9%" 
-                trend="up" 
+              <StatCard
+                icon={Receipt}
+                title="Total Bills"
+                value="1,042"
+                change="+9%"
+                trend="up"
               />
-              <StatCard 
-                icon={Activity} 
-                title="Avg Bill Value" 
-                value="Rs 2,304" 
-                change="+8%" 
-                trend="up" 
+              <StatCard
+                icon={Activity}
+                title="Avg Bill Value"
+                value="Rs 2,304"
+                change="+8%"
+                trend="up"
               />
-              <StatCard 
-                icon={Package} 
-                title="Items Sold" 
-                value="8,340" 
-                change="-3%" 
-                trend="down" 
+              <StatCard
+                icon={Package}
+                title="Items Sold"
+                value="8,340"
+                change="-3%"
+                trend="down"
               />
             </div>
 
@@ -211,14 +202,14 @@ export default function ReportsPage() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#1a4a1e" />
                         <XAxis dataKey="day" stroke="#8aaa6a" fontSize={10} />
                         <YAxis stroke="#8aaa6a" fontSize={10} />
-                        <Tooltip 
-                          contentStyle={{ 
-                            background: '#0b3a11', 
+                        <Tooltip
+                          contentStyle={{
+                            background: '#0b3a11',
                             border: '1px solid #1a4a1e',
                             borderRadius: '8px',
                             color: '#e8f0d0',
                             fontSize: '12px'
-                          }} 
+                          }}
                         />
                         <Bar dataKey="sales" fill="#4ade80" radius={[4, 4, 0, 0]} />
                       </BarChart>
@@ -257,14 +248,14 @@ export default function ReportsPage() {
                             <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip 
-                          contentStyle={{ 
-                            background: '#f3edc7', 
+                        <Tooltip
+                          contentStyle={{
+                            background: '#f3edc7',
                             border: '1px solid #cfc089',
                             borderRadius: '8px',
                             color: '#163d15',
                             fontSize: '12px'
-                          }} 
+                          }}
                         />
                       </RePieChart>
                     </ResponsiveContainer>
@@ -301,14 +292,14 @@ export default function ReportsPage() {
                             <Cell key={`cell-${index}`} fill={PAYMENT_COLORS[index % PAYMENT_COLORS.length]} />
                           ))}
                         </Pie>
-                        <Tooltip 
-                          contentStyle={{ 
-                            background: '#f3edc7', 
+                        <Tooltip
+                          contentStyle={{
+                            background: '#f3edc7',
                             border: '1px solid #cfc089',
                             borderRadius: '8px',
                             color: '#163d15',
                             fontSize: '12px'
-                          }} 
+                          }}
                         />
                       </RePieChart>
                     </ResponsiveContainer>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CreditCard, Banknote, Printer, Plus, Menu, User, Phone, FileText, Pill, ShoppingCart, Receipt, Save, ArrowRight } from 'lucide-react';
+import { CreditCard, Banknote, Printer, Menu, User, Phone, FileText, Pill, Receipt, Save } from 'lucide-react';
 import UserSidebar from '../../components/UserSidebar';
 
 const INITIAL_CART = [
@@ -44,7 +44,8 @@ function Badge({ children, variant = 'primary' }) {
 export default function BillingPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState('billing');
-  const [cartItems, setCartItems] = useState(INITIAL_CART);
+  const [cartItems] = useState(INITIAL_CART);
+
   const [paymentMode, setPaymentMode] = useState('cash');
   const [cashReceived, setCashReceived] = useState('');
 

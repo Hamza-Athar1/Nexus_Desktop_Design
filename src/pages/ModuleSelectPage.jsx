@@ -2,7 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, ChevronRight, Check } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
-import { API_BASE_URL } from '../lib/api';
+import { apiFetch } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 /* ── Module definitions ───────────────────────────────────────────── */
 const MODULES = [
@@ -17,6 +18,7 @@ const MODULES = [
 
 export default function ModuleSelectPage() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [active, setActive] = useState(null);
   const [launched, setLaunched] = useState(false);
   const [launchError, setLaunchError] = useState('');
@@ -30,10 +32,8 @@ export default function ModuleSelectPage() {
     setLaunched(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/business/select-module`, {
+      const res = await apiFetch('/business/select-module', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({ moduleId: active }),
       });
 
@@ -45,25 +45,18 @@ export default function ModuleSelectPage() {
         return;
       }
 
+      // Persist the chosen module locally so InventoryRouter and other
+      // pages can read it without an extra round-trip.
+      localStorage.setItem('nexus_module', active);
+
       setTimeout(() => navigate('/dashboard'), 900);
-    } catch (err) {
+    } catch {
       setLaunched(false);
       setLaunchError('Unable to reach the server. Please try again.');
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await fetch(`${API_BASE_URL}/auth/logout`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-    } catch (err) {
-      // Even if the request fails (e.g. server unreachable), still send
-      // the user back to the login page rather than trapping them here.
-    }
-    navigate('/');
-  };
+  const handleLogout = () => logout();
 
   return (
     <div className="min-h-screen w-full flex flex-col nexus-bg">

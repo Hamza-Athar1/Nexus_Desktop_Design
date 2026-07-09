@@ -14,7 +14,7 @@ export function verifyToken(req, res, next) {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
     req.user = decoded;
     next();
-  } catch (err) {
+  } catch {
     // Covers both an invalid signature and a naturally expired token.
     // The frontend should react to this specific status by attempting
     // a token refresh (built in a later step) before giving up.

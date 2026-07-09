@@ -1,46 +1,32 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard, ShoppingCart, Archive, Receipt, BarChart2,
-  UserCircle, Settings, Bell, Plus, FileText,
+  ShoppingCart, Archive, BarChart2,
+  Bell, Plus, FileText,
   TrendingUp, Package, Crown, Clock, AlertTriangle, Check,
-  Menu, X, ChevronRight,
+  Menu
 } from 'lucide-react';
 import NexusLogo from '../../components/NexusLogo';
 import UserSidebar from '../../components/UserSidebar';
 
-// Navigation configuration
-const NAV_MAIN = [
-  { id: 'dashboard', label: 'Dashboard',  icon: LayoutDashboard },
-  { id: 'pos',       label: 'POS System', icon: ShoppingCart    },
-  { id: 'inventory', label: 'Inventory',  icon: Archive         },
-  { id: 'billing',   label: 'Billing',    icon: Receipt         },
-  { id: 'reports',   label: 'Reports',    icon: BarChart2       },
-];
-
-const NAV_ACCOUNT = [
-  { id: 'profile',  label: 'Edit Profile', icon: UserCircle },
-  { id: 'settings', label: 'Settings',     icon: Settings   },
-];
-
 // Mock data
 const RECENT_ACTIVITY = [
-  { id: 1, text: 'Bill #1042 created - Rs 3,200', time: '2m',  color: '#4ade80' },
-  { id: 2, text: 'Panadol 500mg restocked',        time: '18m', color: '#4ade80' },
-  { id: 3, text: 'Low stock - Augmentin',           time: '1h',  color: '#facc15' },
-  { id: 4, text: 'Bill #1041 created - Rs 1,800',  time: '2h',  color: '#4ade80' },
+  { id: 1, text: 'Bill #1042 created - Rs 3,200', time: '2m', color: '#4ade80' },
+  { id: 2, text: 'Panadol 500mg restocked', time: '18m', color: '#4ade80' },
+  { id: 3, text: 'Low stock - Augmentin', time: '1h', color: '#facc15' },
+  { id: 4, text: 'Bill #1041 created - Rs 1,800', time: '2h', color: '#4ade80' },
 ];
 
 const LOW_STOCK_ITEMS = [
-  { name: 'Augmentin 625mg', qty: 8,  max: 100, color: '#ef4444' },
-  { name: 'Panadol CF',      qty: 16, max: 100, color: '#facc15' },
-  { name: 'ORD Sachet',      qty: 28, max: 100, color: '#facc15' },
-  { name: 'Disprin 300mg',   qty: 55, max: 100, color: '#4ade80' },
+  { name: 'Augmentin 625mg', qty: 8, max: 100, color: '#ef4444' },
+  { name: 'Panadol CF', qty: 16, max: 100, color: '#facc15' },
+  { name: 'ORD Sachet', qty: 28, max: 100, color: '#facc15' },
+  { name: 'Disprin 300mg', qty: 55, max: 100, color: '#4ade80' },
 ];
 
 // Date constants
 const DAYS = [
-  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday',
   'Thursday', 'Friday', 'Saturday'
 ];
 
@@ -62,12 +48,12 @@ const getGreeting = () => {
 // Custom hook for real-time clock
 function useClock() {
   const [time, setTime] = useState(new Date());
-  
+
   useEffect(() => {
     const intervalId = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(intervalId);
   }, []);
-  
+
   return time;
 }
 
@@ -101,17 +87,17 @@ function StatCard({ title, icon: Icon, children }) {
 // Quick Action Card Component
 function QuickActionCard({ icon: Icon, label, sub, onClick }) {
   const [isHovered, setIsHovered] = useState(false);
-  
+
   return (
-    <button 
-      onClick={onClick} 
-      onMouseEnter={() => setIsHovered(true)} 
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       className={`
         flex-1 min-w-50 sm:min-w-0 rounded-2xl p-4 flex items-center gap-4
         cursor-pointer transition-all duration-200 text-left
-        ${isHovered 
-          ? 'bg-[#214f2d]/90 border-emerald-400/35' 
+        ${isHovered
+          ? 'bg-[#214f2d]/90 border-emerald-400/35'
           : 'bg-[#113715]/90 border-emerald-500/20'
         }
         border
@@ -120,8 +106,8 @@ function QuickActionCard({ icon: Icon, label, sub, onClick }) {
       <span className={`
         flex items-center justify-center w-10 h-10 rounded-xl
         shrink-0 transition-colors duration-200
-        ${isHovered 
-          ? 'bg-emerald-400/20 border-emerald-400/20' 
+        ${isHovered
+          ? 'bg-emerald-400/20 border-emerald-400/20'
           : 'bg-emerald-400/10 border-emerald-400/20'
         }
         border
@@ -139,8 +125,10 @@ function QuickActionCard({ icon: Icon, label, sub, onClick }) {
 // Main Dashboard Component
 export default function DashboardPage() {
   const navigate = useNavigate();
+  // Derive the active sidebar item from the current URL path.
+  const { pathname } = useLocation();
+  const activeNav = pathname.replace('/', '') || 'dashboard';
   const currentTime = useClock();
-  const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Close sidebar on window resize (for desktop)
@@ -150,14 +138,14 @@ export default function DashboardPage() {
         setIsSidebarOpen(false);
       }
     };
-    
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Close sidebar when clicking on mobile nav item
-  const handleNavClick = (id) => {
-    setActiveTab(id);
+  // Navigate to a page and close the mobile sidebar.
+  const handleNavClick = (path) => {
+    navigate(`/${path}`);
     setIsSidebarOpen(false);
   };
 
@@ -170,7 +158,7 @@ export default function DashboardPage() {
     <div className="flex h-screen w-full overflow-hidden bg-[#f1e8c4] font-inter">
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
@@ -180,7 +168,7 @@ export default function DashboardPage() {
       <UserSidebar
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
-        activeNav={activeTab}
+        activeNav={activeNav}
         onNavChange={(id) => handleNavClick(id)}
       />
 
@@ -190,7 +178,7 @@ export default function DashboardPage() {
         <header className="flex items-center justify-between px-4 sm:px-6 h-15 shrink-0 bg-[#0c3410] border-b border-emerald-500/15">
           <div className="flex items-center gap-2">
             {/* Mobile Menu Button */}
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(true)}
               className="lg:hidden text-[#d9ddc4] hover:text-[#f7f4d8] transition-colors"
             >
@@ -201,25 +189,25 @@ export default function DashboardPage() {
               USER-DASHBOARD
             </span>
           </div>
-          
+
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Notification Bell */}
             <button className="relative bg-none border-none cursor-pointer text-[#d9ddc4] flex items-center hover:text-[#f7f4d8] transition-colors">
               <Bell size={18} />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400" />
             </button>
-            
+
             {/* Online Status - Hidden on very small screens */}
             <div className="hidden sm:flex items-center gap-1.5 px-2 sm:px-3 py-1 rounded-full bg-[#356837]/15 border border-emerald-500/20">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
               <span className="text-xs text-emerald-300 font-semibold">Online</span>
             </div>
-            
+
             {/* Module Selector - Hidden on small screens */}
             <button className="hidden md:block px-3.5 py-1.5 rounded-lg text-xs font-semibold text-[#dee1c4] bg-transparent cursor-pointer border border-emerald-500/20 hover:bg-[#c7d8b0]/20 transition-colors">
               Pharmacy Module
             </button>
-            
+
             {/* User Avatar */}
             <div className="w-8.5 h-8.5 rounded-full bg-linear-to-br from-[#1d5e2f] to-[#114923] border-2 border-emerald-500/20 flex items-center justify-center text-xs font-bold text-[#f6f1d4] shrink-0">
               AK
@@ -243,7 +231,7 @@ export default function DashboardPage() {
                 <span className="hidden sm:inline">Pharmacy module</span>
               </p>
             </div>
-            
+
             {/* Live Clock */}
             <div className="flex items-center gap-2 shrink-0 px-3 sm:px-4 py-2 rounded-xl bg-[#285f34]/10 border border-emerald-500/20">
               <span className="text-sm sm:text-base font-mono font-bold text-[#123e20] tracking-wider">
@@ -265,7 +253,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </StatCard>
-              
+
               <StatCard title="Inventory" icon={Archive}>
                 <div>
                   <p className="text-2xl sm:text-[28px] font-black text-[#f7f4d9] mb-1">1,340</p>
@@ -274,7 +262,7 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </StatCard>
-              
+
               <StatCard title="Subscription" icon={Crown}>
                 <div className="flex flex-col gap-1.5">
                   <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg w-fit bg-emerald-400/10 border border-emerald-400/20">
@@ -291,23 +279,23 @@ export default function DashboardPage() {
           <section className="flex flex-col gap-3">
             <SectionLabel>Quick Actions</SectionLabel>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              <QuickActionCard 
-                icon={Plus}      
-                label="Add item"     
-                sub="Add to inventory" 
-                onClick={() => handleNavClick('inventory')} 
+              <QuickActionCard
+                icon={Plus}
+                label="Add item"
+                sub="Add to inventory"
+                onClick={() => handleNavClick('inventory')}
               />
-              <QuickActionCard 
-                icon={FileText}  
-                label="Create bill"  
-                sub="New transactions" 
-                onClick={() => handleNavClick('billing')}   
+              <QuickActionCard
+                icon={FileText}
+                label="Create bill"
+                sub="New transactions"
+                onClick={() => handleNavClick('billing')}
               />
-              <QuickActionCard 
-                icon={BarChart2} 
-                label="View reports" 
-                sub="Sales analytics"  
-                onClick={() => handleNavClick('reports')}   
+              <QuickActionCard
+                icon={BarChart2}
+                label="View reports"
+                sub="Sales analytics"
+                onClick={() => handleNavClick('reports')}
               />
             </div>
           </section>
@@ -325,7 +313,7 @@ export default function DashboardPage() {
               <ul className="list-none m-0 p-0 flex flex-col gap-3">
                 {RECENT_ACTIVITY.map((item) => (
                   <li key={item.id} className="flex items-center gap-2.5">
-                    <span 
+                    <span
                       className="w-2 h-2 rounded-full shrink-0"
                       style={{ backgroundColor: item.color }}
                     />
@@ -354,11 +342,11 @@ export default function DashboardPage() {
                       </span>
                     </div>
                     <div className="h-1.5 rounded-full bg-white/[0.07] overflow-hidden">
-                      <div 
+                      <div
                         className="h-full rounded-full transition-all duration-500 ease-out"
-                        style={{ 
-                          width: `${(item.qty / item.max) * 100}%`, 
-                          backgroundColor: item.color 
+                        style={{
+                          width: `${(item.qty / item.max) * 100}%`,
+                          backgroundColor: item.color
                         }}
                       />
                     </div>

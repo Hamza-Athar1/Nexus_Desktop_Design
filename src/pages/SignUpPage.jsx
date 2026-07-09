@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, TrendingUp, ShoppingCart } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import NexusLogo from '../components/NexusLogo';
-import { API_BASE_URL } from '../lib/api';
+import { apiFetchJson } from '../lib/api';
 
 /* ── Eye toggle ───────────────────────────────────────────────────── */
 const EyeToggle = ({ open }) => open ? <EyeOff size={14} /> : <Eye size={14} />;
@@ -121,23 +121,6 @@ export default function SignUpPage() {
     return null;
   };
 
-  const requestJson = async (url, options = {}) => {
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      ...options,
-    });
-
-    let data = {};
-    try {
-      data = await res.json();
-    } catch {
-      data = {};
-    }
-
-    return { res, data };
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     const err = validate();
@@ -150,7 +133,7 @@ export default function SignUpPage() {
     setStatus('loading');
 
     try {
-      const { res, data } = await requestJson(`${API_BASE_URL}/auth/signup`, {
+      const { ok, data } = await apiFetchJson('/auth/signup', {
         method: 'POST',
         body: JSON.stringify({
           businessName: form.businessName.trim(),
@@ -161,7 +144,7 @@ export default function SignUpPage() {
         }),
       });
 
-      if (!res.ok) {
+      if (!ok) {
         setErrorMsg(data.message || 'Something went wrong. Please try again.');
         setStatus('error');
         return;

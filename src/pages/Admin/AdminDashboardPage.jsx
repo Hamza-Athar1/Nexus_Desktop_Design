@@ -1,5 +1,5 @@
-﻿import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+
 import {
   LayoutDashboard, Users, CreditCard, ReceiptText, UserCog,
   Grid2x2, ShieldCheck, Settings, Bell, AlertTriangle,
@@ -225,8 +225,8 @@ function MobileQueueCard({ row, onApprove, onReject }) {
 
 // Main Dashboard Component
 export default function AdminDashboardPage() {
-  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
+
   const [approvalQueue, setApprovalQueue] = useState(INITIAL_QUEUE);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 

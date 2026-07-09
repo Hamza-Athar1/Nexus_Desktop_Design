@@ -51,7 +51,9 @@ export async function signup(req, res) {
     await createProfileForUser(newUser.id, { businessName, businessType });
     await createTrialSubscription(newUser.id);
     // Never send password_hash back to the client
+    // eslint-disable-next-line no-unused-vars
     const { password_hash, ...safeUser } = newUser;
+
 
     return res.status(201).json({
       message: 'Account created successfully',
@@ -165,7 +167,7 @@ export async function refresh(req, res) {
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
-    } catch (err) {
+    } catch {
       return res.status(401).json({ message: 'Session expired, please log in again' });
     }
 

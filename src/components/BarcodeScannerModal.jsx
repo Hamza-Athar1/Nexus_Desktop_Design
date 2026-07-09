@@ -68,7 +68,9 @@ export default function BarcodeScannerModal({ onClose, onConfirm }) {
   const [manualCode, setManualCode] = useState('');
   const [scanning, setScanning] = useState(true);
   const [result, setResult] = useState(null);
-  const [mode, setMode] = useState('qr'); // 'qr' | 'camera'
+  // eslint-disable-next-line no-unused-vars
+  const [mode, setMode] = useState('qr'); // 'qr' | 'camera' — read in a future update
+
 
   /* simulate a scan after 3 s */
   useEffect(() => {

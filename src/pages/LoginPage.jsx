@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, TrendingUp, ShoppingCart } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import NexusLogo from '../components/NexusLogo';
-import { API_BASE_URL } from '../lib/api';
+import { apiFetchJson } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
 // ============================================================================
 // Constants
@@ -271,6 +272,7 @@ function LoginForm({
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // Form state
   const [username, setUsername] = useState('');
@@ -293,23 +295,6 @@ export default function LoginPage() {
     'super-admin': '/super-admin',
   };
 
-  const requestJson = async (url, options = {}) => {
-    const res = await fetch(url, {
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      ...options,
-    });
-
-    let data = {};
-    try {
-      data = await res.json();
-    } catch {
-      data = {};
-    }
-
-    return { res, data };
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -322,19 +307,22 @@ export default function LoginPage() {
     setStatus('loading');
 
     try {
-      const { res, data } = await requestJson(`${API_BASE_URL}/auth/login`, {
+      const { ok, data } = await apiFetchJson('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ username: username.trim(), password }),
       });
 
-      if (!res.ok) {
+      if (!ok) {
         setErrorMsg(data.message || 'Invalid username or password');
         setStatus('error');
         return;
       }
 
+      // Store the authenticated user in global context.
+      if (data.user) login(data.user);
+
       setStatus('success');
-      const destination = ROLE_REDIRECTS[data.user?.role] || '/modules';
+      const destination = ROLE_REDIRECTS[data.user?.role] ?? '/modules';
       window.setTimeout(() => navigate(destination), 1600);
     } catch {
       setErrorMsg('Unable to reach the server. Please try again.');

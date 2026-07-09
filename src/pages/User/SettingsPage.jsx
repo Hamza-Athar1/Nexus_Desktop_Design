@@ -1,31 +1,7 @@
 import { useState } from 'react';
-import { Menu, Sun, Moon, Check, Save, Palette, Bell, Speaker, Globe, Lock, Image, ShoppingCart, AlertCircle } from 'lucide-react';
+import { Menu, Sun, Moon, Check, Save, Palette, Bell, Globe, ShoppingCart } from 'lucide-react';
 import UserSidebar from '../../components/UserSidebar';
 
-function SectionTitle({ children }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-[10px] font-bold tracking-[0.12em] text-[#123e20] uppercase">{children}</span>
-      <div className="flex-1 h-px bg-emerald-400/10" />
-    </div>
-  );
-}
-
-function Toggle({ label, description, checked, onChange }) {
-  return (
-    <label className="flex items-start justify-between gap-4 py-2.5 border-b border-emerald-500/10 last:border-0">
-      <div className="flex-1">
-        <div className="text-[13px] font-semibold text-[#e8f0d0]">{label}</div>
-        {description && <div className="text-[11px] text-[#8aaa6a]/70 mt-0.5">{description}</div>}
-      </div>
-      <div className="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-0.5">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="peer sr-only" />
-        <span className={`w-12 h-6 rounded-full transition-colors duration-200 ${checked ? 'bg-emerald-400' : 'bg-[#2a4a2a]'}`} />
-        <span className={`absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200 ${checked ? 'translate-x-6' : 'translate-x-0'}`} />
-      </div>
-    </label>
-  );
-}
 
 function SettingsToggle({ label, description, checked, onChange, variant = 'dark' }) {
   const isDark = variant === 'dark';

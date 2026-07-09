@@ -3,6 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
 
+/* ── Shared shell ───────────────────────────────────────────────── */
+function Page({ children }) {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center px-6 py-6 nexus-bg">
+      <div className="nexus-dark-bg w-full max-w-100 flex flex-col items-center bg-white/6 border border-white/[0.14] rounded-[20px] backdrop-blur-xl pt-10 px-9 pb-9 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
+        <NexusLogo size={48} variant="light" />
+        <p className="mt-2.5 text-[10.5px] font-bold tracking-[2px] text-white/50 uppercase">
+          Nexus Desktop
+        </p>
+        {children}
+      </div>
+    </div>
+  );
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    ForgotPasswordPage  —  Route: /forgot-password
    Full dark-green background · centred glass card
@@ -26,19 +41,6 @@ export default function ForgotPasswordPage() {
     await new Promise(res => setTimeout(res, 2000));
     setStatus('success');
   };
-
-  /* ── Shared shell ───────────────────────────────────────────────── */
-  const Page = ({ children }) => (
-    <div className="min-h-screen w-full flex items-center justify-center px-6 py-6 nexus-bg">
-      <div className="nexus-dark-bg w-full max-w-100 flex flex-col items-center bg-white/6 border border-white/[0.14] rounded-[20px] backdrop-blur-xl pt-10 px-9 pb-9 shadow-[0_24px_60px_rgba(0,0,0,0.35)]">
-        <NexusLogo size={48} variant="light" />
-        <p className="mt-2.5 text-[10.5px] font-bold tracking-[2px] text-white/50 uppercase">
-          Nexus Desktop
-        </p>
-        {children}
-      </div>
-    </div>
-  );
 
   /* ── SUCCESS ─────────────────────────────────────────────────────── */
   if (isSuccess) {

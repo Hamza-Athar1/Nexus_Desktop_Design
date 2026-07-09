@@ -8,7 +8,8 @@ import {
   MonitorSmartphone,
   X,
 } from 'lucide-react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+
 import NexusLogo from './NexusLogo';
 
 const NAV_MAIN = [
