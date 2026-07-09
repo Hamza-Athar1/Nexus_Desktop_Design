@@ -6,8 +6,8 @@ import {
   TrendingUp, Package, Crown, Clock, AlertTriangle, Check,
   Menu
 } from 'lucide-react';
-import NexusLogo from '../../components/NexusLogo';
-import UserSidebar from '../../components/UserSidebar';
+import NexusLogo from '../../../components/NexusLogo';
+import UserSidebar from '../../../components/UserSidebar';
 
 // Mock data
 const RECENT_ACTIVITY = [

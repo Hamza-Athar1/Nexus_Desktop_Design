@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, Upload, Plus, ScanLine, Menu, Edit2 } from "lucide-react";
-import UserSidebar from "../../components/UserSidebar";
-import AddClothingModal from "../../components/AddClothingModal";
+import UserSidebar from "../../../components/UserSidebar";
+import AddClothingModal from "../../../components/AddClothingModal";
 
 const PRODUCTS = [
   {

@@ -1,4 +1,4 @@
-﻿import { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Search,
   ScanLine,
@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   Menu,
 } from 'lucide-react';
-import UserSidebar from '../../components/UserSidebar';
+import UserSidebar from '../../../components/UserSidebar';
 
 const CATEGORIES = ['All', 'Antibiotics', 'Painkillers', 'Syrups'];
 

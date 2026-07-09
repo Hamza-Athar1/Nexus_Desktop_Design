@@ -8,8 +8,8 @@ import {
   ScanLine,
   Menu,
 } from 'lucide-react';
-import UserSidebar from '../../components/UserSidebar';
-import AddItemModal from '../../components/AddItemModal';
+import UserSidebar from '../../../components/UserSidebar';
+import AddItemModal from '../../../components/AddItemModal';
 
 const PRODUCTS = [
   { id: 1, name: 'Basmati Rice', unit: 'KG', price: 'Rs 280/Kg', stock: 140, stockUnit: 'Kg', cat: 'Grain' },
@@ -210,8 +210,8 @@ export default function InventoryPage() {
                     type="button"
                     onClick={() => setActiveFilter(f)}
                     className={`shrink-0 rounded-full border px-3.5 py-1.5 text-[12px] font-bold transition ${activeFilter === f
-                        ? 'border-[#3a6a2a] bg-[#3a6a2a] text-white'
-                        : 'border-[#8aaa70] bg-transparent text-[#1a3a0a]'
+                      ? 'border-[#3a6a2a] bg-[#3a6a2a] text-white'
+                      : 'border-[#8aaa70] bg-transparent text-[#1a3a0a]'
                       }`}
                   >
                     {f}

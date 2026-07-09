@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Menu, User, Building2, Phone, Mail, FileText, CreditCard, Calendar, ChevronDown, Save, X } from 'lucide-react';
-import UserSidebar from '../../components/UserSidebar';
+import UserSidebar from '../../../components/UserSidebar';
 
 function Input({ label, value, onChange, placeholder, icon: Icon, variant = 'light' }) {
   const isDark = variant === 'dark';

@@ -11,30 +11,10 @@
  *  • Authenticated users pass through and see `children` (or `<Outlet />`).
  */
 
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-
-// ─── Loading Spinner ──────────────────────────────────────────────────────────
-
-function AuthLoadingScreen() {
-  return (
-    <div
-      role="status"
-      aria-label="Checking session…"
-      className="min-h-screen w-full flex items-center justify-center nexus-bg"
-    >
-      <div className="flex flex-col items-center gap-4">
-        {/* Animated ring */}
-        <span className="w-10 h-10 rounded-full border-4 border-white/20 border-t-white animate-spin" />
-        <p className="text-white/60 text-sm font-medium tracking-wide">
-          Loading…
-        </p>
-      </div>
-    </div>
-  );
-}
+import { Outlet } from 'react-router-dom';
 
 // ─── Component ────────────────────────────────────────────────────────────────
+
 
 /**
  * @param {{ children?: React.ReactNode }} props

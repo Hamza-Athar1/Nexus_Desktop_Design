@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Menu, Sun, Moon, Check, Save, Palette, Bell, Globe, ShoppingCart } from 'lucide-react';
-import UserSidebar from '../../components/UserSidebar';
+import UserSidebar from '../../../components/UserSidebar';
 
 
 function SettingsToggle({ label, description, checked, onChange, variant = 'dark' }) {

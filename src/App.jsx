@@ -5,20 +5,19 @@ import LoginPage              from './pages/LoginPage';
 import SignUpPage             from './pages/SignUpPage';
 import ForgotPasswordPage     from './pages/ForgotPasswordPage';
 import ModuleSelectPage       from './pages/ModuleSelectPage';
-import DashboardPage          from './pages/User/DashboardPage';
-import POSSystemPage          from './pages/User/POSSystemPage';
-import InventoryPage          from './pages/User/InventoryPage';
-import ClothingInventoryPage  from './pages/User/ClothingInventoryPage';
-import BillingPage            from './pages/User/BillingPage';
-import ReportsPage            from './pages/User/ReportsPage';
-import SettingsPage           from './pages/User/SettingsPage';
-import EditProfilePage        from './pages/User/EditProfilePage';
+import DashboardPage          from './pages/User/Shared/DashboardPage';
+import POSSystemPage          from './pages/User/Grocery/POSSystemPage';
+import InventoryPage          from './pages/User/Grocery/InventoryPage';
+import ClothingInventoryPage  from './pages/User/Clothing/ClothingInventoryPage';
+import BillingPage            from './pages/User/Grocery/BillingPage';
+import ReportsPage            from './pages/User/Shared/ReportsPage';
+import SettingsPage           from './pages/User/Shared/SettingsPage';
+import EditProfilePage        from './pages/User/Shared/EditProfilePage';
 import AdminDashboardPage     from './pages/Admin/AdminDashboardPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 
-// ── Route guards ───────────────────────────────────────────────────────────────
-import ProtectedRoute from './components/ProtectedRoute';
-import RoleRoute      from './components/RoleRoute';
+
+
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

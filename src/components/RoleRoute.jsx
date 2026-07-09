@@ -21,26 +21,17 @@
  *  ```
  */
 
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ProtectedRoute from './ProtectedRoute';
-
-/** Maps each role to the page the user should land on if access is denied. */
-const ROLE_HOME = {
-  'user': '/dashboard',
-  'admin': '/admin',
-  'super-admin': '/super-admin',
-};
+import { Outlet } from 'react-router-dom';
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
  * @param {{
- *   allowedRoles: Array<'user'|'admin'|'super-admin'>,
+ *   allowedRoles?: Array<'user'|'admin'|'super-admin'>,
  *   children?: React.ReactNode,
  * }} props
  */
-export default function RoleRoute({ allowedRoles, children }) {
+export default function RoleRoute({ children }) {
   // Temporarily bypass role checking for development/testing
   return children ?? <Outlet />;
 }
