@@ -1,3 +1,6 @@
+import subscriptionRoutes from './routes/subscriptionRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
+import businessRoutes from './routes/businessRoutes.js';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -25,7 +28,9 @@ app.get('/api/health', (req, res) => {
 });
 
 app.use('/api/auth', authRoutes);
-
+app.use('/api', businessRoutes);
+app.use('/api', subscriptionRoutes);
+app.use('/api', adminRoutes);
 // ── Start ────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 

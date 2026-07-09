@@ -1,3 +1,5 @@
+import { createTrialSubscription } from '../models/subscriptionModel.js';
+import { createProfileForUser } from '../models/businessProfileModel.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import {
@@ -46,7 +48,8 @@ export async function signup(req, res) {
     // ── Create user ───────────────────────────────────
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const newUser = await createUser({ businessName, businessType, email, username, passwordHash });
-
+    await createProfileForUser(newUser.id, { businessName, businessType });
+    await createTrialSubscription(newUser.id);
     // Never send password_hash back to the client
     const { password_hash, ...safeUser } = newUser;
 

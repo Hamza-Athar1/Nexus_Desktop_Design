@@ -28,6 +28,17 @@ export async function findUserById(id) {
   return rows[0] || null;
 }
 
+export async function findAllUsers() {
+  const [rows] = await pool.query(`
+    SELECT
+      u.id, u.username, u.email, u.role, u.created_at,
+      bp.business_name, bp.business_type, bp.selected_module, bp.subscription_status
+    FROM users u
+    LEFT JOIN business_profiles bp ON bp.user_id = u.id
+    ORDER BY u.created_at DESC
+  `);
+  return rows;
+}
 export async function createUser({ businessName, businessType, email, username, passwordHash }) {
   const [result] = await pool.query(
     `INSERT INTO users (business_name, business_type, email, username, password_hash, role)
