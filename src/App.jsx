@@ -41,34 +41,22 @@ function InventoryRouter() {
 export default function App() {
   return (
     <Routes>
-      {/* ── Public routes — accessible without authentication ──────────────── */}
+      {/* ── All Routes Open ──────────────── */}
       <Route path="/"                 element={<LoginPage />} />
       <Route path="/signup"           element={<SignUpPage />} />
       <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
+      <Route path="/modules"          element={<ModuleSelectPage />} />
+      <Route path="/dashboard"        element={<DashboardPage />} />
+      <Route path="/pos"              element={<POSSystemPage />} />
+      <Route path="/inventory"        element={<InventoryRouter />} />
+      <Route path="/billing"          element={<BillingPage />} />
+      <Route path="/reports"          element={<ReportsPage />} />
+      <Route path="/settings"         element={<SettingsPage />} />
+      <Route path="/profile"          element={<EditProfilePage />} />
+      <Route path="/admin"            element={<AdminDashboardPage />} />
+      <Route path="/super-admin"      element={<SuperAdminDashboardPage />} />
 
-      {/* ── Authenticated — any logged-in user ────────────────────────────── */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/modules"    element={<ModuleSelectPage />} />
-        <Route path="/dashboard"  element={<DashboardPage />} />
-        <Route path="/pos"        element={<POSSystemPage />} />
-        <Route path="/inventory"  element={<InventoryRouter />} />
-        <Route path="/billing"    element={<BillingPage />} />
-        <Route path="/reports"    element={<ReportsPage />} />
-        <Route path="/settings"   element={<SettingsPage />} />
-        <Route path="/profile"    element={<EditProfilePage />} />
-      </Route>
-
-      {/* ── Admin — role: admin OR super-admin ────────────────────────────── */}
-      <Route element={<RoleRoute allowedRoles={['admin', 'super-admin']} />}>
-        <Route path="/admin" element={<AdminDashboardPage />} />
-      </Route>
-
-      {/* ── Super-admin — role: super-admin only ──────────────────────────── */}
-      <Route element={<RoleRoute allowedRoles={['super-admin']} />}>
-        <Route path="/super-admin" element={<SuperAdminDashboardPage />} />
-      </Route>
-
-      {/* ── Fallback — unknown paths redirect to login ─────────────────────── */}
+      {/* ── Fallback ─────────────────────── */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

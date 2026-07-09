@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Search, Upload, Plus, ScanLine, Menu, Edit2 } from "lucide-react";
 import UserSidebar from "../../components/UserSidebar";
+import AddClothingModal from "../../components/AddClothingModal";
 
 const PRODUCTS = [
   {
@@ -141,6 +142,7 @@ export default function ClothingInventoryPage() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState("ALL");
+  const [showAddModal, setShowAddModal] = useState(false);
 
   const filtered = useMemo(() => {
     return PRODUCTS.filter((p) => {
@@ -218,20 +220,28 @@ export default function ClothingInventoryPage() {
             </div>
 
             <div className="flex items-center gap-2.5">
-              {[
-                { icon: <ScanLine size={15} />, label: "Scan" },
-                { icon: <Upload size={15} />, label: "Export" },
-                { icon: <Plus size={15} />, label: "Add product" },
-              ].map(({ icon, label }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="flex items-center gap-1.5 rounded-[10px] border border-[#6a9a4a] bg-[#eef2d8] px-4 py-2 text-[13px] font-bold text-[#1a3a0a] transition hover:bg-[#dde5b8]"
-                >
-                  {icon}
-                  {label}
-                </button>
-              ))}
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-[10px] border border-[#6a9a4a] bg-[#eef2d8] px-4 py-2 text-[13px] font-bold text-[#1a3a0a] transition hover:bg-[#dde5b8]"
+              >
+                <ScanLine size={15} />
+                Scan
+              </button>
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-[10px] border border-[#6a9a4a] bg-[#eef2d8] px-4 py-2 text-[13px] font-bold text-[#1a3a0a] transition hover:bg-[#dde5b8]"
+              >
+                <Upload size={15} />
+                Export
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowAddModal(true)}
+                className="flex items-center gap-1.5 rounded-[10px] border border-[#6a9a4a] bg-[#eef2d8] px-4 py-2 text-[13px] font-bold text-[#1a3a0a] transition hover:bg-[#dde5b8]"
+              >
+                <Plus size={15} />
+                Add product
+              </button>
             </div>
           </div>
 
@@ -281,6 +291,13 @@ export default function ClothingInventoryPage() {
 
         </div>
       </div>
+
+      {showAddModal && (
+        <AddClothingModal
+          onClose={() => setShowAddModal(false)}
+          onConfirm={(data) => console.log("New product added:", data)}
+        />
+      )}
     </div>
   );
 }

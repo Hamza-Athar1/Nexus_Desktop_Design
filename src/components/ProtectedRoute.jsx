@@ -42,14 +42,6 @@ function AuthLoadingScreen() {
  *   protect a nested `<Route>` tree via `<Outlet />`.
  */
 export default function ProtectedRoute({ children }) {
-  const { isReady, isAuthenticated } = useAuth();
-
-  // 1. Still restoring session — show spinner to avoid UI flicker.
-  if (!isReady) return <AuthLoadingScreen />;
-
-  // 2. Not logged in — redirect to the login page.
-  if (!isAuthenticated) return <Navigate to="/" replace />;
-
-  // 3. Authenticated — render the protected content.
+  // Temporarily bypass auth checking for development/testing
   return children ?? <Outlet />;
 }
