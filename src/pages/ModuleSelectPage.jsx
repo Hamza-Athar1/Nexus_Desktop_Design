@@ -23,6 +23,7 @@ export default function ModuleSelectPage() {
 
   const handleLaunch = () => {
     if (active) {
+      localStorage.setItem('nexus_module', active);
       setLaunched(true);
       setTimeout(() => navigate('/dashboard'), 900);
     }
