@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, ChevronRight, Check } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
+import { API_BASE_URL } from '../lib/api';
 
 /* ── Module definitions ───────────────────────────────────────────── */
 const MODULES = [
@@ -18,15 +19,50 @@ export default function ModuleSelectPage() {
   const navigate = useNavigate();
   const [active, setActive] = useState(null);
   const [launched, setLaunched] = useState(false);
+  const [launchError, setLaunchError] = useState('');
 
   const selectedMod = MODULES.find(m => m.id === active);
 
-  const handleLaunch = () => {
-    if (active) {
-      localStorage.setItem('nexus_module', active);
-      setLaunched(true);
+  const handleLaunch = async () => {
+    if (!active) return;
+
+    setLaunchError('');
+    setLaunched(true);
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/business/select-module`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ moduleId: active }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setLaunched(false);
+        setLaunchError(data.message || 'Could not save your module selection');
+        return;
+      }
+
       setTimeout(() => navigate('/dashboard'), 900);
+    } catch (err) {
+      setLaunched(false);
+      setLaunchError('Unable to reach the server. Please try again.');
     }
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${API_BASE_URL}/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (err) {
+      // Even if the request fails (e.g. server unreachable), still send
+      // the user back to the login page rather than trapping them here.
+    }
+    navigate('/');
   };
 
   return (
@@ -45,7 +81,7 @@ export default function ModuleSelectPage() {
           <span className="hidden sm:inline text-[12px] text-white/60">Choose a module to continue</span>
           <button
             id="logout-btn"
-            onClick={() => navigate('/')}
+            onClick={handleLogout}
             className="flex items-center gap-1.5 bg-white/12 border border-white/20 rounded-lg text-white text-[13px] font-medium px-3 sm:px-3.5 py-1.5 cursor-pointer hover:bg-white/20 transition-all"
           >
             <LogOut size={14} />
@@ -146,7 +182,9 @@ export default function ModuleSelectPage() {
         <div className="flex flex-col items-center gap-3 w-full max-w-full sm:max-w-105">
           {/* Selection status */}
           <div className="h-7 flex items-center justify-center">
-            {selectedMod ? (
+            {launchError ? (
+              <p className="fade-up text-[13px] text-red-600 font-semibold">{launchError}</p>
+            ) : selectedMod ? (
               <p className="fade-up text-[13px] text-nexus font-semibold">
                 ✓ {selectedMod.name} selected
               </p>
