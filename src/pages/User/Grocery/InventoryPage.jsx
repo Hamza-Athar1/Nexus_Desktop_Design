@@ -14,6 +14,9 @@ import BarcodeScanModal from '../../../components/BarcodeScanModal';
 import { API_BASE_URL } from '../../../lib/api';
 
 export default function InventoryPage() {
+  const moduleType = localStorage.getItem('nexus_module') || 'grocery';
+  const isPharmacy = moduleType === 'pharmacy';
+
   const [activeNav, setActiveNav] = useState('inventory');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState('');
@@ -162,7 +165,7 @@ export default function InventoryPage() {
               </span>
               <span className="hidden text-[14px] text-[#6ab850] sm:block">/</span>
               <span className="truncate text-[11px] font-semibold uppercase tracking-[0.04em] text-[#d8e0b4]">
-                Inventory - Grocery
+                Inventory - {isPharmacy ? 'Pharmacy' : 'Grocery'}
               </span>
             </div>
           </div>
@@ -176,7 +179,7 @@ export default function InventoryPage() {
               type="button"
               className="hidden whitespace-nowrap rounded-full border border-white/20 bg-transparent px-3.5 py-1.5 text-[12px] font-semibold text-[#e8e4b8] md:block"
             >
-              Grocery Module
+              {isPharmacy ? 'Pharmacy' : 'Grocery'} Module
             </button>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[rgba(110,185,80,0.3)] bg-[#1f491d] text-[11px] font-extrabold text-[#e8f2d8]">
               AK
@@ -193,7 +196,7 @@ export default function InventoryPage() {
               <div>
                 <h2 className="text-2xl font-extrabold text-[#1a3a0a] sm:text-3xl">Inventory</h2>
                 <p className="mt-0.5 text-[13px] text-[#4a6a2a]">
-                  {totalItems.toLocaleString()} total items · Per-weight and unit billing
+                  {totalItems.toLocaleString()} total items · {isPharmacy ? 'Batch number and expiry tracking' : 'Per-weight and unit billing'}
                 </p>
               </div>
 
@@ -257,7 +260,7 @@ export default function InventoryPage() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   type="text"
-                  placeholder="Search product by name"
+                  placeholder={isPharmacy ? 'Search medicine by name' : 'Search product by name'}
                   className="min-w-0 flex-1 bg-transparent text-[13px] text-[#1a3a0a] placeholder-[#7a9a5a] outline-none"
                 />
                 <Search size={16} className="shrink-0 text-[#5a7a3a]" />
@@ -407,8 +410,15 @@ export default function InventoryPage() {
           mode={modalMode === 'add' ? 'add' : 'edit'}
           initialItem={modalMode === 'add' ? null : modalMode}
           initialBarcode={prefillBarcode}
-          categories={['Grain', 'Dairy', 'Meat', 'Bakery', 'Beverage', 'Snacks', 'Produce']}
-          unitOptions={['ML', 'L', 'G', 'KG', 'PCS', 'PKT', 'BOX']}
+          moduleType={moduleType}
+          categories={isPharmacy
+            ? ['Tablets', 'Syrups', 'Injections', 'Ointments', 'General']
+            : ['Grain', 'Dairy', 'Meat', 'Bakery', 'Beverage', 'Snacks', 'Produce']
+          }
+          unitOptions={isPharmacy
+            ? ['PCS', 'STRIP', 'BOX', 'BOTTLE']
+            : ['ML', 'L', 'G', 'KG', 'PCS', 'PKT', 'BOX']
+          }
           onClose={() => { setModalMode(null); setPrefillBarcode(''); }}
           onSaved={handleSaved}
         />

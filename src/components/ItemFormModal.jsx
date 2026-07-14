@@ -81,6 +81,10 @@ export default function ItemFormModal({
   const [selectedSizes, setSelectedSizes] = useState(extra.sizes || []);
   const [colorsInput, setColorsInput] = useState((extra.colors || []).join(', '));
 
+  // Pharmacy-specific
+  const [batchNo, setBatchNo] = useState(extra.batch_no || '');
+  const [manufacturer, setManufacturer] = useState(extra.manufacturer || '');
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -95,6 +99,13 @@ export default function ItemFormModal({
       return {
         sizes: selectedSizes,
         colors: colorsInput.split(',').map((c) => c.trim()).filter(Boolean),
+      };
+    }
+    if (moduleType === 'pharmacy') {
+      return {
+        batch_no: batchNo || undefined,
+        manufacturer: manufacturer || undefined,
+        expiry_date: expiryDate || undefined,
       };
     }
     return {
@@ -168,7 +179,7 @@ export default function ItemFormModal({
           <div className="flex items-center gap-2.5">
             <Package size={18} className="text-[#3a6a2a]" />
             <span className="text-[13px] font-extrabold uppercase tracking-[0.12em] text-[#1a3a0a]">
-              {isEdit ? 'Edit Item' : 'Add Item'} - {moduleType === 'clothing' ? 'Clothing' : 'Grocery'}
+              {isEdit ? 'Edit Item' : 'Add Item'} - {moduleType === 'clothing' ? 'Clothing' : moduleType === 'pharmacy' ? 'Pharmacy' : 'Grocery'}
             </span>
           </div>
           <button
@@ -183,16 +194,16 @@ export default function ItemFormModal({
         <div className="mx-5 mb-4 border-t border-[#3a6a2a]" />
 
         <div className="flex flex-col gap-4 overflow-y-auto px-5 pb-5">
-          <TextField label="Item Name" value={name} onChange={setName} placeholder="e.g. Basmati Rice" />
+          <TextField label="Item Name" value={name} onChange={setName} placeholder={moduleType === 'pharmacy' ? 'e.g. Panadol 500mg' : moduleType === 'clothing' ? 'e.g. T-Shirt' : 'e.g. Basmati Rice'} />
 
           <div className="grid grid-cols-2 gap-3">
-            <TextField label="SKU" value={sku} onChange={setSku} placeholder="e.g. GRO-001" />
+            <TextField label="SKU" value={sku} onChange={setSku} placeholder={moduleType === 'pharmacy' ? 'e.g. PHA-001' : moduleType === 'clothing' ? 'e.g. CLO-001' : 'e.g. GRO-001'} />
             <TextField label="Barcode" value={barcode} onChange={setBarcode} placeholder="Optional" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <SelectField label="Category" value={category} onChange={setCategory} options={categories} />
-            {moduleType === 'grocery' && (
+            {(moduleType === 'grocery' || moduleType === 'pharmacy') && (
               <SelectField label="Unit Type" value={unit} onChange={setUnit} options={unitOptions} />
             )}
           </div>
@@ -211,6 +222,17 @@ export default function ItemFormModal({
               </p>
               <div className="grid grid-cols-2 gap-3">
                 <TextField label="Supplier Name" value={supplierName} onChange={setSupplierName} placeholder="Al-Madina Traders" />
+                <TextField label="Expiry Date" value={expiryDate} onChange={setExpiryDate} type="date" />
+              </div>
+            </div>
+          ) : moduleType === 'pharmacy' ? (
+            <div className="rounded-xl border border-[#8aaa70] bg-[#d8dca8] p-3.5">
+              <p className="mb-3 text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#1a3a0a]">
+                Pharmacy-Specific
+              </p>
+              <div className="grid grid-cols-3 gap-2.5">
+                <TextField label="Batch No" value={batchNo} onChange={setBatchNo} placeholder="e.g. B-123" />
+                <TextField label="Manufacturer" value={manufacturer} onChange={setManufacturer} placeholder="e.g. GSK" />
                 <TextField label="Expiry Date" value={expiryDate} onChange={setExpiryDate} type="date" />
               </div>
             </div>
