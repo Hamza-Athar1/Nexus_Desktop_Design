@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Package, X } from 'lucide-react';
+import { Package, X, ScanBarcode } from 'lucide-react';
 import { API_BASE_URL } from '../lib/api';
+import BarcodeScanModal from './BarcodeScanModal';
 
 const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
@@ -86,6 +87,7 @@ export default function ItemFormModal({
   const [manufacturer, setManufacturer] = useState(extra.manufacturer || '');
 
   const [submitting, setSubmitting] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [error, setError] = useState('');
 
   function toggleSize(size) {
@@ -198,7 +200,27 @@ export default function ItemFormModal({
 
           <div className="grid grid-cols-2 gap-3">
             <TextField label="SKU" value={sku} onChange={setSku} placeholder={moduleType === 'pharmacy' ? 'e.g. PHA-001' : moduleType === 'clothing' ? 'e.g. CLO-001' : 'e.g. GRO-001'} />
-            <TextField label="Barcode" value={barcode} onChange={setBarcode} placeholder="Optional" />
+            <div>
+              <label className="mb-1.5 block text-[11px] font-extrabold uppercase tracking-[0.1em] text-[#1a3a0a]">
+                Barcode
+              </label>
+              <div className="flex items-center gap-1.5">
+                <input
+                  type="text"
+                  placeholder="Optional"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  className="min-w-0 flex-1 rounded-lg bg-[#4a6e3a] px-3.5 py-2.5 text-[13px] font-semibold text-white placeholder-[#b0c898] outline-none"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowScanner(true)}
+                  className="rounded-lg border border-[#5a7a4a] bg-transparent p-2.5 text-[#1a3a0a] transition hover:bg-[#d0d8a0] shrink-0"
+                >
+                  <ScanBarcode size={15} />
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -291,6 +313,15 @@ export default function ItemFormModal({
           </div>
         </div>
       </div>
+
+      {showScanner && (
+        <BarcodeScanModal
+          onClose={() => setShowScanner(false)}
+          onConfirm={(result) => {
+            if (result?.name) setBarcode(result.name);
+          }}
+        />
+      )}
     </div>
   );
 }
