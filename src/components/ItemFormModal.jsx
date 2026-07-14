@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Package, X, ScanBarcode } from 'lucide-react';
-import { API_BASE_URL } from '../lib/api';
+import { apiFetch } from '../lib/api';
 import BarcodeScanModal from './BarcodeScanModal';
 
 const SIZE_OPTIONS = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
@@ -130,6 +130,10 @@ export default function ItemFormModal({
       return;
     }
 
+    if (isEdit && !window.confirm("Are you sure you want to save these changes?")) {
+      return;
+    }
+
     setSubmitting(true);
 
     const payload = {
@@ -144,13 +148,11 @@ export default function ItemFormModal({
     };
 
     try {
-      const url = isEdit
-        ? `${API_BASE_URL}/inventory/items/${initialItem.id}`
-        : `${API_BASE_URL}/inventory/items`;
-      const res = await fetch(url, {
+      const path = isEdit
+        ? `/inventory/items/${initialItem.id}`
+        : '/inventory/items';
+      const res = await apiFetch(path, {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify(payload),
       });
 

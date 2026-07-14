@@ -11,7 +11,7 @@ import {
 import UserSidebar from '../../../components/UserSidebar';
 import ItemFormModal from '../../../components/ItemFormModal';
 import BarcodeScanModal from '../../../components/BarcodeScanModal';
-import { API_BASE_URL } from '../../../lib/api';
+import { apiFetch, apiFetchJson } from '../../../lib/api';
 
 export default function InventoryPage() {
   const moduleType = localStorage.getItem('nexus_module') || 'grocery';
@@ -36,12 +36,9 @@ export default function InventoryPage() {
     setLoadStatus('loading');
     setLoadError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/inventory/items`, {
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.message || `Failed to load inventory (status ${res.status})`);
+      const { ok, status, data } = await apiFetchJson('/inventory/items');
+      if (!ok) {
+        throw new Error(data?.message || `Failed to load inventory (status ${status})`);
       }
       setItems(Array.isArray(data.items) ? data.items : []);
       setLoadStatus('loaded');
@@ -57,11 +54,11 @@ export default function InventoryPage() {
   }, []);
 
   async function handleDelete(id) {
+    if (!window.confirm("Are you sure you want to delete this item?")) return;
     setActionError('');
     try {
-      const res = await fetch(`${API_BASE_URL}/inventory/items/${id}`, {
+      const res = await apiFetch(`/inventory/items/${id}`, {
         method: 'DELETE',
-        credentials: 'include',
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {

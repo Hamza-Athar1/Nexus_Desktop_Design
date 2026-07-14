@@ -3,7 +3,7 @@ import { Search, Upload, Plus, ScanLine, Menu, Edit2, Trash2 } from "lucide-reac
 import UserSidebar from "../../../components/UserSidebar";
 import ItemFormModal from "../../../components/ItemFormModal";
 import BarcodeScanModal from "../../../components/BarcodeScanModal";
-import { API_BASE_URL } from "../../../lib/api";
+import { apiFetch, apiFetchJson } from "../../../lib/api";
 
 function getColorHex(colorName) {
   const map = {
@@ -141,12 +141,9 @@ export default function ClothingInventoryPage() {
     setLoadStatus("loading");
     setLoadError("");
     try {
-      const res = await fetch(`${API_BASE_URL}/inventory/items`, {
-        credentials: "include",
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data?.message || `Failed to load inventory (status ${res.status})`);
+      const { ok, status, data } = await apiFetchJson('/inventory/items');
+      if (!ok) {
+        throw new Error(data?.message || `Failed to load inventory (status ${status})`);
       }
       setItems(Array.isArray(data.items) ? data.items : []);
       setLoadStatus("loaded");
@@ -164,9 +161,8 @@ export default function ClothingInventoryPage() {
   async function handleDelete(id) {
     if (!window.confirm("Are you sure you want to delete this clothing item?")) return;
     try {
-      const res = await fetch(`${API_BASE_URL}/inventory/items/${id}`, {
+      const res = await apiFetch(`/inventory/items/${id}`, {
         method: "DELETE",
-        credentials: "include",
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
