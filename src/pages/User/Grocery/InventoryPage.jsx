@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Search,
   Upload,
@@ -9,36 +9,98 @@ import {
   Menu,
 } from 'lucide-react';
 import UserSidebar from '../../../components/UserSidebar';
-import AddItemModal from '../../../components/AddItemModal';
-
-const PRODUCTS = [
-  { id: 1, name: 'Basmati Rice', unit: 'KG', price: 'Rs 280/Kg', stock: 140, stockUnit: 'Kg', cat: 'Grain' },
-  { id: 2, name: 'Cooking Oil', unit: 'LITRE', price: 'Rs 420/L', stock: 3, stockUnit: 'L', cat: 'Oil' },
-  { id: 3, name: 'Onions', unit: 'KG', price: 'Rs 60/Kg', stock: 8, stockUnit: 'Kg', cat: 'Produce' },
-  { id: 4, name: 'Milk', unit: 'LITRE', price: 'Rs 180/L', stock: 30, stockUnit: 'L', cat: 'Dairy' },
-];
+import ItemFormModal from '../../../components/ItemFormModal';
+import BarcodeScanModal from '../../../components/BarcodeScanModal';
+import { API_BASE_URL } from '../../../lib/api';
 
 export default function InventoryPage() {
   const [activeNav, setActiveNav] = useState('inventory');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState('ALL');
-  const [showAddModal, setShowAddModal] = useState(false);
 
-  const totalItems = PRODUCTS.reduce((s, p) => s + p.stock, 0);
-  const weightBased = PRODUCTS.filter((p) => p.unit === 'KG').reduce((s, p) => s + p.stock, 0);
-  const lowStock = PRODUCTS.filter((p) => p.stock > 0 && p.stock <= 10).length;
-  const outStock = PRODUCTS.filter((p) => p.stock === 0).length;
+  // Modal state: null = closed, 'add' = creating, or the item object being edited
+  const [modalMode, setModalMode] = useState(null);
+  const [prefillBarcode, setPrefillBarcode] = useState('');
+  const [showScanModal, setShowScanModal] = useState(false);
+
+  const [items, setItems] = useState([]);
+  const [loadStatus, setLoadStatus] = useState('loading'); // loading | loaded | error
+  const [loadError, setLoadError] = useState('');
+  const [actionError, setActionError] = useState('');
+
+  async function fetchItems() {
+    setLoadStatus('loading');
+    setLoadError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/inventory/items`, {
+        credentials: 'include',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.message || `Failed to load inventory (status ${res.status})`);
+      }
+      setItems(Array.isArray(data.items) ? data.items : []);
+      setLoadStatus('loaded');
+    } catch (err) {
+      console.error('fetchItems failed:', err);
+      setLoadError(err.message || 'Unable to reach the server');
+      setLoadStatus('error');
+    }
+  }
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  async function handleDelete(id) {
+    setActionError('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/inventory/items/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.message || `Failed to delete item (status ${res.status})`);
+      }
+      setItems((prev) => prev.filter((it) => it.id !== id));
+    } catch (err) {
+      console.error('handleDelete failed:', err);
+      setActionError(err.message || 'Unable to delete item');
+    }
+  }
+
+  // Called by ItemFormModal after it successfully creates/updates on
+  // the server — just refetch the whole list so we're always showing
+  // exactly what the DB has, no manual state-patching to get wrong.
+  function handleSaved() {
+    setModalMode(null);
+    fetchItems();
+  }
+
+  // ── Derived stats (from real data, not mock) ──────────────────
+  const totalItems = items.reduce((s, it) => s + (it.stock_qty || 0), 0);
+  const weightBased = items
+    .filter((it) => it.module_specific_fields?.unit === 'KG')
+    .reduce((s, it) => s + (it.stock_qty || 0), 0);
+  const lowStockCount = items.filter(
+    (it) => it.stock_qty > 0 && it.stock_qty <= (it.reorder_level || 10)
+  ).length;
+  const outOfStockCount = items.filter((it) => it.stock_qty === 0).length;
 
   const filtered = useMemo(() => {
-    return PRODUCTS.filter((p) => {
-      const matchesQuery = p.name.toLowerCase().includes(query.toLowerCase());
-      if (activeFilter === 'Low Stock') return matchesQuery && p.stock > 0 && p.stock <= 10;
-      if (activeFilter === 'by weight') return matchesQuery && p.unit === 'KG';
-      if (activeFilter === 'by unit') return matchesQuery && p.unit !== 'KG';
+    return items.filter((it) => {
+      const matchesQuery = (it.name || '').toLowerCase().includes(query.toLowerCase());
+      const unit = it.module_specific_fields?.unit;
+      if (activeFilter === 'Low Stock') {
+        return matchesQuery && it.stock_qty > 0 && it.stock_qty <= (it.reorder_level || 10);
+      }
+      if (activeFilter === 'by weight') return matchesQuery && unit === 'KG';
+      if (activeFilter === 'by unit') return matchesQuery && unit !== 'KG';
       return matchesQuery;
     });
-  }, [query, activeFilter]);
+  }, [items, query, activeFilter]);
 
   const filters = ['ALL', 'Low Stock', 'by weight', 'by unit'];
 
@@ -48,13 +110,13 @@ export default function InventoryPage() {
     return 'text-white';
   }
 
-  function StatusBadge({ stock }) {
+  function StatusBadge({ stock, reorderLevel }) {
     if (stock === 0) return (
       <span className="whitespace-nowrap rounded-full border border-[#c8a87a] bg-[#8a4a1a] px-3 py-1 text-[11px] font-bold text-[#ffdcb0]">
         Out of Stock
       </span>
     );
-    if (stock <= 10) return (
+    if (stock <= (reorderLevel || 10)) return (
       <span className="whitespace-nowrap rounded-full border border-[#a09040] bg-[#6a6a20] px-3 py-1 text-[11px] font-bold text-[#f0e080]">
         Low Stock
       </span>
@@ -136,15 +198,14 @@ export default function InventoryPage() {
               </div>
 
               <div className="flex items-center gap-2 sm:gap-2.5">
-                {/* Scan */}
                 <button
                   type="button"
+                  onClick={() => setShowScanModal(true)}
                   className="flex items-center gap-1.5 rounded-lg border border-[#5a7a3a] bg-[#e8e8c0] px-3 py-2 text-[13px] font-bold text-[#1a3a0a] transition hover:bg-[#d8d8a8]"
                 >
                   <ScanLine size={14} />
                   <span className="hidden sm:inline">Scan</span>
                 </button>
-                {/* Export */}
                 <button
                   type="button"
                   className="flex items-center gap-1.5 rounded-lg border border-[#5a7a3a] bg-[#e8e8c0] px-3 py-2 text-[13px] font-bold text-[#1a3a0a] transition hover:bg-[#d8d8a8]"
@@ -152,10 +213,9 @@ export default function InventoryPage() {
                   <Upload size={14} />
                   <span className="hidden sm:inline">Export</span>
                 </button>
-                {/* Add item */}
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => setModalMode('add')}
                   className="flex items-center gap-1.5 rounded-lg border border-[#5a7a3a] bg-[#e8e8c0] px-3 py-2 text-[13px] font-bold text-[#1a3a0a] transition hover:bg-[#d8d8a8]"
                 >
                   <Plus size={14} />
@@ -164,33 +224,34 @@ export default function InventoryPage() {
               </div>
             </div>
 
+            {actionError && (
+              <div className="rounded-lg border border-red-400 bg-red-50 px-4 py-2 text-[13px] font-semibold text-red-700">
+                {actionError}
+              </div>
+            )}
+
             {/* Stats grid */}
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              {/* Total Items */}
               <div className="rounded-xl bg-[#1a3a0a] p-4 shadow-sm">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#a8c888]">Total Items</p>
                 <p className="mt-2 text-3xl font-extrabold text-white">{totalItems.toLocaleString()}</p>
               </div>
-              {/* Weight-Based */}
               <div className="rounded-xl bg-[#1a3a0a] p-4 shadow-sm">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#a8c888]">Weight-Based</p>
                 <p className="mt-2 text-3xl font-extrabold text-white">{weightBased.toLocaleString()}</p>
               </div>
-              {/* Low Stock */}
               <div className="rounded-xl bg-[#1a3a0a] p-4 shadow-sm">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#a8c888]">Low Stock</p>
-                <p className="mt-2 text-3xl font-extrabold text-[#f5c842]">{lowStock}</p>
+                <p className="mt-2 text-3xl font-extrabold text-[#f5c842]">{lowStockCount}</p>
               </div>
-              {/* Out of Stock */}
               <div className="rounded-xl bg-[#1a3a0a] p-4 shadow-sm">
                 <p className="text-[11px] font-bold uppercase tracking-wide text-[#ff9060]">Out of Stock</p>
-                <p className="mt-2 text-3xl font-extrabold text-[#ff6b35]">{outStock}</p>
+                <p className="mt-2 text-3xl font-extrabold text-[#ff6b35]">{outOfStockCount}</p>
               </div>
             </div>
 
             {/* Search + filter row */}
             <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-              {/* Search */}
               <div className="flex w-full items-center gap-3 rounded-full border border-[#8aaa70] bg-[#e8e8c0] px-4 py-2.5 sm:flex-1">
                 <input
                   value={query}
@@ -202,7 +263,6 @@ export default function InventoryPage() {
                 <Search size={16} className="shrink-0 text-[#5a7a3a]" />
               </div>
 
-              {/* Filter pills */}
               <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {filters.map((f) => (
                   <button
@@ -227,7 +287,7 @@ export default function InventoryPage() {
                   <thead>
                     <tr className="bg-[#2a5a18]">
                       <th className="px-5 py-3.5 text-[11px] font-extrabold uppercase tracking-widest text-[#c8e0a0]">Product</th>
-                      <th className="px-5 py-3.5 text-[11px] font-extrabold uppercase tracking-widest text-[#c8e0a0]">Unit</th>
+                      <th className="px-5 py-3.5 text-[11px] font-extrabold uppercase tracking-widest text-[#c8e0a0]">Category</th>
                       <th className="px-5 py-3.5 text-[11px] font-extrabold uppercase tracking-widest text-[#c8e0a0]">Price</th>
                       <th className="px-5 py-3.5 text-[11px] font-extrabold uppercase tracking-widest text-[#c8e0a0]">Stock</th>
                       <th className="px-5 py-3.5 text-[11px] font-extrabold uppercase tracking-widest text-[#c8e0a0]">Status</th>
@@ -235,30 +295,44 @@ export default function InventoryPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {filtered.map((p, i) => (
+                    {loadStatus === 'loading' && (
+                      <tr><td colSpan={6} className="px-5 py-6 text-center text-[13px] text-[#c8e0a0]">Loading inventory…</td></tr>
+                    )}
+                    {loadStatus === 'error' && (
+                      <tr><td colSpan={6} className="px-5 py-6 text-center text-[13px] text-[#ff9060]">{loadError}</td></tr>
+                    )}
+                    {loadStatus === 'loaded' && filtered.length === 0 && (
+                      <tr><td colSpan={6} className="px-5 py-6 text-center text-[13px] text-[#c8e0a0]">No items yet — add your first one.</td></tr>
+                    )}
+                    {filtered.map((it, i) => (
                       <tr
-                        key={p.id}
+                        key={it.id}
                         className={`border-t border-[#2a5a18] ${i % 2 === 0 ? 'bg-[#1a3a0a]' : 'bg-[#1f4410]'}`}
                       >
-                        <td className="px-5 py-3.5 text-[13px] font-semibold text-white">{p.name}</td>
-                        <td className="px-5 py-3.5 text-[13px] font-semibold text-[#c8e0a0]">{p.unit}</td>
-                        <td className="px-5 py-3.5 text-[13px] text-[#d8f0b0]">{p.price}</td>
-                        <td className={`px-5 py-3.5 text-[13px] font-bold ${getStockColor(p.stock)}`}>
-                          {p.stock} {p.stockUnit}
+                        <td className="px-5 py-3.5 text-[13px] font-semibold text-white">{it.name}</td>
+                        <td className="px-5 py-3.5 text-[13px] font-semibold text-[#c8e0a0]">{it.category || '—'}</td>
+                        <td className="px-5 py-3.5 text-[13px] text-[#d8f0b0]">
+                          Rs {Number(it.price).toLocaleString()}
+                          {it.module_specific_fields?.unit ? `/${it.module_specific_fields.unit}` : ''}
+                        </td>
+                        <td className={`px-5 py-3.5 text-[13px] font-bold ${getStockColor(it.stock_qty)}`}>
+                          {it.stock_qty} {it.module_specific_fields?.unit || ''}
                         </td>
                         <td className="px-5 py-3.5">
-                          <StatusBadge stock={p.stock} />
+                          <StatusBadge stock={it.stock_qty} reorderLevel={it.reorder_level} />
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
+                              onClick={() => setModalMode(it)}
                               className="rounded-lg border border-[#5a8a4a] bg-transparent p-1.5 text-[#c8e0a0] transition hover:bg-[#2a5a18]"
                             >
                               <Edit2 size={13} />
                             </button>
                             <button
                               type="button"
+                              onClick={() => handleDelete(it.id)}
                               className="rounded-lg border border-[#c04040] bg-transparent p-1.5 text-[#f08080] transition hover:bg-[#4a1a1a]"
                             >
                               <Trash2 size={13} />
@@ -291,20 +365,21 @@ export default function InventoryPage() {
               </div>
               <div className="rounded-xl border border-[#8aaa70] bg-[#e8e8c0] p-3">
                 <p className="text-[10px] text-[#5a7a3a]">Low Stock</p>
-                <p className="text-[18px] font-extrabold text-[#b08000]">{lowStock}</p>
+                <p className="text-[18px] font-extrabold text-[#b08000]">{lowStockCount}</p>
               </div>
               <div className="rounded-xl border border-[#8aaa70] bg-[#e8e8c0] p-3">
                 <p className="text-[10px] text-[#5a7a3a]">Out of Stock</p>
-                <p className="text-[18px] font-extrabold text-[#c04030]">{outStock}</p>
+                <p className="text-[18px] font-extrabold text-[#c04030]">{outOfStockCount}</p>
               </div>
             </div>
 
             <div className="mt-auto">
               <button
                 type="button"
+                onClick={() => setModalMode('add')}
                 className="w-full rounded-xl bg-[#1a3a0a] py-3 text-[13px] font-extrabold text-[#e8e8c0] transition hover:bg-[#2a5a18]"
               >
-                Manage Items
+                Add Item
               </button>
             </div>
           </aside>
@@ -317,7 +392,7 @@ export default function InventoryPage() {
               </div>
               <button
                 type="button"
-                onClick={() => setShowAddModal(true)}
+                onClick={() => setModalMode('add')}
                 className="flex items-center gap-1.5 rounded-full bg-[#4a7a2a] px-4 py-2 text-sm font-bold text-white"
               >
                 <Plus size={14} /> Add
@@ -327,7 +402,28 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {showAddModal && <AddItemModal onClose={() => setShowAddModal(false)} />}
+      {modalMode !== null && (
+        <ItemFormModal
+          mode={modalMode === 'add' ? 'add' : 'edit'}
+          initialItem={modalMode === 'add' ? null : modalMode}
+          initialBarcode={prefillBarcode}
+          categories={['Grain', 'Dairy', 'Meat', 'Bakery', 'Beverage', 'Snacks', 'Produce']}
+          unitOptions={['ML', 'L', 'G', 'KG', 'PCS', 'PKT', 'BOX']}
+          onClose={() => { setModalMode(null); setPrefillBarcode(''); }}
+          onSaved={handleSaved}
+        />
+      )}
+
+      {showScanModal && (
+        <BarcodeScanModal
+          onClose={() => setShowScanModal(false)}
+          onAddNew={(code) => {
+            setShowScanModal(false);
+            setPrefillBarcode(code);
+            setModalMode('add');
+          }}
+        />
+      )}
     </div>
   );
 }

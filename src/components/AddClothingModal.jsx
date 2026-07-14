@@ -1,7 +1,6 @@
 import { useState } from 'react';
+import BarcodeScanModal from './BarcodeScanModal';
 import { ShoppingCart, X, ChevronDown, ScanBarcode } from 'lucide-react';
-import BarcodeScannerModal from './BarcodeScannerModal';
-
 const CATEGORIES = ["Men's wear", "Women's wear", "Kids' wear", "Accessories"];
 const BRANDS = ['Salt', 'Outfitters', 'Khaadi', 'Sana Safinaz', 'Custom'];
 const SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
@@ -308,7 +307,7 @@ export default function AddClothingModal({ onClose, onConfirm }) {
             </div>
 
             {showScanner && (
-                <BarcodeScannerModal
+                <BarcodeScanModal
                     onClose={() => setShowScanner(false)}
                     onConfirm={handleBarcodeConfirm}
                 />

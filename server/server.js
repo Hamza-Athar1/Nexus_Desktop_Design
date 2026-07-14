@@ -1,3 +1,4 @@
+import inventoryRoutes from './routes/inventoryRoutes.js';
 import subscriptionRoutes from './routes/subscriptionRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
 import businessRoutes from './routes/businessRoutes.js';
@@ -31,6 +32,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api', businessRoutes);
 app.use('/api', subscriptionRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', inventoryRoutes);
 // ── Start ────────────────────────────────────────────────
 const PORT = process.env.PORT || 5000;
 
