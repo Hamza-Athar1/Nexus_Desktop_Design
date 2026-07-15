@@ -99,11 +99,10 @@ export default function BarcodeScanModal({ onClose, onAddNew, onConfirm }) {
             <button
               type="button"
               onClick={() => { setScanMode('camera'); setStatus('idle'); setItem(null); setError(''); }}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-md py-1.5 text-xs font-bold transition-all ${
-                scanMode === 'camera'
+              className={`flex flex-1 items-center justify-center gap-2 rounded-md py-1.5 text-xs font-bold transition-all ${scanMode === 'camera'
                   ? 'bg-[#3a6a2a] text-white shadow-sm'
                   : 'text-[#1a3a0a] hover:bg-[#c0c6a0]'
-              }`}
+                }`}
             >
               <Camera size={14} />
               Use Camera
@@ -111,11 +110,10 @@ export default function BarcodeScanModal({ onClose, onAddNew, onConfirm }) {
             <button
               type="button"
               onClick={() => { setScanMode('manual'); setStatus('idle'); setItem(null); setError(''); }}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-md py-1.5 text-xs font-bold transition-all ${
-                scanMode === 'manual'
+              className={`flex flex-1 items-center justify-center gap-2 rounded-md py-1.5 text-xs font-bold transition-all ${scanMode === 'manual'
                   ? 'bg-[#3a6a2a] text-white shadow-sm'
                   : 'text-[#1a3a0a] hover:bg-[#c0c6a0]'
-              }`}
+                }`}
             >
               <Keyboard size={14} />
               Manual Entry
