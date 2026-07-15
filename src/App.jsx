@@ -1,8 +1,10 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 
 // ── Pages ──────────────────────────────────────────────────────────────────────
+import LandingPage           from './pages/LandingPage';
 import LoginPage              from './pages/LoginPage';
 import SignUpPage             from './pages/SignUpPage';
+import RegisterBusinessPage   from './pages/RegisterBusinessPage';
 import ForgotPasswordPage     from './pages/ForgotPasswordPage';
 import ModuleSelectPage       from './pages/ModuleSelectPage';
 import DashboardPage          from './pages/User/Shared/DashboardPage';
@@ -41,8 +43,10 @@ export default function App() {
   return (
     <Routes>
       {/* ── All Routes Open ──────────────── */}
-      <Route path="/"                 element={<LoginPage />} />
+      <Route path="/"                 element={<LandingPage />} />
+      <Route path="/login"            element={<LoginPage />} />
       <Route path="/signup"           element={<SignUpPage />} />
+      <Route path="/register-business" element={<RegisterBusinessPage />} />
       <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
       <Route path="/modules"          element={<ModuleSelectPage />} />
       <Route path="/dashboard"        element={<DashboardPage />} />

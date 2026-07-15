@@ -155,7 +155,7 @@ export default function ForgotPasswordPage() {
 
       {/* Back to login */}
       <button
-        onClick={() => navigate('/')}
+        onClick={() => navigate('/login')}
         className="flex items-center gap-2 bg-transparent border border-white/18 rounded-lg text-white/70 text-[13px] font-medium px-5 py-2.5 cursor-pointer hover:bg-white/8 hover:text-white transition-all"
       >
         <ArrowLeft size={14} />

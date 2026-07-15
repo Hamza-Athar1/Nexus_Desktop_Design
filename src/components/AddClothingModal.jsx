@@ -226,8 +226,8 @@ export default function AddClothingModal({ onClose, onConfirm }) {
                                             type="button"
                                             onClick={() => toggleSize(size)}
                                             className={`flex h-8 w-11 items-center justify-center rounded border text-xs font-bold transition-all ${isSelected
-                                                    ? 'border-[#1a3d13] bg-[#1a3d13] text-white'
-                                                    : 'border-[#1a3d13]/40 bg-transparent text-[#1a3d13]'
+                                                ? 'border-[#1a3d13] bg-[#1a3d13] text-white'
+                                                : 'border-[#1a3d13]/40 bg-transparent text-[#1a3d13]'
                                                 }`}
                                         >
                                             {size}
@@ -250,8 +250,8 @@ export default function AddClothingModal({ onClose, onConfirm }) {
                                             type="button"
                                             onClick={() => toggleColor(col.id)}
                                             className={`h-6 w-6 rounded-full border transition-all ${isSelected
-                                                    ? 'border-[#1a3d13] scale-110 ring-2 ring-[#1a3d13]/30'
-                                                    : 'border-transparent opacity-60 hover:opacity-100'
+                                                ? 'border-[#1a3d13] scale-110 ring-2 ring-[#1a3d13]/30'
+                                                : 'border-transparent opacity-60 hover:opacity-100'
                                                 }`}
                                             style={{ backgroundColor: col.hex }}
                                         />
