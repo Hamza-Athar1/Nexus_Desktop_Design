@@ -308,7 +308,7 @@ export default function RegisterBusinessPage() {
                       Phone number
                     </label>
                     <input
-                      type="text"
+                      type="number"
                       placeholder="03XX-XXXXXX"
                       value={accountForm.phoneNumber}
                       onChange={handleAccountChange('phoneNumber')}

@@ -125,9 +125,6 @@ export default function SignUpPage() {
 
           {/* Header & Steps Indicator */}
           <div className="space-y-2 text-center md:text-left">
-            <div className="text-[#14391a]/40 font-bold tracking-widest text-lg md:text-xl lg:text-2xl">
-              ...
-            </div>
             <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#14391a]">
               Account Details
             </h2>
@@ -229,7 +226,7 @@ export default function SignUpPage() {
                 </label>
                 <input
                   id="su-phone"
-                  type="text"
+                  type="number"
                   placeholder="03XX-XXXXXXX"
                   value={form.phoneNumber}
                   onChange={set('phoneNumber')}
