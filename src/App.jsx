@@ -17,6 +17,9 @@ import SettingsPage           from './pages/User/Shared/SettingsPage';
 import EditProfilePage        from './pages/User/Shared/EditProfilePage';
 import AdminDashboardPage     from './pages/Admin/AdminDashboardPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
+import SuperAdminLayout from './pages/Super-User/SuperAdminLayout';
+import SuperAdminRequestsPage from './pages/Super-User/SuperAdminRequestsPage';
+import SuperAdminPlaceholderPage from './pages/Super-User/SuperAdminPlaceholderPage';
 
 
 
@@ -57,7 +60,15 @@ export default function App() {
       <Route path="/settings"         element={<SettingsPage />} />
       <Route path="/profile"          element={<EditProfilePage />} />
       <Route path="/admin"            element={<AdminDashboardPage />} />
-      <Route path="/super-admin"      element={<SuperAdminDashboardPage />} />
+      <Route path="/super-admin" element={<SuperAdminLayout />}>
+        <Route index element={<SuperAdminDashboardPage />} />
+        <Route path="requests" element={<SuperAdminRequestsPage />} />
+        <Route path="users" element={<SuperAdminPlaceholderPage tab="users" />} />
+        <Route path="billing" element={<SuperAdminPlaceholderPage tab="billing" />} />
+        <Route path="payment" element={<SuperAdminPlaceholderPage tab="payment" />} />
+        <Route path="profile" element={<SuperAdminPlaceholderPage tab="profile" />} />
+        <Route path="pos" element={<SuperAdminPlaceholderPage tab="pos" />} />
+      </Route>
 
       {/* ── Fallback ─────────────────────── */}
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -9,6 +9,7 @@ import {
   ArrowLeft,
   X,
 } from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,8 +38,28 @@ function NavItem({ icon: Icon, label, active, onClick }) {
 }
 
 export default function SuperAdminSidebar({ isOpen, onClose, activeTab, onTabChange }) {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // Determine active tab dynamically if not explicitly provided as a prop
+  let currentActiveTab = activeTab;
+  if (!currentActiveTab) {
+    currentActiveTab = 'dashboard';
+    if (location.pathname.includes('/super-admin/requests')) currentActiveTab = 'requests';
+    else if (location.pathname.includes('/super-admin/users')) currentActiveTab = 'users';
+    else if (location.pathname.includes('/super-admin/billing')) currentActiveTab = 'billing';
+    else if (location.pathname.includes('/super-admin/payment')) currentActiveTab = 'payment';
+    else if (location.pathname.includes('/super-admin/profile')) currentActiveTab = 'profile';
+    else if (location.pathname.includes('/super-admin/pos')) currentActiveTab = 'pos';
+  }
+
   const handleNav = (id) => {
-    onTabChange(id);
+    if (onTabChange) {
+      onTabChange(id);
+    } else {
+      if (id === 'dashboard') navigate('/super-admin');
+      else navigate(`/super-admin/${id}`);
+    }
     if (onClose) onClose();
   };
 
@@ -80,7 +101,7 @@ export default function SuperAdminSidebar({ isOpen, onClose, activeTab, onTabCha
               key={item.id}
               icon={item.icon}
               label={item.label}
-              active={activeTab === item.id}
+              active={currentActiveTab === item.id}
               onClick={() => handleNav(item.id)}
             />
           ))}
