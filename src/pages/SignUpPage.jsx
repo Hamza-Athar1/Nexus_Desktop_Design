@@ -226,7 +226,7 @@ export default function SignUpPage() {
                 </label>
                 <input
                   id="su-phone"
-                  type="number"
+                  type="tel"
                   placeholder="03XX-XXXXXXX"
                   value={form.phoneNumber}
                   onChange={set('phoneNumber')}
