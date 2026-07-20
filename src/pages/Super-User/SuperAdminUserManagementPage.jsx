@@ -7,6 +7,7 @@ import ActivityLogModal from '../../components/Super-User/ActivityLogModal';
 import MessageOwnerModal from '../../components/Super-User/MessageOwnerModal';
 import BlockShopModal from '../../components/Super-User/BlockShopModal';
 import DeleteShopModal from '../../components/Super-User/DeleteShopModal';
+import SuspendShopModal from '../../components/Super-User/SuspendShopModal';
 
 const INITIAL_SHOPS = [
   {
@@ -116,6 +117,7 @@ export default function SuperAdminUserManagementPage() {
   const [messagingShop, setMessagingShop] = useState(null);
   const [blockingShop, setBlockingShop] = useState(null);
   const [deletingShop, setDeletingShop] = useState(null);
+  const [suspendingShop, setSuspendingShop] = useState(null);
 
   const handleSendMessage = (id, data) => {
     alert(`Message sent successfully to shop owner!\n\nSubject: ${data.subject}\nMessage: ${data.message}`);
@@ -127,6 +129,13 @@ export default function SuperAdminUserManagementPage() {
       prev.map(s => (s.id === id ? { ...s, status: 'blocked' } : s))
     );
     setBlockingShop(null);
+  };
+
+  const handleSuspendShop = (id, reason) => {
+    setShops(prev =>
+      prev.map(s => (s.id === id ? { ...s, status: 'suspended' } : s))
+    );
+    setSuspendingShop(null);
   };
 
   const handleDeleteShop = (id) => {
@@ -466,6 +475,20 @@ export default function SuperAdminUserManagementPage() {
                               <button
                                 type="button"
                                 onClick={() => {
+                                  if (row.status === 'suspended') {
+                                    handleStatusChange(row.id, 'active');
+                                  } else {
+                                    setSuspendingShop(row);
+                                  }
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#8a6d1c] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
+                              >
+                                {row.status === 'suspended' ? 'Unsuspend shop' : 'Suspend shop'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
                                   if (row.status === 'blocked') {
                                     handleStatusChange(row.id, 'active');
                                   } else {
@@ -684,6 +707,13 @@ export default function SuperAdminUserManagementPage() {
         shop={deletingShop}
         onClose={() => setDeletingShop(null)}
         onDelete={handleDeleteShop}
+      />
+
+      {/* Suspend Shop Modal */}
+      <SuspendShopModal
+        shop={suspendingShop}
+        onClose={() => setSuspendingShop(null)}
+        onSuspend={handleSuspendShop}
       />
     </div>
   );
