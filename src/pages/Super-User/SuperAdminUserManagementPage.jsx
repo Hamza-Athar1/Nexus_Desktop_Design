@@ -3,6 +3,10 @@ import { ChevronDown, MoreHorizontal, X, ShieldAlert, CheckCircle, Ban, AlertCir
 import ShopDetailsModal from '../../components/Super-User/ShopDetailsModal';
 import EditShopInfoModal from '../../components/Super-User/EditShopInfoModal';
 import ExtendDueDateModal from '../../components/Super-User/ExtendDueDateModal';
+import ActivityLogModal from '../../components/Super-User/ActivityLogModal';
+import MessageOwnerModal from '../../components/Super-User/MessageOwnerModal';
+import BlockShopModal from '../../components/Super-User/BlockShopModal';
+import DeleteShopModal from '../../components/Super-User/DeleteShopModal';
 
 const INITIAL_SHOPS = [
   {
@@ -108,6 +112,27 @@ export default function SuperAdminUserManagementPage() {
   // Modal states
   const [editingShop, setEditingShop] = useState(null);
   const [extendingShop, setExtendingShop] = useState(null);
+  const [activityShop, setActivityShop] = useState(null);
+  const [messagingShop, setMessagingShop] = useState(null);
+  const [blockingShop, setBlockingShop] = useState(null);
+  const [deletingShop, setDeletingShop] = useState(null);
+
+  const handleSendMessage = (id, data) => {
+    alert(`Message sent successfully to shop owner!\n\nSubject: ${data.subject}\nMessage: ${data.message}`);
+    setMessagingShop(null);
+  };
+
+  const handleBlockShop = (id, reason) => {
+    setShops(prev =>
+      prev.map(s => (s.id === id ? { ...s, status: 'blocked' } : s))
+    );
+    setBlockingShop(null);
+  };
+
+  const handleDeleteShop = (id) => {
+    setShops(prev => prev.filter(s => s.id !== id));
+    setDeletingShop(null);
+  };
 
   const handleSaveChanges = (id, updatedFields) => {
     setShops(prev =>
@@ -421,7 +446,7 @@ export default function SuperAdminUserManagementPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  alert(`Viewing activity log for ${row.business}`);
+                                  setActivityShop(row);
                                   setActiveDropdownId(null);
                                 }}
                                 className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#0d3b1b] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
@@ -431,7 +456,7 @@ export default function SuperAdminUserManagementPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  alert(`Messaging owner of ${row.business}`);
+                                  setMessagingShop(row);
                                   setActiveDropdownId(null);
                                 }}
                                 className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#0d3b1b] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
@@ -440,7 +465,14 @@ export default function SuperAdminUserManagementPage() {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => handleStatusChange(row.id, row.status === 'blocked' ? 'active' : 'blocked')}
+                                onClick={() => {
+                                  if (row.status === 'blocked') {
+                                    handleStatusChange(row.id, 'active');
+                                  } else {
+                                    setBlockingShop(row);
+                                  }
+                                  setActiveDropdownId(null);
+                                }}
                                 className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#8a6d1c] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
                               >
                                 {row.status === 'blocked' ? 'Unblock shop' : 'Block shop'}
@@ -449,9 +481,7 @@ export default function SuperAdminUserManagementPage() {
                               <button
                                 type="button"
                                 onClick={() => {
-                                  if (confirm(`Are you sure you want to delete the account for ${row.business}?`)) {
-                                    setShops(prev => prev.filter(s => s.id !== row.id));
-                                  }
+                                  setDeletingShop(row);
                                   setActiveDropdownId(null);
                                 }}
                                 className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#8c1d1d] hover:bg-red-50 rounded-xl transition cursor-pointer"
@@ -627,6 +657,33 @@ export default function SuperAdminUserManagementPage() {
         extendingShop={extendingShop}
         onClose={() => setExtendingShop(null)}
         onSave={handleSaveExtend}
+      />
+
+      {/* Activity Log Modal */}
+      <ActivityLogModal
+        shop={activityShop}
+        onClose={() => setActivityShop(null)}
+      />
+
+      {/* Message Owner Modal */}
+      <MessageOwnerModal
+        shop={messagingShop}
+        onClose={() => setMessagingShop(null)}
+        onSend={handleSendMessage}
+      />
+
+      {/* Block Shop Modal */}
+      <BlockShopModal
+        shop={blockingShop}
+        onClose={() => setBlockingShop(null)}
+        onBlock={handleBlockShop}
+      />
+
+      {/* Delete Shop Modal */}
+      <DeleteShopModal
+        shop={deletingShop}
+        onClose={() => setDeletingShop(null)}
+        onDelete={handleDeleteShop}
       />
     </div>
   );
