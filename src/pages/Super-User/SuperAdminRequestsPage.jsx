@@ -197,8 +197,8 @@ export default function SuperAdminRequestsPage() {
                         setIsStatusOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${statusFilter === 'Pending'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -221,8 +221,8 @@ export default function SuperAdminRequestsPage() {
                         setIsStatusOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${statusFilter === 'Approved'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -245,8 +245,8 @@ export default function SuperAdminRequestsPage() {
                         setIsStatusOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${statusFilter === 'Rejected'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -269,8 +269,8 @@ export default function SuperAdminRequestsPage() {
                         setIsStatusOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${statusFilter === 'Resubmit'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -295,8 +295,8 @@ export default function SuperAdminRequestsPage() {
                         setIsStatusOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${statusFilter === 'All status'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -344,8 +344,8 @@ export default function SuperAdminRequestsPage() {
                         setIsSubmittedOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${timeFilter === 'Last 7 days'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -368,8 +368,8 @@ export default function SuperAdminRequestsPage() {
                         setIsSubmittedOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${timeFilter === 'Last 30 days'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -392,8 +392,8 @@ export default function SuperAdminRequestsPage() {
                         setIsSubmittedOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${timeFilter === 'This quarter'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -416,8 +416,8 @@ export default function SuperAdminRequestsPage() {
                         setIsSubmittedOpen(false);
                       }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm font-semibold transition cursor-pointer ${timeFilter === 'All time'
-                          ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
-                          : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
+                        ? 'bg-[#f4ebd0]/50 text-[#0c3818]'
+                        : 'text-[#0c3818] hover:bg-[#eae3c1]/20'
                         }`}
                     >
                       <span className="flex items-center justify-center shrink-0">
@@ -551,9 +551,9 @@ export default function SuperAdminRequestsPage() {
                     <td className="py-4 px-6 text-center">
                       <div className="flex justify-center">
                         <span className={`inline-block font-bold px-3 py-1 rounded-lg border text-xs text-center w-24 ${row.status === 'Pending' ? 'bg-[#f6edd2] text-[#a68334] border-[#dfc480]' :
-                            row.status === 'Approved' ? 'bg-[#e6f4ea] text-[#137333] border-[#85c796]' :
-                              row.status === 'Rejected' ? 'bg-[#fbebeb] text-[#a93b3b] border-[#d89f9f]' :
-                                'bg-[#fdf3d6] text-[#b06000] border-[#dcb35c]'
+                          row.status === 'Approved' ? 'bg-[#e6f4ea] text-[#137333] border-[#85c796]' :
+                            row.status === 'Rejected' ? 'bg-[#fbebeb] text-[#a93b3b] border-[#d89f9f]' :
+                              'bg-[#fdf3d6] text-[#b06000] border-[#dcb35c]'
                           }`}>
                           {row.status === 'Pending' ? 'Pending' : row.status === 'Resubmit' ? 'Resubmit' : row.status}
                         </span>
@@ -626,9 +626,9 @@ export default function SuperAdminRequestsPage() {
                     <p className="text-xs text-[#607455] font-semibold">{row.posModule}</p>
                   </div>
                   <span className={`inline-block font-bold px-3 py-1 rounded-lg border text-xs text-center ${row.status === 'Pending' ? 'bg-[#f6edd2] text-[#a68334] border-[#dfc480]' :
-                      row.status === 'Approved' ? 'bg-[#e6f4ea] text-[#137333] border-[#85c796]' :
-                        row.status === 'Rejected' ? 'bg-[#fbebeb] text-[#a93b3b] border-[#d89f9f]' :
-                          'bg-[#fdf3d6] text-[#b06000] border-[#dcb35c]'
+                    row.status === 'Approved' ? 'bg-[#e6f4ea] text-[#137333] border-[#85c796]' :
+                      row.status === 'Rejected' ? 'bg-[#fbebeb] text-[#a93b3b] border-[#d89f9f]' :
+                        'bg-[#fdf3d6] text-[#b06000] border-[#dcb35c]'
                     }`}>
                     {row.status}
                   </span>

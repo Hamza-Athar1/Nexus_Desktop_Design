@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import SuperAdminSidebar from '../../components/SuperAdminSidebar';
+import SuperAdminSidebar from '../../components/Super-User/SuperAdminSidebar';
 import { Menu } from 'lucide-react';
 
 export default function SuperAdminLayout() {

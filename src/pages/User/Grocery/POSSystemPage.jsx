@@ -13,7 +13,7 @@ import {
   AlertTriangle,
   Menu,
 } from 'lucide-react';
-import UserSidebar from '../../../components/UserSidebar';
+import UserSidebar from '../../../components/User/UserSidebar';
 
 const CATEGORIES = ['All', 'Antibiotics', 'Painkillers', 'Syrups'];
 

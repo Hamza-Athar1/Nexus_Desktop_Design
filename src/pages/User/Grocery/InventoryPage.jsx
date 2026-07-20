@@ -8,9 +8,9 @@ import {
   ScanLine,
   Menu,
 } from 'lucide-react';
-import UserSidebar from '../../../components/UserSidebar';
-import ItemFormModal from '../../../components/ItemFormModal';
-import BarcodeScanModal from '../../../components/BarcodeScanModal';
+import UserSidebar from '../../../components/User/UserSidebar';
+import ItemFormModal from '../../../components/User/ItemFormModal';
+import BarcodeScanModal from '../../../components/User/BarcodeScanModal';
 import { apiFetch, apiFetchJson } from '../../../lib/api';
 
 export default function InventoryPage() {

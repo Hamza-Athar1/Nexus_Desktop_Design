@@ -20,6 +20,7 @@ import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage'
 import SuperAdminLayout from './pages/Super-User/SuperAdminLayout';
 import SuperAdminRequestsPage from './pages/Super-User/SuperAdminRequestsPage';
 import SuperAdminPlaceholderPage from './pages/Super-User/SuperAdminPlaceholderPage';
+import SuperAdminUserManagementPage from './pages/Super-User/SuperAdminUserManagementPage';
 
 
 
@@ -63,7 +64,7 @@ export default function App() {
       <Route path="/super-admin" element={<SuperAdminLayout />}>
         <Route index element={<SuperAdminDashboardPage />} />
         <Route path="requests" element={<SuperAdminRequestsPage />} />
-        <Route path="users" element={<SuperAdminPlaceholderPage tab="users" />} />
+        <Route path="users" element={<SuperAdminUserManagementPage />} />
         <Route path="billing" element={<SuperAdminPlaceholderPage tab="billing" />} />
         <Route path="payment" element={<SuperAdminPlaceholderPage tab="payment" />} />
         <Route path="profile" element={<SuperAdminPlaceholderPage tab="profile" />} />

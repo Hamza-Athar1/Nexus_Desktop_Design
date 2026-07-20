@@ -7,7 +7,7 @@ import {
   Menu
 } from 'lucide-react';
 import NexusLogo from '../../../components/NexusLogo';
-import UserSidebar from '../../../components/UserSidebar';
+import UserSidebar from '../../../components/User/UserSidebar';
 
 // Mock data
 const RECENT_ACTIVITY = [

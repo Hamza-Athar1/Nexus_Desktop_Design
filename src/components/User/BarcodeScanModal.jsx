@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { X, Search, ScanBarcode, Camera, Keyboard } from 'lucide-react';
 import 'react-barcode-scanner/polyfill';
 import { BarcodeScanner } from 'react-barcode-scanner';
-import { API_BASE_URL } from '../lib/api';
+import { API_BASE_URL } from '../../lib/api';
 
 export default function BarcodeScanModal({ onClose, onAddNew, onConfirm }) {
   const [scanMode, setScanMode] = useState('camera'); // 'camera' | 'manual'

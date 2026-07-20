@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-import NexusLogo from './NexusLogo';
+import NexusLogo from '../NexusLogo';
 
 const NAV_MAIN = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },

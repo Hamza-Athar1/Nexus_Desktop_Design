@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { CreditCard, Banknote, Printer, Menu, User, Phone, FileText, Pill, Receipt, Save } from 'lucide-react';
-import UserSidebar from '../../../components/UserSidebar';
+import UserSidebar from '../../../components/User/UserSidebar';
 
 const INITIAL_CART = [
   { id: 1, name: 'Panadol 500mg', qty: 2, price: 45 },

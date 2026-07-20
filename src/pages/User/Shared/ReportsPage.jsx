@@ -16,7 +16,7 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import UserSidebar from '../../../components/UserSidebar';
+import UserSidebar from '../../../components/User/UserSidebar';
 
 function Badge({ children, variant = 'primary' }) {
   const styles = {
