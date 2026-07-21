@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { ChevronDown, MoreHorizontal, X, Pause, Check } from 'lucide-react';
+import { MoreHorizontal } from 'lucide-react';
+import BillingDetailsModal from '../../components/Super-User/BillingDetailsModal';
 import ShopDetailsModal from '../../components/Super-User/ShopDetailsModal';
 import EditShopInfoModal from '../../components/Super-User/EditShopInfoModal';
 import ExtendDueDateModal from '../../components/Super-User/ExtendDueDateModal';
@@ -9,101 +10,112 @@ import BlockShopModal from '../../components/Super-User/BlockShopModal';
 import DeleteShopModal from '../../components/Super-User/DeleteShopModal';
 import SuspendShopModal from '../../components/Super-User/SuspendShopModal';
 
-const INITIAL_SHOPS = [
+const INITIAL_INVOICES = [
   {
     id: 1,
-    business: 'Al-Karam Pharmacy',
-    posModule: 'Pharmacy POS',
-    billThisMonth: 'Paid Rs 4,500',
-    billStatus: 'paid',
-    amount: '4,500',
-    expires: 'Aug 14, 2026',
-    lastPaid: 'Jul 17, 2026',
-    status: 'active',
-    owner: 'Kareem Shahid',
-    email: 'contact@alkarampharmacy.com',
-    phone: '+92 300 1234567',
-    address: 'Shop 12, Block C, Gulshan-e-Iqbal, Karachi',
-    regDate: 'Feb 03, 2025',
-    posPurchased: 5,
-    posActive: 2
-  },
-  {
-    id: 2,
+    invoice: 'INV-0231',
     business: 'Piato Bakery',
     posModule: 'Bakery POS',
-    billThisMonth: 'Paid Rs 3,500',
-    billStatus: 'paid',
-    amount: '3,500',
-    expires: 'Sep, 12, 2026',
-    lastPaid: 'Jul 17, 2026',
-    status: 'active',
+    amount: '4,500',
+    status: 'paid', // paid | overdue | pending
+    statusLabel: 'Paid Rs 4,500',
+    method: 'Card',
+    dueDate: 'Aug 14, 2026',
+    // Detailed modal backup fields
     owner: 'Sajid Piato',
     email: 'info@piatobakery.pk',
     phone: '+92 321 9876543',
     address: 'Plot 45-B, Commercial Area, DHA Phase 6, Lahore',
     regDate: 'Mar 15, 2025',
     posPurchased: 4,
-    posActive: 3
+    posActive: 3,
+    lastPaid: 'Jul 17, 2026',
+    shopStatus: 'active'
   },
   {
-    id: 3,
-    business: 'Fairy parcel Co.',
+    id: 2,
+    invoice: 'INV-0232',
+    business: 'Fairy Parcel Co.',
     posModule: 'Gifting POS',
-    billThisMonth: 'Overdue Rs 5,200',
-    billStatus: 'due',
-    amount: '5,200',
-    expires: 'Jul 25, 2026',
-    lastPaid: 'Jun 20, 2026',
-    status: 'suspended',
+    amount: '6,000',
+    status: 'paid',
+    statusLabel: 'Paid Rs 6,000',
+    method: 'Card',
+    dueDate: 'Sep 02, 2026',
     owner: 'Fiza Fairy',
     email: 'billing@fairyparcel.com',
     phone: '+92 333 4567890',
     address: 'Office 302, 3rd Floor, Centaurus Mall, Islamabad',
     regDate: 'Jun 20, 2024',
     posPurchased: 3,
-    posActive: 1
+    posActive: 1,
+    lastPaid: 'Jun 20, 2026',
+    shopStatus: 'active'
   },
   {
-    id: 4,
+    id: 3,
+    invoice: 'INV-0233',
     business: 'Green valley Grocers',
     posModule: 'Grocery POS',
-    billThisMonth: 'Paid Rs 6,000',
-    billStatus: 'paid',
-    amount: '6,000',
-    expires: 'Aug 20, 2026',
-    lastPaid: 'Jul 14, 2026',
-    status: 'active',
+    amount: '5,200',
+    status: 'overdue',
+    statusLabel: 'Overdue Rs 5,200',
+    method: '--',
+    dueDate: 'Jul 25, 2026',
     owner: 'Tariq Mehmood',
     email: 'tariq@greenvalley.com',
     phone: '+92 312 3456789',
     address: 'Main Boulevard, Bahria Town, Rawalpindi',
     regDate: 'Oct 05, 2024',
     posPurchased: 6,
-    posActive: 4
+    posActive: 4,
+    lastPaid: 'Jun 10, 2026',
+    shopStatus: 'suspended'
   },
   {
-    id: 5,
+    id: 4,
+    invoice: 'INV-0234',
     business: 'Rafi Restaurant Co.',
     posModule: 'Restaurant POS',
-    billThisMonth: 'Overdue Rs 2,800',
-    billStatus: 'defaulter',
     amount: '2,800',
-    expires: 'Jul 10, 2026',
-    lastPaid: 'May 12, 2026',
-    status: 'blocked',
+    status: 'pending',
+    statusLabel: 'Pending Rs 2,800',
+    method: '--',
+    dueDate: 'Aug 20, 2026',
     owner: 'Rafiuddin Sheikh',
     email: 'management@rafirestaurant.com',
     phone: '+92 345 6789012',
     address: 'Food Street, near Fort, Lahore',
     regDate: 'Dec 01, 2024',
     posPurchased: 5,
-    posActive: 2
+    posActive: 2,
+    lastPaid: 'May 12, 2026',
+    shopStatus: 'blocked'
+  },
+  {
+    id: 5,
+    invoice: 'INV-0235',
+    business: 'Al-Karam Pharmacy',
+    posModule: 'Pharmacy POS',
+    amount: '3,000',
+    status: 'paid',
+    statusLabel: 'Paid Rs 3,000',
+    method: 'Bank',
+    dueDate: 'Aug 28, 2026',
+    owner: 'Kareem Shahid',
+    email: 'contact@alkarampharmacy.com',
+    phone: '+92 300 1234567',
+    address: 'Shop 12, Block C, Gulshan-e-Iqbal, Karachi',
+    regDate: 'Feb 03, 2025',
+    posPurchased: 5,
+    posActive: 2,
+    lastPaid: 'Jul 17, 2026',
+    shopStatus: 'active'
   }
 ];
 
 export default function SuperAdminBillingPage() {
-  const [shops, setShops] = useState(INITIAL_SHOPS);
+  const [invoices, setInvoices] = useState(INITIAL_INVOICES);
   const [activeFilter, setActiveFilter] = useState('all'); // 'all', 'paid', 'due', 'defaulter'
   const [activeDropdownId, setActiveDropdownId] = useState(null);
 
@@ -118,45 +130,45 @@ export default function SuperAdminBillingPage() {
   const [suspendingShop, setSuspendingShop] = useState(null);
 
   const handleSendMessage = (id, data) => {
-    alert(`Message sent successfully to shop owner!\n\nSubject: ${data.subject}\nMessage: ${data.message}`);
+    alert(`Message sent successfully!\n\nSubject: ${data.subject}\nMessage: ${data.message}`);
     setMessagingShop(null);
   };
 
-  const handleBlockShop = (id, reason) => {
-    setShops(prev =>
-      prev.map(s => (s.id === id ? { ...s, status: 'blocked', billStatus: 'defaulter' } : s))
+  const handleBlockShop = (id) => {
+    setInvoices(prev =>
+      prev.map(s => (s.id === id ? { ...s, shopStatus: 'blocked', status: 'overdue' } : s))
     );
     setBlockingShop(null);
   };
 
-  const handleSuspendShop = (id, reason) => {
-    setShops(prev =>
-      prev.map(s => (s.id === id ? { ...s, status: 'suspended', billStatus: 'due' } : s))
+  const handleSuspendShop = (id) => {
+    setInvoices(prev =>
+      prev.map(s => (s.id === id ? { ...s, shopStatus: 'suspended', status: 'pending' } : s))
     );
     setSuspendingShop(null);
   };
 
   const handleDeleteShop = (id) => {
-    setShops(prev => prev.filter(s => s.id !== id));
+    setInvoices(prev => prev.filter(s => s.id !== id));
     setDeletingShop(null);
   };
 
   const handleSaveChanges = (id, updatedFields) => {
-    setShops(prev =>
+    setInvoices(prev =>
       prev.map(s => (s.id === id ? { ...s, ...updatedFields } : s))
     );
     setEditingShop(null);
   };
 
-  const handleSaveExtend = (id, newDate, reason) => {
-    setShops(prev =>
+  const handleSaveExtend = (id, newDate) => {
+    setInvoices(prev =>
       prev.map(s =>
         s.id === id
           ? {
               ...s,
-              expires: newDate,
-              billThisMonth: 'Paid Rs ' + s.amount,
-              billStatus: 'paid'
+              dueDate: newDate,
+              statusLabel: 'Paid Rs ' + s.amount,
+              status: 'paid'
             }
           : s
       )
@@ -164,269 +176,187 @@ export default function SuperAdminBillingPage() {
     setExtendingShop(null);
   };
 
-  const handleStatusChange = (id, newStatus) => {
-    setShops(prev =>
-      prev.map(s => {
-        if (s.id === id) {
-          let billStatus = s.billStatus;
-          if (newStatus === 'active') billStatus = 'paid';
-          return { ...s, status: newStatus, billStatus };
-        }
-        return s;
-      })
-    );
-    setActiveDropdownId(null);
-  };
+  // Counts for tabs
+  const totalCount = invoices.length;
+  const paidCount = invoices.filter(s => s.status === 'paid').length;
+  const dueCount = invoices.filter(s => s.status === 'pending').length;
+  const defaulterCount = invoices.filter(s => s.status === 'overdue').length;
 
-  // Counts
-  const totalCount = shops.length;
-  const paidCount = shops.filter(s => s.billStatus === 'paid').length;
-  const dueCount = shops.filter(s => s.billStatus === 'due').length;
-  const defaulterCount = shops.filter(s => s.billStatus === 'defaulter').length;
-
-  const filteredShops = shops.filter(s => {
+  const filteredInvoices = invoices.filter(s => {
     if (activeFilter === 'all') return true;
-    return s.billStatus === activeFilter;
+    if (activeFilter === 'paid') return s.status === 'paid';
+    if (activeFilter === 'due') return s.status === 'pending';
+    if (activeFilter === 'defaulter') return s.status === 'overdue';
+    return true;
   });
 
   return (
-    <div className="flex-1 flex flex-col font-sans">
+    <div className="flex-1 flex flex-col font-sans select-none text-[#14391a]">
       {/* Header section */}
-      <div className="mb-8">
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#152f16] font-serif mb-2">
+      <div className="mb-6">
+        <h1 className="text-4xl sm:text-[44px] font-extrabold tracking-tight text-[#14391a] mb-1 leading-none">
           Billing
         </h1>
-        <p className="text-base sm:text-lg text-[#55694a] font-medium flex items-center gap-3">
+        <p className="text-sm sm:text-base text-[#14391a]/70 font-semibold flex items-center gap-4 mt-2">
           <span>Revenue overview</span>
-          <span className="text-[#152f16]/60">•</span>
           <span>July 2026</span>
         </p>
       </div>
 
+      {/* Top Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        {/* Card 1 */}
+        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
+          <span className="text-[13px] font-semibold text-white/95">Collected this month</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-sm font-extrabold text-white">Rs</span>
+            <span className="text-2xl font-extrabold tracking-tight">13,500</span>
+          </div>
+        </div>
+
+        {/* Card 2 */}
+        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
+          <span className="text-[13px] font-semibold text-white/95">Pending</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-sm font-extrabold text-[#d2a233]">Rs</span>
+            <span className="text-2xl font-extrabold tracking-tight text-[#d2a233]">5,200</span>
+          </div>
+        </div>
+
+        {/* Card 3 */}
+        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
+          <span className="text-[13px] font-semibold text-white/95">Overdue</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-sm font-extrabold text-[#e5432d]">Rs</span>
+            <span className="text-2xl font-extrabold tracking-tight text-[#e5432d]">2,800</span>
+          </div>
+        </div>
+
+        {/* Card 4 */}
+        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
+          <span className="text-[13px] font-semibold text-white/95">Total invoices</span>
+          <div>
+            <span className="text-2xl font-extrabold tracking-tight">4</span>
+          </div>
+        </div>
+      </div>
+
       {/* Filter Tabs / Pills */}
-      <div className="flex flex-wrap items-center gap-3 mb-8">
+      <div className="flex flex-wrap items-center gap-3.5 mb-7">
         <button
           type="button"
           onClick={() => setActiveFilter('all')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
+          className={`px-5 py-2.5 rounded-[12px] font-bold text-sm border transition duration-200 cursor-pointer ${
             activeFilter === 'all'
-              ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
-              : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'
+              ? 'bg-[#113819] text-white border-[#113819] shadow-sm'
+              : 'bg-[#faf8ed] text-[#14391a] border-[#14391a]/30 hover:bg-[#eae4c9]'
           }`}
         >
-          All {totalCount}
+          All 5
         </button>
         <button
           type="button"
           onClick={() => setActiveFilter('paid')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
+          className={`px-5 py-2.5 rounded-[12px] font-bold text-sm border transition duration-200 cursor-pointer ${
             activeFilter === 'paid'
-              ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
-              : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'
+              ? 'bg-[#113819] text-white border-[#113819] shadow-sm'
+              : 'bg-[#faf8ed] text-[#14391a] border-[#14391a]/30 hover:bg-[#eae4c9]'
           }`}
         >
-          Paid {paidCount}
+          Paid 2
         </button>
         <button
           type="button"
           onClick={() => setActiveFilter('due')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
+          className={`px-5 py-2.5 rounded-[12px] font-bold text-sm border transition duration-200 cursor-pointer ${
             activeFilter === 'due'
-              ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
-              : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'
+              ? 'bg-[#113819] text-white border-[#113819] shadow-sm'
+              : 'bg-[#faf8ed] text-[#14391a] border-[#14391a]/30 hover:bg-[#eae4c9]'
           }`}
         >
-          Due {dueCount}
+          Due 1
         </button>
         <button
           type="button"
           onClick={() => setActiveFilter('defaulter')}
-          className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
+          className={`px-5 py-2.5 rounded-[12px] font-bold text-sm border transition duration-200 cursor-pointer ${
             activeFilter === 'defaulter'
-              ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
-              : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'
+              ? 'bg-[#113819] text-white border-[#113819] shadow-sm'
+              : 'bg-[#faf8ed] text-[#14391a] border-[#14391a]/30 hover:bg-[#eae4c9]'
           }`}
         >
-          Defaulter {defaulterCount}
+          Defaulter 1
         </button>
       </div>
 
       {/* Main Table section */}
-      <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] overflow-hidden shadow-sm">
+      <div className="bg-[#ede7cd] rounded-[18px] border border-[#14391a]/20 overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-[#eae3c1] border-b border-[#bfbc9b] text-[11px] font-black uppercase tracking-wider text-[#152f16]">
-                <th className="py-4 px-6">Business</th>
-                <th className="py-4 px-6">POS Module</th>
-                <th className="py-4 px-6">Bill This Month</th>
-                <th className="py-4 px-6">Expires</th>
-                <th className="py-4 px-6">Last Paid</th>
-                <th className="py-4 px-6 text-center">Action</th>
+              <tr className="bg-[#e4dcbc] border-b border-[#14391a]/15 text-[13px] font-extrabold uppercase tracking-wider text-[#14391a]">
+                <th className="py-4.5 px-6">INVOICE</th>
+                <th className="py-4.5 px-6">BUSINESS</th>
+                <th className="py-4.5 px-6">POS MODULE</th>
+                <th className="py-4.5 px-6">AMOUNT</th>
+                <th className="py-4.5 px-6">METHOD</th>
+                <th className="py-4.5 px-6">DUE DATE</th>
+                <th className="py-4.5 px-6 text-center">ACTION</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#c8c2a3]/30 bg-white">
-              {filteredShops.map((row) => (
-                <tr key={row.id} className="bg-white hover:bg-[#efeacb]/10 transition text-sm text-[#152f16]">
-                  {/* Business */}
-                  <td className="py-4 px-6 font-bold">{row.business}</td>
-                  {/* POS Module */}
-                  <td className="py-4 px-6 font-semibold text-[#55694a]">{row.posModule}</td>
-                  {/* Bill This Month */}
-                  <td className="py-4 px-6">
-                    {row.billStatus === 'paid' ? (
-                      <span className="inline-block px-3 py-1 text-xs font-bold text-[#137333] bg-[#e6f4ea] border border-[#85c796] rounded-lg">
-                        {row.billThisMonth}
-                      </span>
+            <tbody className="divide-y divide-[#14391a]/10 bg-[#fbf9f0]">
+              {filteredInvoices.map((row) => (
+                <tr key={row.id} className="hover:bg-[#e9e3cb]/30 transition text-sm text-[#14391a]">
+                  {/* INVOICE */}
+                  <td className="py-4.5 px-6 font-extrabold text-[#14391a]">{row.invoice}</td>
+                  
+                  {/* BUSINESS */}
+                  <td className="py-4.5 px-6 font-extrabold">{row.business}</td>
+                  
+                  {/* POS MODULE */}
+                  <td className="py-4.5 px-6 font-bold text-[#14391a]/85 leading-snug">{row.posModule}</td>
+                  
+                  {/* AMOUNT BADGES */}
+                  <td className="py-4.5 px-6">
+                    {row.status === 'paid' ? (
+                      <div className="inline-flex flex-col items-center justify-center px-3.5 py-1.5 bg-[#cbebc7] border border-[#14391a]/30 rounded-[10px] text-[13px] font-extrabold text-[#14391a] leading-tight text-center">
+                        <span>Paid Rs</span>
+                        <span>{row.amount}</span>
+                      </div>
+                    ) : row.status === 'overdue' ? (
+                      <div className="inline-flex flex-col items-center justify-center px-3.5 py-1.5 bg-[#f7d6d3] border border-[#d65f57] rounded-[10px] text-[13px] font-extrabold text-[#99221b] leading-tight text-center">
+                        <span>Overdue</span>
+                        <span>Rs {row.amount}</span>
+                      </div>
                     ) : (
-                      <span className="inline-block px-3 py-1 text-xs font-bold text-[#a93b3b] bg-[#fbebeb] border border-[#d89f9f] rounded-lg">
-                        {row.billThisMonth}
-                      </span>
+                      <div className="inline-flex flex-col items-center justify-center px-3.5 py-1.5 bg-[#f6edc1] border border-[#cca839] rounded-[10px] text-[13px] font-extrabold text-[#78590d] leading-tight text-center">
+                        <span>Pending</span>
+                        <span>Rs {row.amount}</span>
+                      </div>
                     )}
                   </td>
-                  {/* Expires */}
-                  <td className="py-4 px-6 font-medium text-[#152f16]">{row.expires}</td>
-                  {/* Last Paid */}
-                  <td className="py-4 px-6 font-semibold">{row.lastPaid}</td>
-                  {/* Action */}
-                  <td className="py-4 px-6">
-                    <div className="flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSelectedShop(row)}
-                        className="px-3.5 py-1.5 bg-white text-[#152f16] border border-[#c8c2a3] text-xs font-bold rounded-lg hover:bg-neutral-50 transition cursor-pointer"
-                      >
-                        View details
-                      </button>
-                      {row.status === 'active' ? (
-                        <button
-                          type="button"
-                          onClick={() => setSuspendingShop(row)}
-                          className="px-3.5 py-1.5 bg-[#f6edd2] text-[#a68334] border-[#dfc480] text-xs font-bold rounded-lg hover:bg-[#faebb3] transition cursor-pointer"
-                        >
-                          Suspend
-                        </button>
-                      ) : row.status === 'blocked' ? (
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(row.id, 'active')}
-                          className="px-3.5 py-1.5 bg-[#fbebeb] text-[#a93b3b] border-[#d89f9f] text-xs font-bold rounded-lg hover:bg-[#fae3e3] transition cursor-pointer"
-                        >
-                          Unblock
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => handleStatusChange(row.id, 'active')}
-                          className="px-3.5 py-1.5 bg-[#e6f4ea] text-[#137333] border-[#85c796] text-xs font-bold rounded-lg hover:bg-[#d2edd9] transition cursor-pointer"
-                        >
-                          Activate
-                        </button>
-                      )}
 
-                      {/* Dropdown Menu for additional actions */}
-                      <div className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setActiveDropdownId(activeDropdownId === row.id ? null : row.id)}
-                          className="p-1.5 bg-white text-[#152f16] border border-[#c8c2a3] rounded-lg hover:bg-neutral-50 transition cursor-pointer flex items-center justify-center"
-                        >
-                          <MoreHorizontal size={16} />
-                        </button>
-                        {activeDropdownId === row.id && (
-                          <>
-                            <div className="fixed inset-0 z-40" onClick={() => setActiveDropdownId(null)} />
-                            <div className="absolute right-0 mt-1 w-44 bg-[#fdfdf7] border border-[#c8c2a3] rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-0.5">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setEditingShop(row);
-                                  setActiveDropdownId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#0d3b1b] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
-                              >
-                                Edit shop info
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setExtendingShop(row);
-                                  setActiveDropdownId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#0d3b1b] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
-                              >
-                                Extend due date
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActivityShop(row);
-                                  setActiveDropdownId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#0d3b1b] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
-                              >
-                                Activity log
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setMessagingShop(row);
-                                  setActiveDropdownId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#0d3b1b] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
-                              >
-                                Message owner
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (row.status === 'suspended') {
-                                    handleStatusChange(row.id, 'active');
-                                  } else {
-                                    setSuspendingShop(row);
-                                  }
-                                  setActiveDropdownId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#8a6d1c] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
-                              >
-                                {row.status === 'suspended' ? 'Unsuspend shop' : 'Suspend shop'}
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  if (row.status === 'blocked') {
-                                    handleStatusChange(row.id, 'active');
-                                  } else {
-                                    setBlockingShop(row);
-                                  }
-                                  setActiveDropdownId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#8a6d1c] hover:bg-[#efeacb]/40 rounded-xl transition cursor-pointer"
-                              >
-                                {row.status === 'blocked' ? 'Unblock shop' : 'Block shop'}
-                              </button>
-                              <div className="h-[1px] bg-[#c8c2a3]/40 my-1" />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setDeletingShop(row);
-                                  setActiveDropdownId(null);
-                                }}
-                                className="w-full text-left px-3 py-1.5 text-xs font-bold text-[#8c1d1d] hover:bg-red-50 rounded-xl transition cursor-pointer"
-                              >
-                                Delete account
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
+                  {/* METHOD */}
+                  <td className="py-4.5 px-6 font-bold text-[#14391a]/80">{row.method}</td>
+
+                  {/* DUE DATE */}
+                  <td className="py-4.5 px-6 font-bold text-[#14391a]">{row.dueDate}</td>
+
+                  {/* ACTION */}
+                  <td className="py-4.5 px-6 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedShop(row)}
+                      className="px-4 py-2 bg-[#fcfbfa] hover:bg-white text-[#14391a] border border-[#14391a]/40 text-xs font-extrabold rounded-[10px] shadow-2xs transition cursor-pointer"
+                    >
+                      View details
+                    </button>
                   </td>
                 </tr>
               ))}
-              {filteredShops.length === 0 && (
+              {filteredInvoices.length === 0 && (
                 <tr>
-                  <td colSpan="6" className="py-8 text-center text-sm text-[#607455] font-medium">
+                  <td colSpan="7" className="py-8 text-center text-sm text-[#14391a]/70 font-medium">
                     No billing records found matching the filter criteria.
                   </td>
                 </tr>
@@ -438,8 +368,8 @@ export default function SuperAdminBillingPage() {
 
       {/* --- Reusable Dialog/Modal Components --- */}
 
-      {/* Shop Details Modal */}
-      <ShopDetailsModal
+      {/* Billing Details Modal */}
+      <BillingDetailsModal
         shop={selectedShop}
         onClose={() => setSelectedShop(null)}
       />
