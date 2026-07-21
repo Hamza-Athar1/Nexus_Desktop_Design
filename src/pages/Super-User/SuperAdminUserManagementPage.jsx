@@ -53,8 +53,8 @@ const INITIAL_SHOPS = [
     billThisMonth: 'Overdue Rs 5,200',
     billStatus: 'overdue',
     amount: '5,200',
-    expires: '1 days ago',
-    lastPaid: 'Pending',
+    expires: 'Jul 25, 2026',
+    lastPaid: 'Jun 20, 2026',
     status: 'suspended',
     owner: 'Fiza Fairy',
     email: 'billing@fairyparcel.com',
@@ -68,11 +68,11 @@ const INITIAL_SHOPS = [
     id: 4,
     business: 'Green valley Grocers',
     posModule: 'Grocery POS',
-    billThisMonth: 'Plan upgrade request',
-    billStatus: 'upgrade_request',
-    amount: 'N/A',
-    expires: '4 days ago',
-    lastPaid: 'Pending',
+    billThisMonth: 'Paid Rs 6,000',
+    billStatus: 'paid',
+    amount: '6,000',
+    expires: 'Aug 20, 2026',
+    lastPaid: 'Jul 14, 2026',
     status: 'active',
     owner: 'Tariq Mehmood',
     email: 'tariq@greenvalley.com',
@@ -86,11 +86,11 @@ const INITIAL_SHOPS = [
     id: 5,
     business: 'Rafi Restaurant Co.',
     posModule: 'Restaurant POS',
-    billThisMonth: 'Staff account request',
-    billStatus: 'staff_request',
-    amount: 'N/A',
-    expires: '5 days ago',
-    lastPaid: 'Pending',
+    billThisMonth: 'Overdue Rs 2,800',
+    billStatus: 'overdue',
+    amount: '2,800',
+    expires: 'Jul 10, 2026',
+    lastPaid: 'May 12, 2026',
     status: 'blocked',
     owner: 'Rafiuddin Sheikh',
     email: 'management@rafirestaurant.com',
@@ -407,6 +407,14 @@ export default function SuperAdminUserManagementPage() {
                             >
                               Suspend
                             </button>
+                          ) : row.status === 'blocked' ? (
+                            <button
+                              type="button"
+                              onClick={() => handleStatusChange(row.id, 'active')}
+                              className="px-3.5 py-1.5 bg-[#fbebeb] text-[#a93b3b] border border-[#d89f9f] text-xs font-bold rounded-lg hover:bg-[#fae3e3] transition cursor-pointer"
+                            >
+                              Unblock
+                            </button>
                           ) : (
                             <button
                               type="button"
@@ -598,6 +606,14 @@ export default function SuperAdminUserManagementPage() {
                         className="flex-1 py-2 bg-[#f6edd2] text-[#a68334] border border-[#dfc480] text-xs font-bold rounded-lg text-center"
                       >
                         Suspend
+                      </button>
+                    ) : row.status === 'blocked' ? (
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(row.id, 'active')}
+                        className="flex-1 py-2 bg-[#fbebeb] text-[#a93b3b] border border-[#d89f9f] text-xs font-bold rounded-lg text-center"
+                      >
+                        Unblock
                       </button>
                     ) : (
                       <button

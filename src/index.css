@@ -1,12 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
-/* ── Design tokens ───────────────────────────────────────────────── */
 @theme {
   --color-nexus:       #1e5c1e;
   --color-nexus-dark:  #14391a;
   --color-nexus-cream: #e8d87a;
   --font-sans: 'Inter', sans-serif;
+  --font-serif: 'Inter', sans-serif;
 }
 
 /* ── Base ────────────────────────────────────────────────────────── */

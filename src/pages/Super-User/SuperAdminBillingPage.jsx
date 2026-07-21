@@ -190,30 +190,28 @@ export default function SuperAdminBillingPage() {
   });
 
   return (
-    <div className="flex flex-col gap-6 w-full">
-      {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-bold font-serif text-[#0c3818] tracking-tight">
-            Billing
-          </h1>
-          <p className="text-sm font-semibold text-[#607455] mt-1.5 flex items-center gap-3">
-            <span>Revenue overview</span>
-            <span className="text-[#0c3818]/60">•</span>
-            <span>July 2026</span>
-          </p>
-        </div>
+    <div className="flex-1 flex flex-col font-sans">
+      {/* Header section */}
+      <div className="mb-8">
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#152f16] font-serif mb-2">
+          Billing
+        </h1>
+        <p className="text-base sm:text-lg text-[#55694a] font-medium flex items-center gap-3">
+          <span>Revenue overview</span>
+          <span className="text-[#152f16]/60">•</span>
+          <span>July 2026</span>
+        </p>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap gap-2.5">
+      {/* Filter Tabs / Pills */}
+      <div className="flex flex-wrap items-center gap-3 mb-8">
         <button
           type="button"
           onClick={() => setActiveFilter('all')}
-          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+          className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
             activeFilter === 'all'
-              ? 'bg-[#0c3818] text-white border-transparent'
-              : 'bg-white border-[#bfbc9b] text-[#0c3818] hover:bg-[#efeacb]/20'
+              ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
+              : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'
           }`}
         >
           All {totalCount}
@@ -221,10 +219,10 @@ export default function SuperAdminBillingPage() {
         <button
           type="button"
           onClick={() => setActiveFilter('paid')}
-          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+          className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
             activeFilter === 'paid'
-              ? 'bg-[#0c3818] text-white border-transparent'
-              : 'bg-white border-[#bfbc9b] text-[#0c3818] hover:bg-[#efeacb]/20'
+              ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
+              : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'
           }`}
         >
           Paid {paidCount}
@@ -232,10 +230,10 @@ export default function SuperAdminBillingPage() {
         <button
           type="button"
           onClick={() => setActiveFilter('due')}
-          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+          className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
             activeFilter === 'due'
-              ? 'bg-[#0c3818] text-white border-transparent'
-              : 'bg-white border-[#bfbc9b] text-[#0c3818] hover:bg-[#efeacb]/20'
+              ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
+              : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'
           }`}
         >
           Due {dueCount}
@@ -243,131 +241,102 @@ export default function SuperAdminBillingPage() {
         <button
           type="button"
           onClick={() => setActiveFilter('defaulter')}
-          className={`px-4 py-1.5 rounded-lg text-xs font-bold transition cursor-pointer border ${
+          className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
             activeFilter === 'defaulter'
-              ? 'bg-[#0c3818] text-white border-transparent'
-              : 'bg-white border-[#bfbc9b] text-[#0c3818] hover:bg-[#efeacb]/20'
+              ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
+              : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'
           }`}
         >
           Defaulter {defaulterCount}
         </button>
       </div>
 
-      {/* Main Table Card */}
-      <div className="bg-[#efeacb]/40 border border-[#bfbc9b]/60 rounded-3xl overflow-hidden shadow-sm">
+      {/* Main Table section */}
+      <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[700px]">
+          <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-[#bfbc9b]/60 bg-[#efeacb]/60 text-[#0c3818] text-[11px] font-extrabold uppercase tracking-wider">
-                <th className="py-4.5 px-6">Business</th>
-                <th className="py-4.5 px-6">POS Module</th>
-                <th className="py-4.5 px-6">Bill This Month</th>
-                <th className="py-4.5 px-6">Expires</th>
-                <th className="py-4.5 px-6">Last Paid</th>
-                <th className="py-4.5 px-6 text-center">Action</th>
+              <tr className="bg-[#eae3c1] border-b border-[#bfbc9b] text-[11px] font-black uppercase tracking-wider text-[#152f16]">
+                <th className="py-4 px-6">Business</th>
+                <th className="py-4 px-6">POS Module</th>
+                <th className="py-4 px-6">Bill This Month</th>
+                <th className="py-4 px-6">Expires</th>
+                <th className="py-4 px-6">Last Paid</th>
+                <th className="py-4 px-6 text-center">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#c8c2a3]/30 bg-white/70">
+            <tbody className="divide-y divide-[#c8c2a3]/30 bg-white">
               {filteredShops.map((row) => (
-                <tr key={row.id} className="hover:bg-white/90 transition-colors">
-                  {/* Business Name */}
-                  <td className="py-4.5 px-6">
-                    <span className="text-sm font-bold text-[#0c3818]">
-                      {row.business}
-                    </span>
-                  </td>
-
+                <tr key={row.id} className="bg-white hover:bg-[#efeacb]/10 transition text-sm text-[#152f16]">
+                  {/* Business */}
+                  <td className="py-4 px-6 font-bold">{row.business}</td>
                   {/* POS Module */}
-                  <td className="py-4.5 px-6">
-                    <span className="text-sm font-semibold text-[#55694a]">
-                      {row.posModule}
-                    </span>
-                  </td>
-
-                  {/* Bill This Month (Pill) */}
-                  <td className="py-4.5 px-6">
+                  <td className="py-4 px-6 font-semibold text-[#55694a]">{row.posModule}</td>
+                  {/* Bill This Month */}
+                  <td className="py-4 px-6">
                     {row.billStatus === 'paid' ? (
-                      <span className="inline-block px-3 py-1 text-xs font-bold text-[#206030] bg-[#e6f4ea] border border-[#a3cfb4] rounded-lg">
+                      <span className="inline-block px-3 py-1 text-xs font-bold text-[#137333] bg-[#e6f4ea] border border-[#85c796] rounded-lg">
                         {row.billThisMonth}
                       </span>
                     ) : (
-                      <span className="inline-block px-3 py-1 text-xs font-bold text-[#a03030] bg-[#fce8e6] border border-[#f5c2c2] rounded-lg">
+                      <span className="inline-block px-3 py-1 text-xs font-bold text-[#a93b3b] bg-[#fbebeb] border border-[#d89f9f] rounded-lg">
                         {row.billThisMonth}
                       </span>
                     )}
                   </td>
-
                   {/* Expires */}
-                  <td className="py-4.5 px-6">
-                    <span className="text-sm font-semibold text-[#55694a]">
-                      {row.expires}
-                    </span>
-                  </td>
-
+                  <td className="py-4 px-6 font-medium text-[#152f16]">{row.expires}</td>
                   {/* Last Paid */}
-                  <td className="py-4.5 px-6">
-                    <span className="text-sm font-semibold text-[#55694a]">
-                      {row.lastPaid}
-                    </span>
-                  </td>
-
-                  {/* Action Buttons */}
-                  <td className="py-4.5 px-6">
+                  <td className="py-4 px-6 font-semibold">{row.lastPaid}</td>
+                  {/* Action */}
+                  <td className="py-4 px-6">
                     <div className="flex items-center justify-center gap-2">
                       <button
                         type="button"
                         onClick={() => setSelectedShop(row)}
-                        className="px-4 py-1.5 bg-[#fdfcf3] border border-[#0c3818]/60 text-[#0c3818] text-xs font-bold rounded-lg hover:bg-neutral-50 active:scale-[0.98] transition cursor-pointer"
+                        className="px-3.5 py-1.5 bg-white text-[#152f16] border border-[#c8c2a3] text-xs font-bold rounded-lg hover:bg-neutral-50 transition cursor-pointer"
                       >
                         View details
                       </button>
-
-                      {/* Middle Status Action Button */}
                       {row.status === 'active' ? (
                         <button
                           type="button"
                           onClick={() => setSuspendingShop(row)}
-                          className="px-4 py-1.5 bg-[#fcf2c4] border border-[#d9c055] text-[#806915] text-xs font-bold rounded-lg hover:bg-[#faeead] active:scale-[0.98] transition cursor-pointer"
+                          className="px-3.5 py-1.5 bg-[#f6edd2] text-[#a68334] border-[#dfc480] text-xs font-bold rounded-lg hover:bg-[#faebb3] transition cursor-pointer"
                         >
                           Suspend
                         </button>
-                      ) : row.status === 'suspended' ? (
+                      ) : row.status === 'blocked' ? (
                         <button
                           type="button"
                           onClick={() => handleStatusChange(row.id, 'active')}
-                          className="px-4 py-1.5 bg-[#e2f3e4] border border-[#9fd5a9] text-[#227236] text-xs font-bold rounded-lg hover:bg-[#c9ebd1] active:scale-[0.98] transition cursor-pointer"
+                          className="px-3.5 py-1.5 bg-[#fbebeb] text-[#a93b3b] border-[#d89f9f] text-xs font-bold rounded-lg hover:bg-[#fae3e3] transition cursor-pointer"
                         >
-                          Activate
+                          Unblock
                         </button>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleStatusChange(row.id, 'active')}
-                          className="px-4 py-1.5 bg-[#fce8e6] border border-[#f5c2c2] text-[#c53929] text-xs font-bold rounded-lg hover:bg-[#fad4cf] active:scale-[0.98] transition cursor-pointer"
+                          className="px-3.5 py-1.5 bg-[#e6f4ea] text-[#137333] border-[#85c796] text-xs font-bold rounded-lg hover:bg-[#d2edd9] transition cursor-pointer"
                         >
-                          Unblock
+                          Activate
                         </button>
                       )}
 
-                      {/* Three Dots Action Dropdown */}
+                      {/* Dropdown Menu for additional actions */}
                       <div className="relative">
                         <button
                           type="button"
-                          onClick={() =>
-                            setActiveDropdownId(activeDropdownId === row.id ? null : row.id)
-                          }
-                          className="p-1.5 rounded-lg border border-[#bfbc9b]/60 hover:bg-[#efeacb]/40 text-[#0c3818] transition cursor-pointer"
+                          onClick={() => setActiveDropdownId(activeDropdownId === row.id ? null : row.id)}
+                          className="p-1.5 bg-white text-[#152f16] border border-[#c8c2a3] rounded-lg hover:bg-neutral-50 transition cursor-pointer flex items-center justify-center"
                         >
-                          <MoreHorizontal size={14} />
+                          <MoreHorizontal size={16} />
                         </button>
-
                         {activeDropdownId === row.id && (
                           <>
-                            <div
-                              className="fixed inset-0 z-10"
-                              onClick={() => setActiveDropdownId(null)}
-                            />
-                            <div className="absolute right-0 mt-1.5 w-44 rounded-2xl bg-[#fdfcf3] border border-[#bfbc9b]/70 shadow-lg p-1.5 z-20 flex flex-col gap-0.5 animate-in fade-in slide-in-from-top-1 duration-150">
+                            <div className="fixed inset-0 z-40" onClick={() => setActiveDropdownId(null)} />
+                            <div className="absolute right-0 mt-1 w-44 bg-[#fdfdf7] border border-[#c8c2a3] rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-0.5">
                               <button
                                 type="button"
                                 onClick={() => {
