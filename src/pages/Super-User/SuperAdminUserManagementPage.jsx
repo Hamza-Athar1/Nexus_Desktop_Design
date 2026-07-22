@@ -285,9 +285,9 @@ export default function SuperAdminUserManagementPage() {
       </div>
 
       {/* Main Table section */}
-      <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] overflow-hidden shadow-sm">
+      <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] shadow-sm">
         {/* Desktop View Table */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block">
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="bg-[#eae3c1] border-b border-[#bfbc9b] text-[11px] font-black uppercase tracking-wider text-[#152f16]">
@@ -439,7 +439,7 @@ export default function SuperAdminUserManagementPage() {
                         {activeDropdownId === row.id && (
                           <>
                             <div className="fixed inset-0 z-40" onClick={() => setActiveDropdownId(null)} />
-                            <div className="absolute right-0 mt-1 w-44 bg-[#fdfdf7] border border-[#c8c2a3] rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-0.5">
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-[#fdfdf7] border border-[#c8c2a3] rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-0.5">
                               <button
                                 type="button"
                                 onClick={() => {

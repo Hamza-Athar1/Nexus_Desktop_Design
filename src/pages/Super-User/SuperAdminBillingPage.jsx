@@ -204,7 +204,7 @@ export default function SuperAdminBillingPage() {
       </div>
 
       {/* Top Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {/* Card 1 */}
         <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
           <span className="text-[13px] font-semibold text-white/95">Collected this month</span>
@@ -237,6 +237,15 @@ export default function SuperAdminBillingPage() {
           <span className="text-[13px] font-semibold text-white/95">Total invoices</span>
           <div>
             <span className="text-2xl font-extrabold tracking-tight">4</span>
+          </div>
+        </div>
+
+        {/* Card 5 */}
+        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
+          <span className="text-[13px] font-semibold text-white/95">Total Revenue</span>
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-sm font-extrabold text-white">Rs</span>
+            <span className="text-2xl font-extrabold tracking-tight">65,000</span>
           </div>
         </div>
       </div>
@@ -290,8 +299,8 @@ export default function SuperAdminBillingPage() {
       </div>
 
       {/* Main Table section */}
-      <div className="bg-[#ede7cd] rounded-[18px] border border-[#14391a]/20 overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
+      <div className="bg-[#ede7cd] rounded-[18px] border border-[#14391a]/20 shadow-xs">
+        <div>
           <table className="w-full border-collapse text-left">
             <thead>
               <tr className="bg-[#e4dcbc] border-b border-[#14391a]/15 text-[13px] font-extrabold uppercase tracking-wider text-[#14391a]">
@@ -344,13 +353,74 @@ export default function SuperAdminBillingPage() {
 
                   {/* ACTION */}
                   <td className="py-4.5 px-6 text-center">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedShop(row)}
-                      className="px-4 py-2 bg-[#fcfbfa] hover:bg-white text-[#14391a] border border-[#14391a]/40 text-xs font-extrabold rounded-[10px] shadow-2xs transition cursor-pointer"
-                    >
-                      View details
-                    </button>
+                    <div className="flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedShop(row)}
+                        className="px-4 py-2 bg-[#fcfbfa] hover:bg-white text-[#14391a] border border-[#14391a]/40 text-xs font-extrabold rounded-[10px] shadow-2xs transition cursor-pointer"
+                      >
+                        View details
+                      </button>
+
+                      {/* Dropdown Menu for account status operations */}
+                      <div className="relative">
+                        <button
+                          type="button"
+                          onClick={() => setActiveDropdownId(activeDropdownId === row.id ? null : row.id)}
+                          className="p-1.5 bg-[#fcfbfa] hover:bg-white text-[#14391a] border border-[#14391a]/40 rounded-[10px] shadow-2xs transition cursor-pointer flex items-center justify-center"
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
+                        {activeDropdownId === row.id && (
+                          <>
+                            <div className="fixed inset-0 z-40" onClick={() => setActiveDropdownId(null)} />
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-white border border-[#14391a]/15 rounded-xl shadow-xl z-50 p-2 flex flex-col text-left">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  // Activate
+                                  setInvoices(prev => prev.map(s => s.id === row.id ? { ...s, shopStatus: 'active' } : s));
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs font-bold text-[#14391a] hover:bg-gray-50 rounded-lg transition cursor-pointer"
+                              >
+                                Activate Account
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSuspendingShop(row);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs font-bold text-[#14391a] hover:bg-gray-50 rounded-lg transition cursor-pointer"
+                              >
+                                Suspend Account
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setBlockingShop(row);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs font-bold text-[#b45309] hover:bg-amber-50 rounded-lg transition cursor-pointer"
+                              >
+                                Block Account
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDeletingShop(row);
+                                  setActiveDropdownId(null);
+                                }}
+                                className="w-full text-left px-3 py-2 text-xs font-bold text-[#dc2626] hover:bg-red-50 rounded-lg transition cursor-pointer border-t border-gray-100 mt-1 pt-2"
+                              >
+                                Delete account
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))}
