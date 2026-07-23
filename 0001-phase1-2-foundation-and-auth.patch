@@ -1,0 +1,3645 @@
+diff --git a/server/.env.example b/server/.env.example
+new file mode 100644
+index 0000000..1f87b46
+--- /dev/null
++++ b/server/.env.example
+@@ -0,0 +1,20 @@
++# ── Server ──────────────────────────────────────────────
++PORT=5000
++NODE_ENV=development
++CLIENT_URL=http://localhost:5173
++
++# ── MySQL (MySQL Workbench / local instance) ───────────
++DB_HOST=127.0.0.1
++DB_PORT=3306
++DB_USER=root
++DB_PASSWORD=
++DB_NAME=nexus_desktop
++DB_CONNECTION_LIMIT=10
++
++# ── JWT ─────────────────────────────────────────────────
++# Generate strong random values, e.g.: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
++JWT_ACCESS_SECRET=change_me_access_secret
++JWT_REFRESH_SECRET=change_me_refresh_secret
++JWT_ACCESS_EXPIRES=15m
++JWT_REFRESH_EXPIRES=7d
++JWT_REFRESH_EXPIRES_REMEMBER=30d
+diff --git a/server/.gitignore b/server/.gitignore
+new file mode 100644
+index 0000000..071a8e6
+--- /dev/null
++++ b/server/.gitignore
+@@ -0,0 +1,3 @@
++node_modules/
++.env
++npm-debug.log
+diff --git a/server/README.md b/server/README.md
+new file mode 100644
+index 0000000..5825356
+--- /dev/null
++++ b/server/README.md
+@@ -0,0 +1,78 @@
++# Nexus Desktop — Server
++
++Backend for Nexus Desktop, a multi-tenant POS app. Raw `mysql2` (no ORM),
++Express, JWT auth via httpOnly cookies.
++
++## Phase 1 + 2: Foundation + Auth
++
++This patch sets up the server skeleton and a complete authentication
++system: signup, login, session-based `/me`, logout, refresh-token
++rotation, and forgot/reset password. Everything else (business
++registration wizard, catalog, POS, inventory, sales, super admin) comes
++in later patches — `app.js` has a comment marking where those routers
++get mounted.
++
++### Setup
++
++1. **Apply the schema.** Open `db/schema.sql` in MySQL Workbench and run
++   it (it drops/recreates the `nexus_desktop` database — safe for local
++   dev). Or, from this folder: `npm run db:reset`.
++
++2. **Configure env vars.**
++   ```
++   cp .env.example .env
++   ```
++   Fill in your MySQL credentials and generate real JWT secrets:
++   ```
++   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
++   ```
++   Run it twice — once for `JWT_ACCESS_SECRET`, once for `JWT_REFRESH_SECRET`.
++
++3. **Install & run.**
++   ```
++   npm install
++   npm run dev
++   ```
++   Server starts on `http://localhost:5000`. It refuses to start if it
++   can't reach MySQL, with a message pointing back here.
++
++4. **Frontend.** No changes needed — `src/lib/api.js` already points at
++   `http://localhost:5000/api` by default (override with `VITE_API_URL`
++   in the frontend's own `.env`).
++
++### Endpoints in this phase
++
++| Method | Path                        | Auth      | Notes |
++|--------|-----------------------------|-----------|-------|
++| POST   | `/api/auth/signup`          | —         | Creates the user, logs them in. Business is created later (wizard). |
++| POST   | `/api/auth/login`           | —         | Accepts username *or* email in the `username` field. |
++| GET    | `/api/auth/me`               | cookie    | Returns `{ user }` incl. `businessId` (null pre-onboarding). |
++| POST   | `/api/auth/logout`          | —         | Revokes the current refresh session. |
++| POST   | `/api/auth/refresh`         | cookie    | Rotates access+refresh tokens. |
++| POST   | `/api/auth/forgot-password` | —         | Always 200; logs the reset link to the console (no email provider wired up yet). |
++| POST   | `/api/auth/reset-password`  | —         | Consumes the token, revokes all sessions for that user. |
++
++### Known gaps to fix on the frontend (not touched by this patch)
++
++- `LoginPage.jsx`'s `ROLE_REDIRECTS` uses `'super-admin'` (hyphen); the
++  schema/backend use `'super_admin'` (underscore). Role-based redirects
++  won't work until that's aligned.
++- `LoginPage.jsx` has a `remember` checkbox in state but never sends it
++  in the `/auth/login` request body — the backend already accepts and
++  uses it (`remember`), just needs the one-line wiring.
++- `ProtectedRoute.jsx` / `RoleRoute.jsx` exist but aren't used in
++  `App.jsx` yet — every route is currently public.
++- `ForgotPasswordPage.jsx` isn't wired to `apiFetch` yet.
++
++### Design notes / schema decisions made this phase
++
++- `users.status` defaults to `'active'` on signup rather than `'pending'`
++  — there's no email-verification UI in the frontend yet, so leaving new
++  accounts `'pending'` would just lock everyone out. Revisit if/when an
++  email-verification flow gets built.
++- `sessions.ip_address` is left `NULL` for now — schema reserves it for
++  a future "Active Sessions" screen that doesn't exist in the frontend
++  yet; wiring real IPv4/IPv6 parsing for a value nothing reads felt
++  premature.
++- Refresh tokens are rotated by **revoking** the old session row (not
++  deleting it), so `sessions` doubles as an audit trail.
+diff --git a/server/app.js b/server/app.js
+new file mode 100644
+index 0000000..6e3b26b
+--- /dev/null
++++ b/server/app.js
+@@ -0,0 +1,31 @@
++import express from 'express';
++import cors from 'cors';
++import cookieParser from 'cookie-parser';
++import authRoutes from './routes/authRoutes.js';
++import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
++
++export const app = express();
++
++// ── Core middleware ─────────────────────────────────────
++app.use(express.json());
++app.use(cookieParser());
++app.use(
++  cors({
++    origin: process.env.CLIENT_URL, // Vite dev server, e.g. http://localhost:5173
++    credentials: true, // required so the browser sends/receives httpOnly cookies
++  })
++);
++
++// ── Health check ─────────────────────────────────────────
++app.get('/api/health', (req, res) => {
++  res.json({ status: 'ok' });
++});
++
++// ── Routes ───────────────────────────────────────────────
++app.use('/api/auth', authRoutes);
++// Phase 3+ mounts more routers here: /api/business, /api/inventory,
++// /api/sales, /api/admin, etc. — kept as separate PRs/patches.
++
++// ── Fallbacks ────────────────────────────────────────────
++app.use(notFoundHandler);
++app.use(errorHandler);
+diff --git a/server/config/db.js b/server/config/db.js
+index e1cc79f..b968d99 100644
+--- a/server/config/db.js
++++ b/server/config/db.js
+@@ -1,32 +1,68 @@
++/**
++ * db.js — MySQL connection pool (raw mysql2, no ORM).
++ *
++ * We use mysql2/promise directly rather than an ORM because the schema
++ * leans on features ORMs don't model well: CHECK constraints, ENUMs,
++ * generated VIEWs, and a JSON column used deliberately schemaless
++ * (registration_drafts.payload). Query logic lives in models/*.js as
++ * plain parameterised SQL.
++ */
++
+ import mysql from 'mysql2/promise';
+ import dotenv from 'dotenv';
+ 
+ dotenv.config();
+ 
+-// Connection pool — reused across requests instead of opening a new
+-// connection every time. This is the standard pattern for mysql2.
+-const pool = mysql.createPool({
+-  host: process.env.DB_HOST,
+-  port: process.env.DB_PORT,
+-  user: process.env.DB_USER,
+-  password: process.env.DB_PASSWORD,
+-  database: process.env.DB_NAME,
++export const pool = mysql.createPool({
++  host: process.env.DB_HOST || '127.0.0.1',
++  port: Number(process.env.DB_PORT) || 3306,
++  user: process.env.DB_USER || 'root',
++  password: process.env.DB_PASSWORD || '',
++  database: process.env.DB_NAME || 'nexus_desktop',
+   waitForConnections: true,
+-  connectionLimit: 10,
++  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT) || 10,
+   queueLimit: 0,
++  // Return DECIMAL columns as JS numbers instead of strings for money math.
++  decimalNumbers: true,
++  dateStrings: false,
+ });
+ 
+-// Quick sanity check you can call on server startup to confirm
+-// the DB is reachable before accepting traffic.
++/**
++ * Verifies the pool can actually reach MySQL before the HTTP server
++ * starts accepting traffic. Fails loudly (and fast) on bad credentials
++ * or a database that hasn't been created in Workbench yet, rather than
++ * letting every request 500 with a confusing pool error.
++ */
+ export async function testConnection() {
++  const conn = await pool.getConnection();
+   try {
+-    const conn = await pool.getConnection();
+-    console.log('✅ MySQL connected successfully');
++    await conn.query('SELECT 1');
++    console.log('✅ MySQL connection OK');
++  } finally {
+     conn.release();
+-  } catch (err) {
+-    console.error('❌ MySQL connection failed:', err.message);
+-    process.exit(1);
+   }
+ }
+ 
+-export default pool;
+\ No newline at end of file
++/**
++ * Runs multiple statements inside a single transaction.
++ * `work` receives a connection — use it in place of `pool` for every
++ * query so all statements share the same transaction.
++ *
++ * @template T
++ * @param {(conn: import('mysql2/promise').PoolConnection) => Promise<T>} work
++ * @returns {Promise<T>}
++ */
++export async function withTransaction(work) {
++  const conn = await pool.getConnection();
++  try {
++    await conn.beginTransaction();
++    const result = await work(conn);
++    await conn.commit();
++    return result;
++  } catch (err) {
++    await conn.rollback();
++    throw err;
++  } finally {
++    conn.release();
++  }
++}
+diff --git a/server/controllers/adminController.js b/server/controllers/adminController.js
+deleted file mode 100644
+index fe4578b..0000000
+--- a/server/controllers/adminController.js
++++ /dev/null
+@@ -1,46 +0,0 @@
+-import { findAllUsers } from '../models/userModel.js';
+-import { getAllSubscriptionsWithUser, updateSubscriptionStatus } from '../models/subscriptionModel.js';
+-import { setSubscriptionStatus as syncProfileSubscriptionStatus } from '../models/businessProfileModel.js';
+-
+-export async function getAllUsersHandler(req, res) {
+-  try {
+-    const users = await findAllUsers();
+-    return res.status(200).json({ users });
+-  } catch (err) {
+-    console.error('Get all users error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function getAllSubscriptionsHandler(req, res) {
+-  try {
+-    const subscriptions = await getAllSubscriptionsWithUser();
+-    return res.status(200).json({ subscriptions });
+-  } catch (err) {
+-    console.error('Get all subscriptions error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-// Approves (or otherwise updates the status of) a subscription. Keeps
+-// two tables in sync in one request: the subscriptions row itself
+-// (source of truth) and the cached subscription_status on the user's
+-// business_profiles row (fast read for dashboards).
+-export async function approveSubscription(req, res) {
+-  try {
+-    const { id } = req.params;
+-    const { status = 'active', plan, paymentDate, renewsAt } = req.body;
+-
+-    const updated = await updateSubscriptionStatus(id, { status, plan, paymentDate, renewsAt });
+-    if (!updated) {
+-      return res.status(404).json({ message: 'Subscription not found' });
+-    }
+-
+-    await syncProfileSubscriptionStatus(updated.user_id, status);
+-
+-    return res.status(200).json({ message: 'Subscription updated', subscription: updated });
+-  } catch (err) {
+-    console.error('Approve subscription error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+\ No newline at end of file
+diff --git a/server/controllers/authController.js b/server/controllers/authController.js
+index 93f024d..e120118 100644
+--- a/server/controllers/authController.js
++++ b/server/controllers/authController.js
+@@ -1,201 +1,245 @@
+-import { createTrialSubscription } from '../models/subscriptionModel.js';
+-import { createProfileForUser } from '../models/businessProfileModel.js';
+ import bcrypt from 'bcrypt';
+-import jwt from 'jsonwebtoken';
++import crypto from 'crypto';
++import { ApiError } from '../utils/ApiError.js';
+ import {
+   findUserByEmail,
+   findUserByUsername,
++  findUserByIdentifier,
+   findUserById,
++  findBusinessIdForOwner,
+   createUser,
+-  saveRefreshToken,
+-  findRefreshToken,
+-  deleteRefreshToken,
++  updateLastLogin,
++  updatePasswordHash,
+ } from '../models/userModel.js';
++import {
++  createSession,
++  findActiveSessionByToken,
++  revokeSessionByToken,
++  revokeAllSessionsForUser,
++} from '../models/sessionModel.js';
++import {
++  recordLoginAttempt,
++  countRecentFailedAttempts,
++} from '../models/loginAttemptModel.js';
++import {
++  createPasswordReset,
++  findValidPasswordReset,
++  markPasswordResetUsed,
++} from '../models/passwordResetModel.js';
+ import {
+   generateAccessToken,
+   generateRefreshToken,
+   accessTokenCookieOptions,
+   refreshTokenCookieOptions,
+-} from '../utils/generateTokens.js';
++  refreshExpiresAt,
++} from '../utils/tokens.js';
+ 
+ const SALT_ROUNDS = 10;
+ 
++/** Shapes a DB user row into what the frontend's AuthContext expects. */
++async function toAuthUser(user) {
++  const businessId = await findBusinessIdForOwner(user.id);
++  return {
++    id: user.id,
++    username: user.username,
++    email: user.email,
++    role: user.role, // 'super_admin' | 'admin' | 'user'
++    status: user.status,
++    businessId, // null until the registration wizard finishes — drives frontend routing
++  };
++}
++
++async function issueSession(res, user, rememberMe) {
++  const accessToken = generateAccessToken(user);
++  const refreshToken = generateRefreshToken(user, rememberMe);
++  const expiresAt = refreshExpiresAt(rememberMe);
++
++  await createSession({ userId: user.id, refreshToken, rememberMe, expiresAt });
++
++  res.cookie('accessToken', accessToken, accessTokenCookieOptions);
++  res.cookie('refreshToken', refreshToken, refreshTokenCookieOptions(rememberMe));
++}
++
++function clearAuthCookies(res) {
++  res.clearCookie('accessToken', accessTokenCookieOptions);
++  res.clearCookie('refreshToken', refreshTokenCookieOptions(false));
++}
++
++// ── POST /api/auth/signup ─────────────────────────────────────────────────
++// Matches SignUpPage.jsx: username, email, password, phoneNumber, city.
++// Creates the `users` row only — the business itself is created later by
++// the registration wizard (Phase 3). We log the user in immediately so
++// the wizard has an authenticated session to attach the business to.
+ export async function signup(req, res) {
+-  try {
+-    const { businessName, businessType, email, username, password } = req.body;
+-
+-    // ── Validation ─────────────────────────────────────
+-    if (!businessName?.trim() || !businessType?.trim() || !email?.trim() || !username?.trim() || !password) {
+-      return res.status(400).json({ message: 'All fields are required' });
+-    }
+-    if (!/\S+@\S+\.\S+/.test(email)) {
+-      return res.status(400).json({ message: 'A valid email is required' });
+-    }
+-    if (password.length < 6) {
+-      return res.status(400).json({ message: 'Password must be at least 6 characters' });
+-    }
+-
+-    // ── Duplicate checks ─────────────────────────────────
+-    const existingEmail = await findUserByEmail(email);
+-    if (existingEmail) {
+-      return res.status(409).json({ message: 'An account with this email already exists' });
+-    }
+-    const existingUsername = await findUserByUsername(username);
+-    if (existingUsername) {
+-      return res.status(409).json({ message: 'This username is already taken' });
+-    }
+-
+-    // ── Create user ───────────────────────────────────
+-    const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+-    const newUser = await createUser({ businessName, businessType, email, username, passwordHash });
+-    await createProfileForUser(newUser.id, { businessName, businessType });
+-    await createTrialSubscription(newUser.id);
+-    // Never send password_hash back to the client
+-    // eslint-disable-next-line no-unused-vars
+-    const { password_hash, ...safeUser } = newUser;
+-
+-
+-    return res.status(201).json({
+-      message: 'Account created successfully',
+-      user: safeUser,
+-    });
+-  } catch (err) {
+-    console.error('Signup error:', err);
+-    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
++  const { username, email, password, phoneNumber, city } = req.body;
++
++  if (!username?.trim() || !email?.trim() || !password || !phoneNumber?.trim() || !city?.trim()) {
++    throw new ApiError(400, 'All fields are required');
++  }
++  if (!/\S+@\S+\.\S+/.test(email)) {
++    throw new ApiError(400, 'A valid email is required');
+   }
++  if (password.length < 6) {
++    throw new ApiError(400, 'Password must be at least 6 characters');
++  }
++
++  if (await findUserByEmail(email.trim())) {
++    throw new ApiError(409, 'An account with this email already exists');
++  }
++  if (await findUserByUsername(username.trim())) {
++    throw new ApiError(409, 'This username is already taken');
++  }
++
++  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
++  const user = await createUser({
++    username: username.trim(),
++    email: email.trim(),
++    phone: phoneNumber.trim(),
++    cityRegion: city.trim(),
++    passwordHash,
++    role: 'admin', // every self-signup owns a business — see users table comment in schema
++    status: 'active',
++  });
++
++  await issueSession(res, user, false);
++
++  return res.status(201).json({
++    message: 'Account created successfully',
++    user: await toAuthUser(user),
++  });
+ }
+ 
++// ── POST /api/auth/login ──────────────────────────────────────────────────
+ export async function login(req, res) {
+-  try {
+-    const { username, password } = req.body;
+-
+-    if (!username?.trim() || !password) {
+-      return res.status(400).json({ message: 'Username and password are required' });
+-    }
+-
+-    const user = await findUserByUsername(username);
+-    if (!user) {
+-      // Deliberately vague — don't reveal whether it was the username
+-      // or password that was wrong.
+-      return res.status(401).json({ message: 'Invalid username or password' });
+-    }
+-
+-    const passwordMatches = await bcrypt.compare(password, user.password_hash);
+-    if (!passwordMatches) {
+-      return res.status(401).json({ message: 'Invalid username or password' });
+-    }
+-
+-    // ── Issue tokens ───────────────────────────────────
+-    const accessToken = generateAccessToken(user);
+-    const refreshToken = generateRefreshToken(user);
+-
+-    const expiresAt = new Date(Date.now() + refreshTokenCookieOptions.maxAge);
+-    await saveRefreshToken(user.id, refreshToken, expiresAt);
+-
+-    res.cookie('accessToken', accessToken, accessTokenCookieOptions);
+-    res.cookie('refreshToken', refreshToken, refreshTokenCookieOptions);
+-
+-    return res.status(200).json({
+-      message: 'Login successful',
+-      user: {
+-        id: user.id,
+-        username: user.username,
+-        businessName: user.business_name,
+-        role: user.role,
+-      },
+-    });
+-  } catch (err) {
+-    console.error('Login error:', err);
+-    return res.status(500).json({ message: 'Something went wrong. Please try again.' });
++  const { username, password, remember } = req.body;
++
++  if (!username?.trim() || !password) {
++    throw new ApiError(400, 'Username and password are required');
++  }
++
++  const identifier = username.trim();
++
++  const recentFailures = await countRecentFailedAttempts(identifier);
++  if (recentFailures >= 5) {
++    throw new ApiError(429, 'Too many failed attempts. Please try again in a few minutes.');
++  }
++
++  const user = await findUserByIdentifier(identifier);
++  const passwordMatches = user ? await bcrypt.compare(password, user.password_hash) : false;
++
++  if (!user || !passwordMatches) {
++    await recordLoginAttempt(identifier, false);
++    // Deliberately vague — don't reveal whether it was the identifier or password.
++    throw new ApiError(401, 'Invalid username or password');
++  }
++
++  if (user.status === 'suspended' || user.status === 'blocked') {
++    await recordLoginAttempt(identifier, false);
++    throw new ApiError(403, 'This account has been suspended. Contact support for help.');
+   }
++
++  await recordLoginAttempt(identifier, true);
++  await updateLastLogin(user.id);
++  await issueSession(res, user, Boolean(remember));
++
++  return res.status(200).json({
++    message: 'Login successful',
++    user: await toAuthUser(user),
++  });
+ }
+ 
+-// req.user is set by the verifyToken middleware — this route just
+-// confirms who's currently logged in based on the access token cookie.
+-// Used by the frontend on page load/refresh to restore session state
+-// without asking the user to log in again.
++// ── GET /api/auth/me ───────────────────────────────────────────────────────
++// req.user is set by verifyToken from the access token cookie.
+ export async function getMe(req, res) {
+-  try {
+-    const user = await findUserById(req.user.id);
+-    if (!user) {
+-      return res.status(404).json({ message: 'User not found' });
+-    }
+-
+-    return res.status(200).json({
+-      user: {
+-        id: user.id,
+-        username: user.username,
+-        businessName: user.business_name,
+-        role: user.role,
+-      },
+-    });
+-  } catch (err) {
+-    console.error('GetMe error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
++  const user = await findUserById(req.user.id);
++  if (!user) {
++    throw new ApiError(404, 'User not found');
+   }
++  return res.status(200).json({ user: await toAuthUser(user) });
+ }
+ 
++// ── POST /api/auth/logout ─────────────────────────────────────────────────
+ export async function logout(req, res) {
+-  try {
+-    const token = req.cookies?.refreshToken;
+-    if (token) {
+-      await deleteRefreshToken(token); // dead in the DB, so it can't be replayed even if someone kept a copy
+-    }
++  const token = req.cookies?.refreshToken;
++  if (token) {
++    await revokeSessionByToken(token);
++  }
++  clearAuthCookies(res);
++  return res.status(200).json({ message: 'Logged out successfully' });
++}
+ 
+-    res.clearCookie('accessToken', accessTokenCookieOptions);
+-    res.clearCookie('refreshToken', refreshTokenCookieOptions);
++// ── POST /api/auth/refresh ────────────────────────────────────────────────
++// Called by src/lib/api.js whenever a request comes back 401. Rotates the
++// refresh token: the old session row is revoked (not deleted, for audit
++// trail) and a new one takes its place.
++export async function refresh(req, res) {
++  const token = req.cookies?.refreshToken;
++  if (!token) {
++    throw new ApiError(401, 'Not authenticated');
++  }
+ 
+-    return res.status(200).json({ message: 'Logged out successfully' });
+-  } catch (err) {
+-    console.error('Logout error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
++  const session = await findActiveSessionByToken(token);
++  if (!session) {
++    throw new ApiError(401, 'Session expired, please log in again');
+   }
++
++  const user = await findUserById(session.user_id);
++  if (!user) {
++    throw new ApiError(401, 'Session expired, please log in again');
++  }
++
++  await revokeSessionByToken(token);
++  await issueSession(res, user, Boolean(session.remember_me));
++
++  return res.status(200).json({ message: 'Token refreshed' });
+ }
+ 
+-// Called by the frontend when a protected request comes back 401 with
+-// an expired access token. Uses the refresh token to silently issue a
+-// fresh access token (and a fresh, rotated refresh token) instead of
+-// forcing the user to log in again.
+-export async function refresh(req, res) {
+-  try {
+-    const token = req.cookies?.refreshToken;
+-    if (!token) {
+-      return res.status(401).json({ message: 'Not authenticated' });
+-    }
+-
+-    // 1. Verify the JWT itself is validly signed and not expired
+-    let decoded;
+-    try {
+-      decoded = jwt.verify(token, process.env.JWT_REFRESH_SECRET);
+-    } catch {
+-      return res.status(401).json({ message: 'Session expired, please log in again' });
+-    }
+-
+-    // 2. Confirm it hasn't been revoked (logout, or already rotated away)
+-    const storedToken = await findRefreshToken(token);
+-    if (!storedToken) {
+-      return res.status(401).json({ message: 'Session expired, please log in again' });
+-    }
+-
+-    const user = await findUserById(decoded.id);
+-    if (!user) {
+-      return res.status(401).json({ message: 'Session expired, please log in again' });
+-    }
+-
+-    // 3. Rotate: kill the old refresh token, issue a new access + refresh pair
+-    await deleteRefreshToken(token);
+-
+-    const newAccessToken = generateAccessToken(user);
+-    const newRefreshToken = generateRefreshToken(user);
+-    const expiresAt = new Date(Date.now() + refreshTokenCookieOptions.maxAge);
+-    await saveRefreshToken(user.id, newRefreshToken, expiresAt);
+-
+-    res.cookie('accessToken', newAccessToken, accessTokenCookieOptions);
+-    res.cookie('refreshToken', newRefreshToken, refreshTokenCookieOptions);
+-
+-    return res.status(200).json({ message: 'Token refreshed' });
+-  } catch (err) {
+-    console.error('Refresh error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+\ No newline at end of file
++// ── POST /api/auth/forgot-password ────────────────────────────────────────
++// Always responds 200 with the same generic message, whether or not the
++// email exists — prevents attackers from using this endpoint to enumerate
++// registered accounts.
++export async function forgotPassword(req, res) {
++  const { email } = req.body;
++  if (!email?.trim()) {
++    throw new ApiError(400, 'Email is required');
++  }
++
++  const user = await findUserByEmail(email.trim());
++  if (user) {
++    const rawToken = crypto.randomBytes(32).toString('hex');
++    await createPasswordReset(user.id, rawToken);
++
++    // TODO: wire up an actual email provider (e.g. Resend/Nodemailer) once
++    // one is chosen. For now the reset link is logged so the flow is
++    // testable end-to-end in development.
++    const resetLink = `${process.env.CLIENT_URL}/reset-password?token=${rawToken}`;
++    console.log(`[password-reset] ${user.email} → ${resetLink}`);
++  }
++
++  return res.status(200).json({
++    message: 'If an account exists for that email, a reset link has been sent.',
++  });
++}
++
++// ── POST /api/auth/reset-password ─────────────────────────────────────────
++export async function resetPassword(req, res) {
++  const { token, password } = req.body;
++  if (!token || !password) {
++    throw new ApiError(400, 'Token and new password are required');
++  }
++  if (password.length < 6) {
++    throw new ApiError(400, 'Password must be at least 6 characters');
++  }
++
++  const reset = await findValidPasswordReset(token);
++  if (!reset) {
++    throw new ApiError(400, 'This reset link is invalid or has expired');
++  }
++
++  const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
++  await updatePasswordHash(reset.user_id, passwordHash);
++  await markPasswordResetUsed(reset.id);
++  await revokeAllSessionsForUser(reset.user_id); // force re-login everywhere
++
++  return res.status(200).json({ message: 'Password updated. Please log in again.' });
++}
+diff --git a/server/controllers/businessProfileController.js b/server/controllers/businessProfileController.js
+deleted file mode 100644
+index f78ff8e..0000000
+--- a/server/controllers/businessProfileController.js
++++ /dev/null
+@@ -1,74 +0,0 @@
+-import {
+-  findProfileByUserId,
+-  updateProfile,
+-  setSelectedModule,
+-} from '../models/businessProfileModel.js';
+-
+-// Kept in sync with the MODULES list in ModuleSelectPage.jsx on the
+-// frontend — validated here too so an arbitrary string can't be saved
+-// as someone's "module".
+-const VALID_MODULES = [
+-  'pharmacy', 'grocery', 'electronics', 'bakery',
+-  'restaurant', 'general-store', 'clothing',
+-];
+-
+-export async function getProfile(req, res) {
+-  try {
+-    const profile = await findProfileByUserId(req.user.id);
+-    if (!profile) {
+-      return res.status(404).json({ message: 'Profile not found' });
+-    }
+-    return res.status(200).json({ profile });
+-  } catch (err) {
+-    console.error('Get profile error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function updateProfileHandler(req, res) {
+-  try {
+-    const {
+-      businessName, businessType, ownerName, phone,
+-      licenseNo, logoUrl, gstNumber, ntnNumber,
+-      fbrEnabled, autoGst,
+-    } = req.body;
+-
+-    // Map camelCase (frontend/JS convention) to the snake_case columns
+-    // the model layer expects. Only defined fields get passed through,
+-    // so a partial update (e.g. just one toggle) doesn't wipe others.
+-    const fields = {
+-      business_name: businessName,
+-      business_type: businessType,
+-      owner_name: ownerName,
+-      phone,
+-      license_no: licenseNo,
+-      logo_url: logoUrl,
+-      gst_number: gstNumber,
+-      ntn_number: ntnNumber,
+-      fbr_enabled: fbrEnabled,
+-      auto_gst: autoGst,
+-    };
+-
+-    const updated = await updateProfile(req.user.id, fields);
+-    return res.status(200).json({ message: 'Profile updated', profile: updated });
+-  } catch (err) {
+-    console.error('Update profile error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function selectModule(req, res) {
+-  try {
+-    const { moduleId } = req.body;
+-
+-    if (!moduleId || !VALID_MODULES.includes(moduleId)) {
+-      return res.status(400).json({ message: 'Invalid module selected' });
+-    }
+-
+-    const profile = await setSelectedModule(req.user.id, moduleId);
+-    return res.status(200).json({ message: 'Module selected', profile });
+-  } catch (err) {
+-    console.error('Select module error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+\ No newline at end of file
+diff --git a/server/controllers/inventoryController.js b/server/controllers/inventoryController.js
+deleted file mode 100644
+index 3a3639f..0000000
+--- a/server/controllers/inventoryController.js
++++ /dev/null
+@@ -1,132 +0,0 @@
+-import {
+-  findItemById,
+-  findItemByBarcode,
+-  getAllItems,
+-  getLowStockItems,
+-  searchItems,
+-  createItem,
+-  updateItem,
+-  deleteItem,
+-} from '../models/inventoryModel.js';
+-
+-export async function listItems(req, res) {
+-  try {
+-    const items = await getAllItems(req.user.id);
+-    return res.status(200).json({ items });
+-  } catch (err) {
+-    console.error('List inventory error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function getItem(req, res) {
+-  try {
+-    const item = await findItemById(req.user.id, req.params.id);
+-    if (!item) {
+-      return res.status(404).json({ message: 'Item not found' });
+-    }
+-    return res.status(200).json({ item });
+-  } catch (err) {
+-    console.error('Get inventory item error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function addItem(req, res) {
+-  try {
+-    const { name, sku, barcode, category, stockQty, reorderLevel, price, moduleSpecificFields } = req.body;
+-
+-    if (!name?.trim()) {
+-      return res.status(400).json({ message: 'Item name is required' });
+-    }
+-    if (price !== undefined && Number(price) < 0) {
+-      return res.status(400).json({ message: 'Price cannot be negative' });
+-    }
+-
+-    const item = await createItem(req.user.id, {
+-      name, sku, barcode, category, stockQty, reorderLevel, price, moduleSpecificFields,
+-    });
+-
+-    return res.status(201).json({ message: 'Item created', item });
+-  } catch (err) {
+-    console.error('Add inventory item error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function editItem(req, res) {
+-  try {
+-    const existing = await findItemById(req.user.id, req.params.id);
+-    if (!existing) {
+-      return res.status(404).json({ message: 'Item not found' });
+-    }
+-
+-    const { name, sku, barcode, category, stockQty, reorderLevel, price, moduleSpecificFields } = req.body;
+-
+-    if (name !== undefined && !name.trim()) {
+-      return res.status(400).json({ message: 'Item name cannot be empty' });
+-    }
+-    if (price !== undefined && Number(price) < 0) {
+-      return res.status(400).json({ message: 'Price cannot be negative' });
+-    }
+-
+-    const item = await updateItem(req.user.id, req.params.id, {
+-      name, sku, barcode, category, stockQty, reorderLevel, price, moduleSpecificFields,
+-    });
+-
+-    return res.status(200).json({ message: 'Item updated', item });
+-  } catch (err) {
+-    console.error('Edit inventory item error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function removeItem(req, res) {
+-  try {
+-    const deleted = await deleteItem(req.user.id, req.params.id);
+-    if (!deleted) {
+-      return res.status(404).json({ message: 'Item not found' });
+-    }
+-    return res.status(200).json({ message: 'Item deleted' });
+-  } catch (err) {
+-    console.error('Delete inventory item error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function lowStock(req, res) {
+-  try {
+-    const items = await getLowStockItems(req.user.id);
+-    return res.status(200).json({ items });
+-  } catch (err) {
+-    console.error('Low stock error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function scanBarcode(req, res) {
+-  try {
+-    const item = await findItemByBarcode(req.user.id, req.params.barcode);
+-    if (!item) {
+-      return res.status(404).json({ message: 'No item matches that barcode' });
+-    }
+-    return res.status(200).json({ item });
+-  } catch (err) {
+-    console.error('Barcode scan error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+-
+-export async function search(req, res) {
+-  try {
+-    const { q } = req.query;
+-    if (!q?.trim()) {
+-      return res.status(400).json({ message: 'A search query (?q=) is required' });
+-    }
+-    const items = await searchItems(req.user.id, q.trim());
+-    return res.status(200).json({ items });
+-  } catch (err) {
+-    console.error('Search inventory error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+\ No newline at end of file
+diff --git a/server/controllers/subscriptionController.js b/server/controllers/subscriptionController.js
+deleted file mode 100644
+index d27c21e..0000000
+--- a/server/controllers/subscriptionController.js
++++ /dev/null
+@@ -1,14 +0,0 @@
+-import { findSubscriptionByUserId } from '../models/subscriptionModel.js';
+-
+-export async function getSubscriptionStatus(req, res) {
+-  try {
+-    const subscription = await findSubscriptionByUserId(req.user.id);
+-    if (!subscription) {
+-      return res.status(404).json({ message: 'No subscription found' });
+-    }
+-    return res.status(200).json({ subscription });
+-  } catch (err) {
+-    console.error('Get subscription status error:', err);
+-    return res.status(500).json({ message: 'Something went wrong' });
+-  }
+-}
+\ No newline at end of file
+diff --git a/server/db/reset.js b/server/db/reset.js
+new file mode 100644
+index 0000000..2276f0e
+--- /dev/null
++++ b/server/db/reset.js
+@@ -0,0 +1,41 @@
++/**
++ * db/reset.js — applies db/schema.sql against MySQL from the command line.
++ *
++ * You're using MySQL Workbench day-to-day, which is fine — just paste
++ * db/schema.sql into a new query tab and run it there. This script exists
++ * as a faster CLI alternative (`npm run db:reset`) for when you want a
++ * clean slate without leaving the terminal, e.g. after pulling a patch
++ * that changes the schema.
++ *
++ * DROPS the nexus_desktop database (see schema.sql line 1) — never point
++ * this at anything but your local dev database.
++ */
++import 'dotenv/config';
++import fs from 'fs';
++import path from 'path';
++import { fileURLToPath } from 'url';
++import mysql from 'mysql2/promise';
++
++const __dirname = path.dirname(fileURLToPath(import.meta.url));
++
++async function main() {
++  const schemaSql = fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8');
++
++  const connection = await mysql.createConnection({
++    host: process.env.DB_HOST || '127.0.0.1',
++    port: Number(process.env.DB_PORT) || 3306,
++    user: process.env.DB_USER || 'root',
++    password: process.env.DB_PASSWORD || '',
++    multipleStatements: true, // only ever used here, for the one-shot schema load
++  });
++
++  console.log('⏳ Applying db/schema.sql ...');
++  await connection.query(schemaSql);
++  console.log('✅ Schema applied to nexus_desktop');
++  await connection.end();
++}
++
++main().catch((err) => {
++  console.error('❌ Failed to apply schema:', err.message);
++  process.exit(1);
++});
+diff --git a/server/config/nexus_schema.sql b/server/db/schema.sql
+similarity index 100%
+rename from server/config/nexus_schema.sql
+rename to server/db/schema.sql
+diff --git a/server/middleware/errorHandler.js b/server/middleware/errorHandler.js
+new file mode 100644
+index 0000000..7e674bc
+--- /dev/null
++++ b/server/middleware/errorHandler.js
+@@ -0,0 +1,29 @@
++import { ApiError } from '../utils/ApiError.js';
++
++/**
++ * Last middleware in the chain. Anything thrown/next(err)'d in a route
++ * (wrapped with asyncHandler) ends up here instead of crashing the process.
++ */
++// eslint-disable-next-line no-unused-vars
++export function errorHandler(err, req, res, next) {
++  if (err instanceof ApiError) {
++    return res.status(err.status).json({ message: err.message });
++  }
++
++  // MySQL duplicate-key / constraint errors — surface something readable
++  // instead of a raw 500 with a driver stack trace.
++  if (err?.code === 'ER_DUP_ENTRY') {
++    return res.status(409).json({ message: 'That value is already in use' });
++  }
++  if (err?.code?.startsWith?.('ER_') || err?.errno) {
++    console.error('Database error:', err);
++    return res.status(500).json({ message: 'A database error occurred' });
++  }
++
++  console.error('Unhandled error:', err);
++  return res.status(500).json({ message: 'Something went wrong. Please try again.' });
++}
++
++export function notFoundHandler(req, res) {
++  res.status(404).json({ message: 'Not found' });
++}
+diff --git a/server/middleware/roleCheck.js b/server/middleware/roleCheck.js
+index 77e1219..b36b20b 100644
+--- a/server/middleware/roleCheck.js
++++ b/server/middleware/roleCheck.js
+@@ -1,19 +1,21 @@
+-// Restricts a route to one or more roles. Must run AFTER verifyToken,
+-// since it relies on req.user being already set from the access token.
+-//
+-// Usage: router.get('/admin/users', verifyToken, roleCheck('admin', 'super-admin'), getUsers)
++/**
++ * roleCheck('admin', 'super_admin') — must run after verifyToken.
++ *
++ * Role values match the `users.role` ENUM exactly: 'super_admin' | 'admin' | 'user'.
++ * NOTE FOR THE FRONTEND: LoginPage.jsx's ROLE_REDIRECTS map currently uses
++ * the string 'super-admin' (hyphen) while the schema/backend use
++ * 'super_admin' (underscore) — that mismatch needs a small frontend patch
++ * before role-based redirects will work correctly. Flagging it here since
++ * it'll bite silently otherwise.
++ */
+ export function roleCheck(...allowedRoles) {
+-  return (req, res, next) => {
++  return function checkRole(req, res, next) {
+     if (!req.user) {
+-      // Defensive check — should never actually hit this if verifyToken
+-      // ran first, but fails safely rather than assuming req.user exists.
+       return res.status(401).json({ message: 'Not authenticated' });
+     }
+-
+     if (!allowedRoles.includes(req.user.role)) {
+-      return res.status(403).json({ message: 'You do not have permission to access this resource' });
++      return res.status(403).json({ message: 'You do not have permission to do that' });
+     }
+-
+-    next();
++    return next();
+   };
+-}
+\ No newline at end of file
++}
+diff --git a/server/middleware/verifyToken.js b/server/middleware/verifyToken.js
+index f412ad0..01e222e 100644
+--- a/server/middleware/verifyToken.js
++++ b/server/middleware/verifyToken.js
+@@ -1,8 +1,11 @@
+ import jwt from 'jsonwebtoken';
+ 
+-// Reads the accessToken httpOnly cookie, verifies it, and attaches the
+-// decoded payload ({ id, username, role }) to req.user for downstream
+-// route handlers to use. If missing/invalid/expired, blocks the request.
++/**
++ * Reads the httpOnly `accessToken` cookie, verifies it, and attaches
++ * `req.user = { id, role }`. On failure (missing/expired/invalid) it
++ * responds 401 — the frontend's `apiFetch` treats any 401 as a cue to
++ * hit `/auth/refresh` and retry the original request once.
++ */
+ export function verifyToken(req, res, next) {
+   const token = req.cookies?.accessToken;
+ 
+@@ -12,12 +15,9 @@ export function verifyToken(req, res, next) {
+ 
+   try {
+     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+-    req.user = decoded;
+-    next();
++    req.user = { id: decoded.id, role: decoded.role };
++    return next();
+   } catch {
+-    // Covers both an invalid signature and a naturally expired token.
+-    // The frontend should react to this specific status by attempting
+-    // a token refresh (built in a later step) before giving up.
+-    return res.status(401).json({ message: 'Session expired, please log in again' });
++    return res.status(401).json({ message: 'Access token expired or invalid' });
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/server/models/businessProfileModel.js b/server/models/businessProfileModel.js
+deleted file mode 100644
+index 9e30970..0000000
+--- a/server/models/businessProfileModel.js
++++ /dev/null
+@@ -1,71 +0,0 @@
+-import pool from '../config/db.js';
+-
+-export async function findProfileByUserId(userId) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM business_profiles WHERE user_id = ? LIMIT 1',
+-    [userId]
+-  );
+-  return rows[0] || null;
+-}
+-
+-// Called once, right after signup, so every user has a profile row to
+-// update later rather than needing to handle "no profile yet" branching
+-// throughout the app. Seeds business_name/business_type from the
+-// signup form so the profile isn't empty on first load.
+-export async function createProfileForUser(userId, { businessName, businessType }) {
+-  await pool.query(
+-    `INSERT INTO business_profiles (user_id, business_name, business_type)
+-     VALUES (?, ?, ?)`,
+-    [userId, businessName, businessType]
+-  );
+-  return findProfileByUserId(userId);
+-}
+-
+-// Builds an UPDATE dynamically from whatever fields were actually sent,
+-// so a partial PUT (e.g. just toggling fbr_enabled) doesn't clobber
+-// other columns with undefined/null.
+-export async function updateProfile(userId, fields) {
+-  const allowedFields = [
+-    'business_name', 'business_type', 'owner_name', 'phone',
+-    'license_no', 'logo_url', 'gst_number', 'ntn_number',
+-    'fbr_enabled', 'auto_gst',
+-  ];
+-
+-  const columns = [];
+-  const values = [];
+-
+-  for (const key of allowedFields) {
+-    if (fields[key] !== undefined) {
+-      columns.push(`${key} = ?`);
+-      values.push(fields[key]);
+-    }
+-  }
+-
+-  if (columns.length === 0) {
+-    return findProfileByUserId(userId); // nothing to update
+-  }
+-
+-  values.push(userId);
+-  await pool.query(
+-    `UPDATE business_profiles SET ${columns.join(', ')} WHERE user_id = ?`,
+-    values
+-  );
+-  return findProfileByUserId(userId);
+-}
+-
+-export async function setSelectedModule(userId, moduleId) {
+-  await pool.query(
+-    'UPDATE business_profiles SET selected_module = ? WHERE user_id = ?',
+-    [moduleId, userId]
+-  );
+-  return findProfileByUserId(userId);
+-}
+-
+-// Used by the admin-approval flow to keep the cached status on the
+-// profile in sync with the subscriptions table (the source of truth).
+-export async function setSubscriptionStatus(userId, status) {
+-  await pool.query(
+-    'UPDATE business_profiles SET subscription_status = ? WHERE user_id = ?',
+-    [status, userId]
+-  );
+-}
+\ No newline at end of file
+diff --git a/server/models/inventoryModel.js b/server/models/inventoryModel.js
+deleted file mode 100644
+index 85d000e..0000000
+--- a/server/models/inventoryModel.js
++++ /dev/null
+@@ -1,136 +0,0 @@
+-import pool from '../config/db.js';
+-
+-// mysql2 sometimes hands back a JSON column as an already-parsed
+-// object, sometimes as a raw string, depending on version/config.
+-// Normalize so callers always get a plain JS object (or null).
+-function parseModuleFields(raw) {
+-  if (raw === null || raw === undefined) return null;
+-  if (typeof raw === 'object') return raw;
+-  try {
+-    return JSON.parse(raw);
+-  } catch {
+-    return null;
+-  }
+-}
+-
+-function mapRow(row) {
+-  if (!row) return row;
+-  return { ...row, module_specific_fields: parseModuleFields(row.module_specific_fields) };
+-}
+-
+-export async function findItemById(userId, id) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM inventory_items WHERE id = ? AND user_id = ? LIMIT 1',
+-    [id, userId]
+-  );
+-  return mapRow(rows[0]) || null;
+-}
+-
+-export async function findItemByBarcode(userId, barcode) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM inventory_items WHERE user_id = ? AND barcode = ? LIMIT 1',
+-    [userId, barcode]
+-  );
+-  return mapRow(rows[0]) || null;
+-}
+-
+-export async function getAllItems(userId) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM inventory_items WHERE user_id = ? ORDER BY created_at DESC',
+-    [userId]
+-  );
+-  return rows.map(mapRow);
+-}
+-
+-export async function getLowStockItems(userId) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM inventory_items WHERE user_id = ? AND stock_qty <= reorder_level ORDER BY stock_qty ASC',
+-    [userId]
+-  );
+-  return rows.map(mapRow);
+-}
+-
+-// Simple LIKE-based search across name, sku, and category — matches
+-// any item where the query appears as a substring in any of the three.
+-export async function searchItems(userId, query) {
+-  const like = `%${query}%`;
+-  const [rows] = await pool.query(
+-    `SELECT * FROM inventory_items
+-     WHERE user_id = ? AND (name LIKE ? OR sku LIKE ? OR category LIKE ?)
+-     ORDER BY name ASC`,
+-    [userId, like, like, like]
+-  );
+-  return rows.map(mapRow);
+-}
+-
+-export async function createItem(userId, fields) {
+-  const {
+-    name, sku, barcode, category,
+-    stockQty = 0, reorderLevel = 0, price = 0,
+-    moduleSpecificFields = null,
+-  } = fields;
+-
+-  const [result] = await pool.query(
+-    `INSERT INTO inventory_items
+-       (user_id, name, sku, barcode, category, stock_qty, reorder_level, price, module_specific_fields)
+-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+-    [
+-      userId, name, sku || null, barcode || null, category || null,
+-      stockQty, reorderLevel, price,
+-      moduleSpecificFields ? JSON.stringify(moduleSpecificFields) : null,
+-    ]
+-  );
+-  return findItemById(userId, result.insertId);
+-}
+-
+-// Dynamic partial update — only columns actually present in `fields`
+-// get touched, so a small PUT (e.g. just stock_qty) doesn't wipe
+-// everything else back to null.
+-export async function updateItem(userId, id, fields) {
+-  const columnMap = {
+-    name: 'name',
+-    sku: 'sku',
+-    barcode: 'barcode',
+-    category: 'category',
+-    stockQty: 'stock_qty',
+-    reorderLevel: 'reorder_level',
+-    price: 'price',
+-  };
+-
+-  const columns = [];
+-  const values = [];
+-
+-  for (const [key, column] of Object.entries(columnMap)) {
+-    if (fields[key] !== undefined) {
+-      columns.push(`${column} = ?`);
+-      values.push(fields[key]);
+-    }
+-  }
+-
+-  if (fields.moduleSpecificFields !== undefined) {
+-    columns.push('module_specific_fields = ?');
+-    values.push(fields.moduleSpecificFields ? JSON.stringify(fields.moduleSpecificFields) : null);
+-  }
+-
+-  if (columns.length === 0) {
+-    return findItemById(userId, id); // nothing to update
+-  }
+-
+-  values.push(id, userId);
+-  await pool.query(
+-    `UPDATE inventory_items SET ${columns.join(', ')} WHERE id = ? AND user_id = ?`,
+-    values
+-  );
+-  return findItemById(userId, id);
+-}
+-
+-// Returns true/false so the controller can tell "deleted" apart from
+-// "nothing matched that id for this user" (someone else's item, or
+-// already gone) without a separate existence check first.
+-export async function deleteItem(userId, id) {
+-  const [result] = await pool.query(
+-    'DELETE FROM inventory_items WHERE id = ? AND user_id = ?',
+-    [id, userId]
+-  );
+-  return result.affectedRows > 0;
+-}
+\ No newline at end of file
+diff --git a/server/models/loginAttemptModel.js b/server/models/loginAttemptModel.js
+new file mode 100644
+index 0000000..9583450
+--- /dev/null
++++ b/server/models/loginAttemptModel.js
+@@ -0,0 +1,22 @@
++import { pool } from '../config/db.js';
++
++export async function recordLoginAttempt(identifier, wasSuccessful) {
++  await pool.query(
++    `INSERT INTO login_attempts (identifier, was_successful) VALUES (?, ?)`,
++    [identifier, wasSuccessful ? 1 : 0]
++  );
++}
++
++/**
++ * Counts failed attempts for this identifier in the last `windowMinutes`.
++ * Used to throttle brute-force login attempts before we even touch bcrypt.
++ */
++export async function countRecentFailedAttempts(identifier, windowMinutes = 15) {
++  const [rows] = await pool.query(
++    `SELECT COUNT(*) AS count FROM login_attempts
++     WHERE identifier = ? AND was_successful = 0
++       AND attempted_at > (NOW() - INTERVAL ? MINUTE)`,
++    [identifier, windowMinutes]
++  );
++  return rows[0].count;
++}
+diff --git a/server/models/passwordResetModel.js b/server/models/passwordResetModel.js
+new file mode 100644
+index 0000000..77499a6
+--- /dev/null
++++ b/server/models/passwordResetModel.js
+@@ -0,0 +1,27 @@
++import { pool } from '../config/db.js';
++import { hashToken } from '../utils/tokens.js';
++
++const RESET_TOKEN_TTL_MINUTES = 60;
++
++export async function createPasswordReset(userId, rawToken) {
++  const expiresAt = new Date(Date.now() + RESET_TOKEN_TTL_MINUTES * 60 * 1000);
++  await pool.query(
++    `INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)`,
++    [userId, hashToken(rawToken), expiresAt]
++  );
++  return expiresAt;
++}
++
++export async function findValidPasswordReset(rawToken) {
++  const [rows] = await pool.query(
++    `SELECT * FROM password_resets
++     WHERE token_hash = ? AND used_at IS NULL AND expires_at > NOW()
++     LIMIT 1`,
++    [hashToken(rawToken)]
++  );
++  return rows[0] || null;
++}
++
++export async function markPasswordResetUsed(id) {
++  await pool.query(`UPDATE password_resets SET used_at = NOW() WHERE id = ?`, [id]);
++}
+diff --git a/server/models/sessionModel.js b/server/models/sessionModel.js
+new file mode 100644
+index 0000000..fa06a5e
+--- /dev/null
++++ b/server/models/sessionModel.js
+@@ -0,0 +1,52 @@
++import { pool } from '../config/db.js';
++import { hashToken } from '../utils/tokens.js';
++
++/**
++ * @param {{userId:number, refreshToken:string, userAgent?:string,
++ *           rememberMe?:boolean, expiresAt:Date}} input
++ *
++ * NOTE: `sessions.ip_address` is VARBINARY(16) (INET6_ATON format) in the
++ * schema, intended for a future "Active Sessions" security screen — which
++ * doesn't exist in the frontend yet. Rather than half-implement IPv4/IPv6
++ * parsing no one can see or use yet, we leave it NULL here and wire it up
++ * properly when that screen is actually built.
++ */
++export async function createSession({
++  userId,
++  refreshToken,
++  userAgent = null,
++  rememberMe = false,
++  expiresAt,
++}) {
++  await pool.query(
++    `INSERT INTO sessions
++       (user_id, refresh_token_hash, user_agent, ip_address, remember_me, expires_at)
++     VALUES (?, ?, ?, NULL, ?, ?)`,
++    [userId, hashToken(refreshToken), userAgent, rememberMe ? 1 : 0, expiresAt]
++  );
++}
++
++export async function findActiveSessionByToken(refreshToken) {
++  const [rows] = await pool.query(
++    `SELECT * FROM sessions
++     WHERE refresh_token_hash = ? AND revoked_at IS NULL AND expires_at > NOW()
++     LIMIT 1`,
++    [hashToken(refreshToken)]
++  );
++  return rows[0] || null;
++}
++
++export async function revokeSessionByToken(refreshToken) {
++  await pool.query(
++    `UPDATE sessions SET revoked_at = NOW() WHERE refresh_token_hash = ? AND revoked_at IS NULL`,
++    [hashToken(refreshToken)]
++  );
++}
++
++/** Used after a password reset — kill every existing session for the user. */
++export async function revokeAllSessionsForUser(userId) {
++  await pool.query(
++    `UPDATE sessions SET revoked_at = NOW() WHERE user_id = ? AND revoked_at IS NULL`,
++    [userId]
++  );
++}
+diff --git a/server/models/subscriptionModel.js b/server/models/subscriptionModel.js
+deleted file mode 100644
+index a40ba48..0000000
+--- a/server/models/subscriptionModel.js
++++ /dev/null
+@@ -1,63 +0,0 @@
+-import pool from '../config/db.js';
+-
+-export async function findSubscriptionByUserId(userId) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+-    [userId]
+-  );
+-  return rows[0] || null;
+-}
+-
+-// Called once, right after signup, alongside createProfileForUser —
+-// every user starts on a 'trial' plan with 'pending' status until an
+-// admin approves it.
+-export async function createTrialSubscription(userId) {
+-  await pool.query(
+-    `INSERT INTO subscriptions (user_id, plan, status)
+-     VALUES (?, 'trial', 'pending')`,
+-    [userId]
+-  );
+-  return findSubscriptionByUserId(userId);
+-}
+-
+-export async function findSubscriptionById(id) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM subscriptions WHERE id = ? LIMIT 1',
+-    [id]
+-  );
+-  return rows[0] || null;
+-}
+-
+-// Used by the admin dashboard listing — joins in business_name and
+-// username so the frontend doesn't need a second round-trip per row.
+-export async function getAllSubscriptionsWithUser() {
+-  const [rows] = await pool.query(`
+-    SELECT
+-      s.id, s.user_id, s.plan, s.status, s.payment_date, s.renews_at, s.created_at,
+-      u.username, bp.business_name
+-    FROM subscriptions s
+-    JOIN users u ON u.id = s.user_id
+-    LEFT JOIN business_profiles bp ON bp.user_id = s.user_id
+-    ORDER BY s.created_at DESC
+-  `);
+-  return rows;
+-}
+-
+-export async function updateSubscriptionStatus(id, { status, plan, paymentDate, renewsAt }) {
+-  const columns = [];
+-  const values = [];
+-
+-  if (status !== undefined)     { columns.push('status = ?');       values.push(status); }
+-  if (plan !== undefined)       { columns.push('plan = ?');         values.push(plan); }
+-  if (paymentDate !== undefined){ columns.push('payment_date = ?'); values.push(paymentDate); }
+-  if (renewsAt !== undefined)   { columns.push('renews_at = ?');    values.push(renewsAt); }
+-
+-  if (columns.length === 0) return findSubscriptionById(id);
+-
+-  values.push(id);
+-  await pool.query(
+-    `UPDATE subscriptions SET ${columns.join(', ')} WHERE id = ?`,
+-    values
+-  );
+-  return findSubscriptionById(id);
+-}
+\ No newline at end of file
+diff --git a/server/models/userModel.js b/server/models/userModel.js
+index 550c2ce..8c812e2 100644
+--- a/server/models/userModel.js
++++ b/server/models/userModel.js
+@@ -1,71 +1,78 @@
+-import pool from '../config/db.js';
++import { pool } from '../config/db.js';
+ 
+-// All the raw SQL for the `users` table lives here. Controllers call
+-// these functions instead of writing SQL inline — keeps queries in
+-// one place if the schema changes later.
++/** Columns we're ever willing to send to the client. Never password_hash. */
++const SAFE_FIELDS = `
++  id, username, email, phone, role, status, city_region,
++  email_verified_at, last_login_at, created_at
++`;
+ 
+ export async function findUserByEmail(email) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM users WHERE email = ? LIMIT 1',
+-    [email]
+-  );
++  const [rows] = await pool.query(`SELECT * FROM users WHERE email = ? LIMIT 1`, [email]);
+   return rows[0] || null;
+ }
+ 
+ export async function findUserByUsername(username) {
+-  const [rows] = await pool.query(
+-    'SELECT * FROM users WHERE username = ? LIMIT 1',
+-    [username]
+-  );
++  const [rows] = await pool.query(`SELECT * FROM users WHERE username = ? LIMIT 1`, [username]);
+   return rows[0] || null;
+ }
+ 
+-export async function findUserById(id) {
++/**
++ * Login accepts either a username or an email in the same field
++ * (the frontend only exposes one "username" input, but there's no
++ * reason to force people to remember which one they registered with).
++ */
++export async function findUserByIdentifier(identifier) {
+   const [rows] = await pool.query(
+-    'SELECT * FROM users WHERE id = ? LIMIT 1',
+-    [id]
++    `SELECT * FROM users WHERE username = ? OR email = ? LIMIT 1`,
++    [identifier, identifier]
+   );
+   return rows[0] || null;
+ }
+ 
+-export async function findAllUsers() {
+-  const [rows] = await pool.query(`
+-    SELECT
+-      u.id, u.username, u.email, u.role, u.created_at,
+-      bp.business_name, bp.business_type, bp.selected_module, bp.subscription_status
+-    FROM users u
+-    LEFT JOIN business_profiles bp ON bp.user_id = u.id
+-    ORDER BY u.created_at DESC
+-  `);
+-  return rows;
++export async function findUserById(id) {
++  const [rows] = await pool.query(`SELECT ${SAFE_FIELDS} FROM users WHERE id = ? LIMIT 1`, [id]);
++  return rows[0] || null;
+ }
+-export async function createUser({ businessName, businessType, email, username, passwordHash }) {
++
++/**
++ * @param {{username:string, email:string, phone?:string, cityRegion?:string,
++ *           passwordHash:string, role?:'super_admin'|'admin'|'user', status?:string}} input
++ * @returns {Promise<object>} the newly created user, safe fields only
++ */
++export async function createUser({
++  username,
++  email,
++  phone = null,
++  cityRegion = null,
++  passwordHash,
++  role = 'admin',
++  status = 'active',
++}) {
+   const [result] = await pool.query(
+-    `INSERT INTO users (business_name, business_type, email, username, password_hash, role)
+-     VALUES (?, ?, ?, ?, ?, 'user')`,
+-    [businessName, businessType, email, username, passwordHash]
++    `INSERT INTO users (username, email, phone, city_region, password_hash, role, status)
++     VALUES (?, ?, ?, ?, ?, ?, ?)`,
++    [username, email, phone, cityRegion, passwordHash, role, status]
+   );
+-  // result.insertId is the new user's auto-incremented id
+   return findUserById(result.insertId);
+ }
+ 
+-// ── Refresh token helpers ─────────────────────────────────
++export async function updateLastLogin(userId) {
++  await pool.query(`UPDATE users SET last_login_at = NOW() WHERE id = ?`, [userId]);
++}
+ 
+-export async function saveRefreshToken(userId, token, expiresAt) {
+-  await pool.query(
+-    `INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)`,
+-    [userId, token, expiresAt]
+-  );
++export async function updatePasswordHash(userId, passwordHash) {
++  await pool.query(`UPDATE users SET password_hash = ? WHERE id = ?`, [passwordHash, userId]);
+ }
+ 
+-export async function findRefreshToken(token) {
++/**
++ * A user owns at most one business (businesses.owner_user_id is UNIQUE).
++ * Used by /auth/me so the frontend knows whether to route the owner into
++ * the registration wizard or straight to their dashboard.
++ */
++export async function findBusinessIdForOwner(userId) {
+   const [rows] = await pool.query(
+-    'SELECT * FROM refresh_tokens WHERE token = ? LIMIT 1',
+-    [token]
++    `SELECT id FROM businesses WHERE owner_user_id = ? LIMIT 1`,
++    [userId]
+   );
+-  return rows[0] || null;
++  return rows[0]?.id ?? null;
+ }
+-
+-export async function deleteRefreshToken(token) {
+-  await pool.query('DELETE FROM refresh_tokens WHERE token = ?', [token]);
+-}
+\ No newline at end of file
+diff --git a/server/package-lock.json b/server/package-lock.json
+index 103c799..6ce0f59 100644
+--- a/server/package-lock.json
++++ b/server/package-lock.json
+@@ -1,23 +1,26 @@
+ {
+   "name": "nexus-desktop-server",
+-  "version": "1.0.0",
++  "version": "0.1.0",
+   "lockfileVersion": 3,
+   "requires": true,
+   "packages": {
+     "": {
+       "name": "nexus-desktop-server",
+-      "version": "1.0.0",
++      "version": "0.1.0",
+       "dependencies": {
+         "bcrypt": "^5.1.1",
+-        "cookie-parser": "^1.4.7",
++        "cookie-parser": "^1.4.6",
+         "cors": "^2.8.5",
+         "dotenv": "^16.4.5",
+-        "express": "^4.21.1",
++        "express": "^4.19.2",
+         "jsonwebtoken": "^9.0.2",
+-        "mysql2": "^3.11.4"
++        "mysql2": "^3.11.0"
+       },
+       "devDependencies": {
+-        "nodemon": "^3.1.7"
++        "nodemon": "^3.1.4"
++      },
++      "engines": {
++        "node": ">=18"
+       }
+     },
+     "node_modules/@mapbox/node-pre-gyp": {
+@@ -41,9 +44,9 @@
+       }
+     },
+     "node_modules/@types/node": {
+-      "version": "26.1.0",
+-      "resolved": "https://registry.npmjs.org/@types/node/-/node-26.1.0.tgz",
+-      "integrity": "sha512-O0A1G3xPGy4w7AgQdAQYUlQ+BKk2Oovw8eRpofyp5KdBZULnbe+WqaOVNrm705SHphCiG4XHsACrSmPu1f+Kgw==",
++      "version": "26.1.1",
++      "resolved": "https://registry.npmjs.org/@types/node/-/node-26.1.1.tgz",
++      "integrity": "sha512-nxAkRSVkN1Y0JC1W8ky/fTfkGsMmcrRsbx+3XoZE+rMOX71kLYTV7fLXpqud1GpbpP5TuffXFqfX7fH2GgZREw==",
+       "license": "MIT",
+       "peer": true,
+       "dependencies": {
+@@ -200,9 +203,9 @@
+       }
+     },
+     "node_modules/body-parser": {
+-      "version": "1.20.5",
+-      "resolved": "https://registry.npmjs.org/body-parser/-/body-parser-1.20.5.tgz",
+-      "integrity": "sha512-3grm+/2tUOvu2cjJkvsIxrv/wVpfXQW4PsQHYm7yk4vfpu7Ekl6nEsYBoJUL6qDwZUx8wUhQ8tR2qz+ad9c9OA==",
++      "version": "1.20.6",
++      "resolved": "https://registry.npmjs.org/body-parser/-/body-parser-1.20.6.tgz",
++      "integrity": "sha512-p5tAzS57i5MV9fZFDj9LeIiTZEufbSe2eDozP+ElheSUq1m74CRq1jI4mYNDdVs9vQztXFLuk/Gd6BWTdwRJ5g==",
+       "license": "MIT",
+       "dependencies": {
+         "bytes": "~3.1.2",
+@@ -824,9 +827,9 @@
+       "license": "MIT"
+     },
+     "node_modules/glob/node_modules/brace-expansion": {
+-      "version": "1.1.15",
+-      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.15.tgz",
+-      "integrity": "sha512-EwOCDEex4quD37XhqM3omwtMoJjr//isUZz1JopUNWms+4Z2ViyM/k1YIRePpoVNnQhENnxtFjLaxNHrT7xIUg==",
++      "version": "1.1.16",
++      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.16.tgz",
++      "integrity": "sha512-IDw48K2/2kRkg9LdJxurvq3lV3aBgq0REY89duEqFRthjlPdXHKMj7EnQOXVckxzgisinf3nHfrcE2FufFLXMw==",
+       "license": "MIT",
+       "dependencies": {
+         "balanced-match": "^1.0.0",
+@@ -1333,9 +1336,9 @@
+       "license": "MIT"
+     },
+     "node_modules/mysql2": {
+-      "version": "3.22.5",
+-      "resolved": "https://registry.npmjs.org/mysql2/-/mysql2-3.22.5.tgz",
+-      "integrity": "sha512-95uZ2TrPWAZdwpB3vvvDbmEMcNG8yIeNCyu6GUcr/QnWEE/wXm7+mhOCsdQfWQDTV7qYT/PDUZ4U4UPP4AsXqQ==",
++      "version": "3.23.1",
++      "resolved": "https://registry.npmjs.org/mysql2/-/mysql2-3.23.1.tgz",
++      "integrity": "sha512-tTuRnC7qCet2IOfSNMYZ5SwXuBnfvBPAcIA28P0gtruXyZlU1LMxA6uha32kYypoFgyYklMqhLWwt4laYwXR/Q==",
+       "license": "MIT",
+       "dependencies": {
+         "aws-ssl-profiles": "^1.1.2",
+@@ -1345,7 +1348,7 @@
+         "long": "^5.3.2",
+         "lru.min": "^1.1.4",
+         "named-placeholders": "^1.1.6",
+-        "sql-escaper": "^1.3.3"
++        "sql-escaper": "^1.5.1"
+       },
+       "engines": {
+         "node": ">= 8.0"
+@@ -1355,9 +1358,9 @@
+       }
+     },
+     "node_modules/mysql2/node_modules/iconv-lite": {
+-      "version": "0.7.2",
+-      "resolved": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.7.2.tgz",
+-      "integrity": "sha512-im9DjEDQ55s9fL4EYzOAv0yMqmMBSZp6G0VvFyTMPKWxiSBHUj9NW/qqLmXUwXrrM7AvqSlTCfvqRb0cM8yYqw==",
++      "version": "0.7.3",
++      "resolved": "https://registry.npmjs.org/iconv-lite/-/iconv-lite-0.7.3.tgz",
++      "integrity": "sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==",
+       "license": "MIT",
+       "dependencies": {
+         "safer-buffer": ">= 2.1.2 < 3.0.0"
+@@ -1878,9 +1881,9 @@
+       }
+     },
+     "node_modules/sql-escaper": {
+-      "version": "1.3.3",
+-      "resolved": "https://registry.npmjs.org/sql-escaper/-/sql-escaper-1.3.3.tgz",
+-      "integrity": "sha512-BsTCV265VpTp8tm1wyIm1xqQCS+Q9NHx2Sr+WcnUrgLrQ6yiDIvHYJV5gHxsj1lMBy2zm5twLaZao8Jd+S8JJw==",
++      "version": "1.5.1",
++      "resolved": "https://registry.npmjs.org/sql-escaper/-/sql-escaper-1.5.1.tgz",
++      "integrity": "sha512-4toX5E1fQbBrpfXidaHnF0669nkAdETeIPTs2SUjxxD7RRIs9ICG4gtpmfc68JCEKehsdwLFqBu9VlQqZ1P1gg==",
+       "license": "MIT",
+       "engines": {
+         "bun": ">=1.0.0",
+diff --git a/server/package.json b/server/package.json
+index db5be8d..2149593 100644
+--- a/server/package.json
++++ b/server/package.json
+@@ -1,24 +1,28 @@
+ {
+   "name": "nexus-desktop-server",
+-  "version": "1.0.0",
++  "version": "0.1.0",
+   "private": true,
+   "type": "module",
+-  "description": "Backend for Nexus Desktop - Auth module (login/signup)",
++  "description": "Backend API for Nexus Desktop (multi-tenant POS).",
+   "main": "server.js",
+   "scripts": {
+     "dev": "nodemon server.js",
+-    "start": "node server.js"
++    "start": "node server.js",
++    "db:reset": "node db/reset.js"
+   },
+   "dependencies": {
+     "bcrypt": "^5.1.1",
+-    "cookie-parser": "^1.4.7",
++    "cookie-parser": "^1.4.6",
+     "cors": "^2.8.5",
+     "dotenv": "^16.4.5",
+-    "express": "^4.21.1",
++    "express": "^4.19.2",
+     "jsonwebtoken": "^9.0.2",
+-    "mysql2": "^3.11.4"
++    "mysql2": "^3.11.0"
+   },
+   "devDependencies": {
+-    "nodemon": "^3.1.7"
++    "nodemon": "^3.1.4"
++  },
++  "engines": {
++    "node": ">=18"
+   }
+-}
+\ No newline at end of file
++}
+diff --git a/server/pnpm-lock.yaml b/server/pnpm-lock.yaml
+deleted file mode 100644
+index b1504f0..0000000
+--- a/server/pnpm-lock.yaml
++++ /dev/null
+@@ -1,1431 +0,0 @@
+-lockfileVersion: '9.0'
+-
+-settings:
+-  autoInstallPeers: true
+-  excludeLinksFromLockfile: false
+-
+-importers:
+-
+-  .:
+-    dependencies:
+-      bcrypt:
+-        specifier: ^5.1.1
+-        version: 5.1.1
+-      cookie-parser:
+-        specifier: ^1.4.7
+-        version: 1.4.7
+-      cors:
+-        specifier: ^2.8.5
+-        version: 2.8.6
+-      dotenv:
+-        specifier: ^16.4.5
+-        version: 16.6.1
+-      express:
+-        specifier: ^4.21.1
+-        version: 4.22.2
+-      jsonwebtoken:
+-        specifier: ^9.0.2
+-        version: 9.0.3
+-      mysql2:
+-        specifier: ^3.11.4
+-        version: 3.22.5(@types/node@26.1.0)
+-    devDependencies:
+-      nodemon:
+-        specifier: ^3.1.7
+-        version: 3.1.14
+-
+-packages:
+-
+-  '@mapbox/node-pre-gyp@1.0.11':
+-    resolution: {integrity: sha512-Yhlar6v9WQgUp/He7BdgzOz8lqMQ8sU+jkCq7Wx8Myc5YFJLbEe7lgui/V7G1qB1DJykHSGwreceSaD60Y0PUQ==}
+-    hasBin: true
+-
+-  '@types/node@26.1.0':
+-    resolution: {integrity: sha512-O0A1G3xPGy4w7AgQdAQYUlQ+BKk2Oovw8eRpofyp5KdBZULnbe+WqaOVNrm705SHphCiG4XHsACrSmPu1f+Kgw==}
+-
+-  abbrev@1.1.1:
+-    resolution: {integrity: sha512-nne9/IiQ/hzIhY6pdDnbBtz7DjPTKrY00P/zvPSm5pOFkl6xuGrGnXn/VtTNNfNtAfZ9/1RtehkszU9qcTii0Q==}
+-
+-  accepts@1.3.8:
+-    resolution: {integrity: sha512-PYAthTa2m2VKxuvSD3DPC/Gy+U+sOA1LAuT8mkmRuvw+NACSaeXEQ+NHcVF7rONl6qcaxV3Uuemwawk+7+SJLw==}
+-    engines: {node: '>= 0.6'}
+-
+-  agent-base@6.0.2:
+-    resolution: {integrity: sha512-RZNwNclF7+MS/8bDg70amg32dyeZGZxiDuQmZxKLAlQjr3jGyLx+4Kkk58UO7D2QdgFIQCovuSuZESne6RG6XQ==}
+-    engines: {node: '>= 6.0.0'}
+-
+-  ansi-regex@5.0.1:
+-    resolution: {integrity: sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==}
+-    engines: {node: '>=8'}
+-
+-  anymatch@3.1.3:
+-    resolution: {integrity: sha512-KMReFUr0B4t+D+OBkjR3KYqvocp2XaSzO55UcB6mgQMd3KbcE+mWTyvVV7D/zsdEbNnV6acZUutkiHQXvTr1Rw==}
+-    engines: {node: '>= 8'}
+-
+-  aproba@2.1.0:
+-    resolution: {integrity: sha512-tLIEcj5GuR2RSTnxNKdkK0dJ/GrC7P38sUkiDmDuHfsHmbagTFAxDVIBltoklXEVIQ/f14IL8IMJ5pn9Hez1Ew==}
+-
+-  are-we-there-yet@2.0.0:
+-    resolution: {integrity: sha512-Ci/qENmwHnsYo9xKIcUJN5LeDKdJ6R1Z1j9V/J5wyq8nh/mYPEpIKJbBZXtZjG04HiK7zV/p6Vs9952MrMeUIw==}
+-    engines: {node: '>=10'}
+-    deprecated: This package is no longer supported.
+-
+-  array-flatten@1.1.1:
+-    resolution: {integrity: sha512-PCVAQswWemu6UdxsDFFX/+gVeYqKAod3D3UVm91jHwynguOwAvYPhx8nNlM++NqRcK6CxxpUafjmhIdKiHibqg==}
+-
+-  aws-ssl-profiles@1.1.2:
+-    resolution: {integrity: sha512-NZKeq9AfyQvEeNlN0zSYAaWrmBffJh3IELMZfRpJVWgrpEbtEpnjvzqBPf+mxoI287JohRDoa+/nsfqqiZmF6g==}
+-    engines: {node: '>= 6.0.0'}
+-
+-  balanced-match@1.0.2:
+-    resolution: {integrity: sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw==}
+-
+-  balanced-match@4.0.4:
+-    resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
+-    engines: {node: 18 || 20 || >=22}
+-
+-  bcrypt@5.1.1:
+-    resolution: {integrity: sha512-AGBHOG5hPYZ5Xl9KXzU5iKq9516yEmvCKDg3ecP5kX2aB6UqTeXZxk2ELnDgDm6BQSMlLt9rDB4LoSMx0rYwww==}
+-    engines: {node: '>= 10.0.0'}
+-
+-  binary-extensions@2.3.0:
+-    resolution: {integrity: sha512-Ceh+7ox5qe7LJuLHoY0feh3pHuUDHAcRUeyL2VYghZwfpkNIy/+8Ocg0a3UuSoYzavmylwuLWQOf3hl0jjMMIw==}
+-    engines: {node: '>=8'}
+-
+-  body-parser@1.20.5:
+-    resolution: {integrity: sha512-3grm+/2tUOvu2cjJkvsIxrv/wVpfXQW4PsQHYm7yk4vfpu7Ekl6nEsYBoJUL6qDwZUx8wUhQ8tR2qz+ad9c9OA==}
+-    engines: {node: '>= 0.8', npm: 1.2.8000 || >= 1.4.16}
+-
+-  brace-expansion@1.1.15:
+-    resolution: {integrity: sha512-EwOCDEex4quD37XhqM3omwtMoJjr//isUZz1JopUNWms+4Z2ViyM/k1YIRePpoVNnQhENnxtFjLaxNHrT7xIUg==}
+-
+-  brace-expansion@5.0.7:
+-    resolution: {integrity: sha512-7oFy703dxfY3/NLxC1fh2SUCQ0H9rmAY+5EpDVfXjUTTs+HEwR2nYaqLv+GWcTsumwxPfiz6CzCNkwXwBUwqCA==}
+-    engines: {node: 18 || 20 || >=22}
+-
+-  braces@3.0.3:
+-    resolution: {integrity: sha512-yQbXgO/OSZVD2IsiLlro+7Hf6Q18EJrKSEsdoMzKePKXct3gvD8oLcOQdIzGupr5Fj+EDe8gO/lxc1BzfMpxvA==}
+-    engines: {node: '>=8'}
+-
+-  buffer-equal-constant-time@1.0.1:
+-    resolution: {integrity: sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA==}
+-
+-  bytes@3.1.2:
+-    resolution: {integrity: sha512-/Nf7TyzTx6S3yRJObOAV7956r8cr2+Oj8AC5dt8wSP3BQAoeX58NoHyCU8P8zGkNXStjTSi6fzO6F0pBdcYbEg==}
+-    engines: {node: '>= 0.8'}
+-
+-  call-bind-apply-helpers@1.0.2:
+-    resolution: {integrity: sha512-Sp1ablJ0ivDkSzjcaJdxEunN5/XvksFJ2sMBFfq6x0ryhQV/2b/KwFe21cMpmHtPOSij8K99/wSfoEuTObmuMQ==}
+-    engines: {node: '>= 0.4'}
+-
+-  call-bound@1.0.4:
+-    resolution: {integrity: sha512-+ys997U96po4Kx/ABpBCqhA9EuxJaQWDQg7295H4hBphv3IZg0boBKuwYpt4YXp6MZ5AmZQnU/tyMTlRpaSejg==}
+-    engines: {node: '>= 0.4'}
+-
+-  chokidar@3.6.0:
+-    resolution: {integrity: sha512-7VT13fmjotKpGipCW9JEQAusEPE+Ei8nl6/g4FBAmIm0GOOLMua9NDDo/DWp0ZAxCr3cPq5ZpBqmPAQgDda2Pw==}
+-    engines: {node: '>= 8.10.0'}
+-
+-  chownr@2.0.0:
+-    resolution: {integrity: sha512-bIomtDF5KGpdogkLd9VspvFzk9KfpyyGlS8YFVZl7TGPBHL5snIOnxeshwVgPteQ9b4Eydl+pVbIyE1DcvCWgQ==}
+-    engines: {node: '>=10'}
+-
+-  color-support@1.1.3:
+-    resolution: {integrity: sha512-qiBjkpbMLO/HL68y+lh4q0/O1MZFj2RX6X/KmMa3+gJD3z+WwI1ZzDHysvqHGS3mP6mznPckpXmw1nI9cJjyRg==}
+-    hasBin: true
+-
+-  concat-map@0.0.1:
+-    resolution: {integrity: sha512-/Srv4dswyQNBfohGpz9o6Yb3Gz3SrUDqBH5rTuhGR7ahtlbYKnVxw2bCFMRljaA7EXHaXZ8wsHdodFvbkhKmqg==}
+-
+-  console-control-strings@1.1.0:
+-    resolution: {integrity: sha512-ty/fTekppD2fIwRvnZAVdeOiGd1c7YXEixbgJTNzqcxJWKQnjJ/V1bNEEE6hygpM3WjwHFUVK6HTjWSzV4a8sQ==}
+-
+-  content-disposition@0.5.4:
+-    resolution: {integrity: sha512-FveZTNuGw04cxlAiWbzi6zTAL/lhehaWbTtgluJh4/E95DqMwTmha3KZN1aAWA8cFIhHzMZUvLevkw5Rqk+tSQ==}
+-    engines: {node: '>= 0.6'}
+-
+-  content-type@1.0.5:
+-    resolution: {integrity: sha512-nTjqfcBFEipKdXCv4YDQWCfmcLZKm81ldF0pAopTvyrFGVbcR6P/VAAd5G7N+0tTr8QqiU0tFadD6FK4NtJwOA==}
+-    engines: {node: '>= 0.6'}
+-
+-  cookie-parser@1.4.7:
+-    resolution: {integrity: sha512-nGUvgXnotP3BsjiLX2ypbQnWoGUPIIfHQNZkkC668ntrzGWEZVW70HDEB1qnNGMicPje6EttlIgzo51YSwNQGw==}
+-    engines: {node: '>= 0.8.0'}
+-
+-  cookie-signature@1.0.6:
+-    resolution: {integrity: sha512-QADzlaHc8icV8I7vbaJXJwod9HWYp8uCqf1xa4OfNu1T7JVxQIrUgOWtHdNDtPiywmFbiS12VjotIXLrKM3orQ==}
+-
+-  cookie-signature@1.0.7:
+-    resolution: {integrity: sha512-NXdYc3dLr47pBkpUCHtKSwIOQXLVn8dZEuywboCOJY/osA0wFSLlSawr3KN8qXJEyX66FcONTH8EIlVuK0yyFA==}
+-
+-  cookie@0.7.2:
+-    resolution: {integrity: sha512-yki5XnKuf750l50uGTllt6kKILY4nQ1eNIQatoXEByZ5dWgnKqbnqmTrBE5B4N7lrMJKQ2ytWMiTO2o0v6Ew/w==}
+-    engines: {node: '>= 0.6'}
+-
+-  cors@2.8.6:
+-    resolution: {integrity: sha512-tJtZBBHA6vjIAaF6EnIaq6laBBP9aq/Y3ouVJjEfoHbRBcHBAHYcMh/w8LDrk2PvIMMq8gmopa5D4V8RmbrxGw==}
+-    engines: {node: '>= 0.10'}
+-
+-  debug@2.6.9:
+-    resolution: {integrity: sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA==}
+-    peerDependencies:
+-      supports-color: '*'
+-    peerDependenciesMeta:
+-      supports-color:
+-        optional: true
+-
+-  debug@4.4.3:
+-    resolution: {integrity: sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA==}
+-    engines: {node: '>=6.0'}
+-    peerDependencies:
+-      supports-color: '*'
+-    peerDependenciesMeta:
+-      supports-color:
+-        optional: true
+-
+-  delegates@1.0.0:
+-    resolution: {integrity: sha512-bd2L678uiWATM6m5Z1VzNCErI3jiGzt6HGY8OVICs40JQq/HALfbyNJmp0UDakEY4pMMaN0Ly5om/B1VI/+xfQ==}
+-
+-  denque@2.1.0:
+-    resolution: {integrity: sha512-HVQE3AAb/pxF8fQAoiqpvg9i3evqug3hoiwakOyZAwJm+6vZehbkYXZ0l4JxS+I3QxM97v5aaRNhj8v5oBhekw==}
+-    engines: {node: '>=0.10'}
+-
+-  depd@2.0.0:
+-    resolution: {integrity: sha512-g7nH6P6dyDioJogAAGprGpCtVImJhpPk/roCzdb3fIh61/s/nPsfR6onyMwkCAR/OlC3yBC0lESvUoQEAssIrw==}
+-    engines: {node: '>= 0.8'}
+-
+-  destroy@1.2.0:
+-    resolution: {integrity: sha512-2sJGJTaXIIaR1w4iJSNoN0hnMY7Gpc/n8D4qSCJw8QqFWXf7cuAgnEHxBpweaVcPevC2l3KpjYCx3NypQQgaJg==}
+-    engines: {node: '>= 0.8', npm: 1.2.8000 || >= 1.4.16}
+-
+-  detect-libc@2.1.2:
+-    resolution: {integrity: sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ==}
+-    engines: {node: '>=8'}
+-
+-  dotenv@16.6.1:
+-    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+-    engines: {node: '>=12'}
+-
+-  dunder-proto@1.0.1:
+-    resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
+-    engines: {node: '>= 0.4'}
+-
+-  ecdsa-sig-formatter@1.0.11:
+-    resolution: {integrity: sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==}
+-
+-  ee-first@1.1.1:
+-    resolution: {integrity: sha512-WMwm9LhRUo+WUaRN+vRuETqG89IgZphVSNkdFgeb6sS/E4OrDIN7t48CAewSHXc6C8lefD8KKfr5vY61brQlow==}
+-
+-  emoji-regex@8.0.0:
+-    resolution: {integrity: sha512-MSjYzcWNOA0ewAHpz0MxpYFvwg6yjy1NG3xteoqz644VCo/RPgnr1/GGt+ic3iJTzQ8Eu3TdM14SawnVUmGE6A==}
+-
+-  encodeurl@2.0.0:
+-    resolution: {integrity: sha512-Q0n9HRi4m6JuGIV1eFlmvJB7ZEVxu93IrMyiMsGC0lrMJMWzRgx6WGquyfQgZVb31vhGgXnfmPNNXmxnOkRBrg==}
+-    engines: {node: '>= 0.8'}
+-
+-  es-define-property@1.0.1:
+-    resolution: {integrity: sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==}
+-    engines: {node: '>= 0.4'}
+-
+-  es-errors@1.3.0:
+-    resolution: {integrity: sha512-Zf5H2Kxt2xjTvbJvP2ZWLEICxA6j+hAmMzIlypy4xcBg1vKVnx89Wy0GbS+kf5cwCVFFzdCFh2XSCFNULS6csw==}
+-    engines: {node: '>= 0.4'}
+-
+-  es-object-atoms@1.1.2:
+-    resolution: {integrity: sha512-HWcBoN6NileqtSydK2FqHbS/LoDd2pqrnQHLyJzBj4kOp/ky2MWMN694xOfkK8/SnUsW2DH7EfyVlydKCsm1Zw==}
+-    engines: {node: '>= 0.4'}
+-
+-  escape-html@1.0.3:
+-    resolution: {integrity: sha512-NiSupZ4OeuGwr68lGIeym/ksIZMJodUGOSCZ/FSnTxcrekbvqrgdUxlJOMpijaKZVjAJrWrGs/6Jy8OMuyj9ow==}
+-
+-  etag@1.8.1:
+-    resolution: {integrity: sha512-aIL5Fx7mawVa300al2BnEE4iNvo1qETxLrPI/o05L7z6go7fCw1J6EQmbK4FmJ2AS7kgVF/KEZWufBfdClMcPg==}
+-    engines: {node: '>= 0.6'}
+-
+-  express@4.22.2:
+-    resolution: {integrity: sha512-IuL+Elrou2ZvCFHs18/CIzy2Nzvo25nZ1/D2eIZlz7c+QUayAcYoiM2BthCjs+EBHVpjYjcuLDAiCWgeIX3X1Q==}
+-    engines: {node: '>= 0.10.0'}
+-
+-  fill-range@7.1.1:
+-    resolution: {integrity: sha512-YsGpe3WHLK8ZYi4tWDg2Jy3ebRz2rXowDxnld4bkQB00cc/1Zw9AWnC0i9ztDJitivtQvaI9KaLyKrc+hBW0yg==}
+-    engines: {node: '>=8'}
+-
+-  finalhandler@1.3.2:
+-    resolution: {integrity: sha512-aA4RyPcd3badbdABGDuTXCMTtOneUCAYH/gxoYRTZlIJdF0YPWuGqiAsIrhNnnqdXGswYk6dGujem4w80UJFhg==}
+-    engines: {node: '>= 0.8'}
+-
+-  forwarded@0.2.0:
+-    resolution: {integrity: sha512-buRG0fpBtRHSTCOASe6hD258tEubFoRLb4ZNA6NxMVHNw2gOcwHo9wyablzMzOA5z9xA9L1KNjk/Nt6MT9aYow==}
+-    engines: {node: '>= 0.6'}
+-
+-  fresh@0.5.2:
+-    resolution: {integrity: sha512-zJ2mQYM18rEFOudeV4GShTGIQ7RbzA7ozbU9I/XBpm7kqgMywgmylMwXHxZJmkVoYkna9d2pVXVXPdYTP9ej8Q==}
+-    engines: {node: '>= 0.6'}
+-
+-  fs-minipass@2.1.0:
+-    resolution: {integrity: sha512-V/JgOLFCS+R6Vcq0slCuaeWEdNC3ouDlJMNIsacH2VtALiu9mV4LPrHc5cDl8k5aw6J8jwgWWpiTo5RYhmIzvg==}
+-    engines: {node: '>= 8'}
+-
+-  fs.realpath@1.0.0:
+-    resolution: {integrity: sha512-OO0pH2lK6a0hZnAdau5ItzHPI6pUlvI7jMVnxUQRtw4owF2wk8lOSabtGDCTP4Ggrg2MbGnWO9X8K1t4+fGMDw==}
+-
+-  fsevents@2.3.3:
+-    resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
+-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+-    os: [darwin]
+-
+-  function-bind@1.1.2:
+-    resolution: {integrity: sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==}
+-
+-  gauge@3.0.2:
+-    resolution: {integrity: sha512-+5J6MS/5XksCuXq++uFRsnUd7Ovu1XenbeuIuNRJxYWjgQbPuFhT14lAvsWfqfAmnwluf1OwMjz39HjfLPci0Q==}
+-    engines: {node: '>=10'}
+-    deprecated: This package is no longer supported.
+-
+-  generate-function@2.3.1:
+-    resolution: {integrity: sha512-eeB5GfMNeevm/GRYq20ShmsaGcmI81kIX2K9XQx5miC8KdHaC6Jm0qQ8ZNeGOi7wYB8OsdxKs+Y2oVuTFuVwKQ==}
+-
+-  get-intrinsic@1.3.0:
+-    resolution: {integrity: sha512-9fSjSaos/fRIVIp+xSJlE6lfwhES7LNtKaCBIamHsjr2na1BiABJPo0mOjjz8GJDURarmCPGqaiVg5mfjb98CQ==}
+-    engines: {node: '>= 0.4'}
+-
+-  get-proto@1.0.1:
+-    resolution: {integrity: sha512-sTSfBjoXBp89JvIKIefqw7U2CCebsc74kiY6awiGogKtoSGbgjYE/G/+l9sF3MWFPNc9IcoOC4ODfKHfxFmp0g==}
+-    engines: {node: '>= 0.4'}
+-
+-  glob-parent@5.1.2:
+-    resolution: {integrity: sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow==}
+-    engines: {node: '>= 6'}
+-
+-  glob@7.2.3:
+-    resolution: {integrity: sha512-nFR0zLpU2YCaRxwoCJvL6UvCH2JFyFVIvwTLsIf21AuHlMskA1hhTdk+LlYJtOlYt9v6dvszD2BGRqBL+iQK9Q==}
+-    deprecated: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+-
+-  gopd@1.2.0:
+-    resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
+-    engines: {node: '>= 0.4'}
+-
+-  has-flag@3.0.0:
+-    resolution: {integrity: sha512-sKJf1+ceQBr4SMkvQnBDNDtf4TXpVhVGateu0t918bl30FnbE2m4vNLX+VWe/dpjlb+HugGYzW7uQXH98HPEYw==}
+-    engines: {node: '>=4'}
+-
+-  has-symbols@1.1.0:
+-    resolution: {integrity: sha512-1cDNdwJ2Jaohmb3sg4OmKaMBwuC48sYni5HUw2DvsC8LjGTLK9h+eb1X6RyuOHe4hT0ULCW68iomhjUoKUqlPQ==}
+-    engines: {node: '>= 0.4'}
+-
+-  has-unicode@2.0.1:
+-    resolution: {integrity: sha512-8Rf9Y83NBReMnx0gFzA8JImQACstCYWUplepDa9xprwwtmgEZUF0h/i5xSA625zB/I37EtrswSST6OXxwaaIJQ==}
+-
+-  hasown@2.0.4:
+-    resolution: {integrity: sha512-T2UbfbBEF32wiepXIsMlTW9+dDYC6wMh/t/vYA4tuOMKqWz/n3vr1NFSxQiyP+zk2mXsoMA/i/7qV6LKut1t1A==}
+-    engines: {node: '>= 0.4'}
+-
+-  http-errors@2.0.1:
+-    resolution: {integrity: sha512-4FbRdAX+bSdmo4AUFuS0WNiPz8NgFt+r8ThgNWmlrjQjt1Q7ZR9+zTlce2859x4KSXrwIsaeTqDoKQmtP8pLmQ==}
+-    engines: {node: '>= 0.8'}
+-
+-  https-proxy-agent@5.0.1:
+-    resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}
+-    engines: {node: '>= 6'}
+-
+-  iconv-lite@0.4.24:
+-    resolution: {integrity: sha512-v3MXnZAcvnywkTUEZomIActle7RXXeedOR31wwl7VlyoXO4Qi9arvSenNQWne1TcRwhCL1HwLI21bEqdpj8/rA==}
+-    engines: {node: '>=0.10.0'}
+-
+-  iconv-lite@0.7.3:
+-    resolution: {integrity: sha512-IKXpvIzjnC9XTAUbVBcMfGS0EPaIXtW6v+zr+RRp+hqULEpo0owZax6wyRwPOJbWbzjYspQwusTsfVr0ifh4uQ==}
+-    engines: {node: '>=0.10.0'}
+-
+-  ignore-by-default@1.0.1:
+-    resolution: {integrity: sha512-Ius2VYcGNk7T90CppJqcIkS5ooHUZyIQK+ClZfMfMNFEF9VSE73Fq+906u/CWu92x4gzZMWOwfFYckPObzdEbA==}
+-
+-  inflight@1.0.6:
+-    resolution: {integrity: sha512-k92I/b08q4wvFscXCLvqfsHCrjrF7yiXsQuIVvVE7N82W3+aqpzuUdBbfhWcy/FZR3/4IgflMgKLOsvPDrGCJA==}
+-    deprecated: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+-
+-  inherits@2.0.4:
+-    resolution: {integrity: sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ==}
+-
+-  ipaddr.js@1.9.1:
+-    resolution: {integrity: sha512-0KI/607xoxSToH7GjN1FfSbLoU0+btTicjsQSWQlh/hZykN8KpmMf7uYwPW3R+akZ6R/w18ZlXSHBYXiYUPO3g==}
+-    engines: {node: '>= 0.10'}
+-
+-  is-binary-path@2.1.0:
+-    resolution: {integrity: sha512-ZMERYes6pDydyuGidse7OsHxtbI7WVeUEozgR/g7rd0xUimYNlvZRE/K2MgZTjWy725IfelLeVcEM97mmtRGXw==}
+-    engines: {node: '>=8'}
+-
+-  is-extglob@2.1.1:
+-    resolution: {integrity: sha512-SbKbANkN603Vi4jEZv49LeVJMn4yGwsbzZworEoyEiutsN3nJYdbO36zfhGJ6QEDpOZIFkDtnq5JRxmvl3jsoQ==}
+-    engines: {node: '>=0.10.0'}
+-
+-  is-fullwidth-code-point@3.0.0:
+-    resolution: {integrity: sha512-zymm5+u+sCsSWyD9qNaejV3DFvhCKclKdizYaJUuHA83RLjb7nSuGnddCHGv0hk+KY7BMAlsWeK4Ueg6EV6XQg==}
+-    engines: {node: '>=8'}
+-
+-  is-glob@4.0.3:
+-    resolution: {integrity: sha512-xelSayHH36ZgE7ZWhli7pW34hNbNl8Ojv5KVmkJD4hBdD3th8Tfk9vYasLM+mXWOZhFkgZfxhLSnrwRr4elSSg==}
+-    engines: {node: '>=0.10.0'}
+-
+-  is-number@7.0.0:
+-    resolution: {integrity: sha512-41Cifkg6e8TylSpdtTpeLVMqvSBEVzTttHvERD741+pnZ8ANv0004MRL43QKPDlK9cGvNp6NZWZUBlbGXYxxng==}
+-    engines: {node: '>=0.12.0'}
+-
+-  is-property@1.0.2:
+-    resolution: {integrity: sha512-Ks/IoX00TtClbGQr4TWXemAnktAQvYB7HzcCxDGqEZU6oCmb2INHuOoKxbtR+HFkmYWBKv/dOZtGRiAjDhj92g==}
+-
+-  jsonwebtoken@9.0.3:
+-    resolution: {integrity: sha512-MT/xP0CrubFRNLNKvxJ2BYfy53Zkm++5bX9dtuPbqAeQpTVe0MQTFhao8+Cp//EmJp244xt6Drw/GVEGCUj40g==}
+-    engines: {node: '>=12', npm: '>=6'}
+-
+-  jwa@2.0.1:
+-    resolution: {integrity: sha512-hRF04fqJIP8Abbkq5NKGN0Bbr3JxlQ+qhZufXVr0DvujKy93ZCbXZMHDL4EOtodSbCWxOqR8MS1tXA5hwqCXDg==}
+-
+-  jws@4.0.1:
+-    resolution: {integrity: sha512-EKI/M/yqPncGUUh44xz0PxSidXFr/+r0pA70+gIYhjv+et7yxM+s29Y+VGDkovRofQem0fs7Uvf4+YmAdyRduA==}
+-
+-  lodash.includes@4.3.0:
+-    resolution: {integrity: sha512-W3Bx6mdkRTGtlJISOvVD/lbqjTlPPUDTMnlXZFnVwi9NKJ6tiAk6LVdlhZMm17VZisqhKcgzpO5Wz91PCt5b0w==}
+-
+-  lodash.isboolean@3.0.3:
+-    resolution: {integrity: sha512-Bz5mupy2SVbPHURB98VAcw+aHh4vRV5IPNhILUCsOzRmsTmSQ17jIuqopAentWoehktxGd9e/hbIXq980/1QJg==}
+-
+-  lodash.isinteger@4.0.4:
+-    resolution: {integrity: sha512-DBwtEWN2caHQ9/imiNeEA5ys1JoRtRfY3d7V9wkqtbycnAmTvRRmbHKDV4a0EYc678/dia0jrte4tjYwVBaZUA==}
+-
+-  lodash.isnumber@3.0.3:
+-    resolution: {integrity: sha512-QYqzpfwO3/CWf3XP+Z+tkQsfaLL/EnUlXWVkIk5FUPc4sBdTehEqZONuyRt2P67PXAk+NXmTBcc97zw9t1FQrw==}
+-
+-  lodash.isplainobject@4.0.6:
+-    resolution: {integrity: sha512-oSXzaWypCMHkPC3NvBEaPHf0KsA5mvPrOPgQWDsbg8n7orZ290M0BmC/jgRZ4vcJ6DTAhjrsSYgdsW/F+MFOBA==}
+-
+-  lodash.isstring@4.0.1:
+-    resolution: {integrity: sha512-0wJxfxH1wgO3GrbuP+dTTk7op+6L41QCXbGINEmD+ny/G/eCqGzxyCsh7159S+mgDDcoarnBw6PC1PS5+wUGgw==}
+-
+-  lodash.once@4.1.1:
+-    resolution: {integrity: sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==}
+-
+-  long@5.3.2:
+-    resolution: {integrity: sha512-mNAgZ1GmyNhD7AuqnTG3/VQ26o760+ZYBPKjPvugO8+nLbYfX6TVpJPseBvopbdY+qpZ/lKUnmEc1LeZYS3QAA==}
+-
+-  lru.min@1.1.4:
+-    resolution: {integrity: sha512-DqC6n3QQ77zdFpCMASA1a3Jlb64Hv2N2DciFGkO/4L9+q/IpIAuRlKOvCXabtRW6cQf8usbmM6BE/TOPysCdIA==}
+-    engines: {bun: '>=1.0.0', deno: '>=1.30.0', node: '>=8.0.0'}
+-
+-  make-dir@3.1.0:
+-    resolution: {integrity: sha512-g3FeP20LNwhALb/6Cz6Dd4F2ngze0jz7tbzrD2wAV+o9FeNHe4rL+yK2md0J/fiSf1sa1ADhXqi5+oVwOM/eGw==}
+-    engines: {node: '>=8'}
+-
+-  math-intrinsics@1.1.0:
+-    resolution: {integrity: sha512-/IXtbwEk5HTPyEwyKX6hGkYXxM9nbj64B+ilVJnC/R6B0pH5G4V3b0pVbL7DBj4tkhBAppbQUlf6F6Xl9LHu1g==}
+-    engines: {node: '>= 0.4'}
+-
+-  media-typer@0.3.0:
+-    resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
+-    engines: {node: '>= 0.6'}
+-
+-  merge-descriptors@1.0.3:
+-    resolution: {integrity: sha512-gaNvAS7TZ897/rVaZ0nMtAyxNyi/pdbjbAwUpFQpN70GqnVfOiXpeUUMKRBmzXaSQ8DdTX4/0ms62r2K+hE6mQ==}
+-
+-  methods@1.1.2:
+-    resolution: {integrity: sha512-iclAHeNqNm68zFtnZ0e+1L2yUIdvzNoauKU4WBA3VvH/vPFieF7qfRlwUZU+DA9P9bPXIS90ulxoUoCH23sV2w==}
+-    engines: {node: '>= 0.6'}
+-
+-  mime-db@1.52.0:
+-    resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
+-    engines: {node: '>= 0.6'}
+-
+-  mime-types@2.1.35:
+-    resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
+-    engines: {node: '>= 0.6'}
+-
+-  mime@1.6.0:
+-    resolution: {integrity: sha512-x0Vn8spI+wuJ1O6S7gnbaQg8Pxh4NNHb7KSINmEWKiPE4RKOplvijn+NkmYmmRgP68mc70j2EbeTFRsrswaQeg==}
+-    engines: {node: '>=4'}
+-    hasBin: true
+-
+-  minimatch@10.2.5:
+-    resolution: {integrity: sha512-MULkVLfKGYDFYejP07QOurDLLQpcjk7Fw+7jXS2R2czRQzR56yHRveU5NDJEOviH+hETZKSkIk5c+T23GjFUMg==}
+-    engines: {node: 18 || 20 || >=22}
+-
+-  minimatch@3.1.5:
+-    resolution: {integrity: sha512-VgjWUsnnT6n+NUk6eZq77zeFdpW2LWDzP6zFGrCbHXiYNul5Dzqk2HHQ5uFH2DNW5Xbp8+jVzaeNt94ssEEl4w==}
+-
+-  minipass@3.3.6:
+-    resolution: {integrity: sha512-DxiNidxSEK+tHG6zOIklvNOwm3hvCrbUrdtzY74U6HKTJxvIDfOUL5W5P2Ghd3DTkhhKPYGqeNUIh5qcM4YBfw==}
+-    engines: {node: '>=8'}
+-
+-  minipass@5.0.0:
+-    resolution: {integrity: sha512-3FnjYuehv9k6ovOEbyOswadCDPX1piCfhV8ncmYtHOjuPwylVWsghTLo7rabjC3Rx5xD4HDx8Wm1xnMF7S5qFQ==}
+-    engines: {node: '>=8'}
+-
+-  minizlib@2.1.2:
+-    resolution: {integrity: sha512-bAxsR8BVfj60DWXHE3u30oHzfl4G7khkSuPW+qvpd7jFRHm7dLxOjUk1EHACJ/hxLY8phGJ0YhYHZo7jil7Qdg==}
+-    engines: {node: '>= 8'}
+-
+-  mkdirp@1.0.4:
+-    resolution: {integrity: sha512-vVqVZQyf3WLx2Shd0qJ9xuvqgAyKPLAiqITEtqW0oIUjzo3PePDd6fW9iFz30ef7Ysp/oiWqbhszeGWW2T6Gzw==}
+-    engines: {node: '>=10'}
+-    hasBin: true
+-
+-  ms@2.0.0:
+-    resolution: {integrity: sha512-Tpp60P6IUJDTuOq/5Z8cdskzJujfwqfOTkrwIwj7IRISpnkJnT6SyJ4PCPnGMoFjC9ddhal5KVIYtAt97ix05A==}
+-
+-  ms@2.1.3:
+-    resolution: {integrity: sha512-6FlzubTLZG3J2a/NVCAleEhjzq5oxgHyaCU9yYXvcLsvoVaHJq/s5xXI6/XXP6tz7R9xAOtHnSO/tXtF3WRTlA==}
+-
+-  mysql2@3.22.5:
+-    resolution: {integrity: sha512-95uZ2TrPWAZdwpB3vvvDbmEMcNG8yIeNCyu6GUcr/QnWEE/wXm7+mhOCsdQfWQDTV7qYT/PDUZ4U4UPP4AsXqQ==}
+-    engines: {node: '>= 8.0'}
+-    peerDependencies:
+-      '@types/node': '>= 8'
+-
+-  named-placeholders@1.1.6:
+-    resolution: {integrity: sha512-Tz09sEL2EEuv5fFowm419c1+a/jSMiBjI9gHxVLrVdbUkkNUUfjsVYs9pVZu5oCon/kmRh9TfLEObFtkVxmY0w==}
+-    engines: {node: '>=8.0.0'}
+-
+-  negotiator@0.6.3:
+-    resolution: {integrity: sha512-+EUsqGPLsM+j/zdChZjsnX51g4XrHFOIXwfnCVPGlQk/k5giakcKsuxCObBRu6DSm9opw/O6slWbJdghQM4bBg==}
+-    engines: {node: '>= 0.6'}
+-
+-  node-addon-api@5.1.0:
+-    resolution: {integrity: sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA==}
+-
+-  node-fetch@2.7.0:
+-    resolution: {integrity: sha512-c4FRfUm/dbcWZ7U+1Wq0AwCyFL+3nt2bEw05wfxSz+DWpWsitgmSgYmy2dQdWyKC1694ELPqMs/YzUSNozLt8A==}
+-    engines: {node: 4.x || >=6.0.0}
+-    peerDependencies:
+-      encoding: ^0.1.0
+-    peerDependenciesMeta:
+-      encoding:
+-        optional: true
+-
+-  nodemon@3.1.14:
+-    resolution: {integrity: sha512-jakjZi93UtB3jHMWsXL68FXSAosbLfY0In5gtKq3niLSkrWznrVBzXFNOEMJUfc9+Ke7SHWoAZsiMkNP3vq6Jw==}
+-    engines: {node: '>=10'}
+-    hasBin: true
+-
+-  nopt@5.0.0:
+-    resolution: {integrity: sha512-Tbj67rffqceeLpcRXrT7vKAN8CwfPeIBgM7E6iBkmKLV7bEMwpGgYLGv0jACUsECaa/vuxP0IjEont6umdMgtQ==}
+-    engines: {node: '>=6'}
+-    hasBin: true
+-
+-  normalize-path@3.0.0:
+-    resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
+-    engines: {node: '>=0.10.0'}
+-
+-  npmlog@5.0.1:
+-    resolution: {integrity: sha512-AqZtDUWOMKs1G/8lwylVjrdYgqA4d9nu8hc+0gzRxlDb1I10+FHBGMXs6aiQHFdCUUlqH99MUMuLfzWDNDtfxw==}
+-    deprecated: This package is no longer supported.
+-
+-  object-assign@4.1.1:
+-    resolution: {integrity: sha512-rJgTQnkUnH1sFw8yT6VSU3zD3sWmu6sZhIseY8VX+GRu3P6F7Fu+JNDoXfklElbLJSnc3FUQHVe4cU5hj+BcUg==}
+-    engines: {node: '>=0.10.0'}
+-
+-  object-inspect@1.13.4:
+-    resolution: {integrity: sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==}
+-    engines: {node: '>= 0.4'}
+-
+-  on-finished@2.4.1:
+-    resolution: {integrity: sha512-oVlzkg3ENAhCk2zdv7IJwd/QUD4z2RxRwpkcGY8psCVcCYZNq4wYnVWALHM+brtuJjePWiYF/ClmuDr8Ch5+kg==}
+-    engines: {node: '>= 0.8'}
+-
+-  once@1.4.0:
+-    resolution: {integrity: sha512-lNaJgI+2Q5URQBkccEKHTQOPaXdUxnZZElQTZY0MFUAuaEqe1E+Nyvgdz/aIyNi6Z9MzO5dv1H8n58/GELp3+w==}
+-
+-  parseurl@1.3.3:
+-    resolution: {integrity: sha512-CiyeOxFT/JZyN5m0z9PfXw4SCBJ6Sygz1Dpl0wqjlhDEGGBP1GnsUVEL0p63hoG1fcj3fHynXi9NYO4nWOL+qQ==}
+-    engines: {node: '>= 0.8'}
+-
+-  path-is-absolute@1.0.1:
+-    resolution: {integrity: sha512-AVbw3UJ2e9bq64vSaS9Am0fje1Pa8pbGqTTsmXfaIiMpnr5DlDhfJOuLj9Sf95ZPVDAUerDfEk88MPmPe7UCQg==}
+-    engines: {node: '>=0.10.0'}
+-
+-  path-to-regexp@0.1.13:
+-    resolution: {integrity: sha512-A/AGNMFN3c8bOlvV9RreMdrv7jsmF9XIfDeCd87+I8RNg6s78BhJxMu69NEMHBSJFxKidViTEdruRwEk/WIKqA==}
+-
+-  picomatch@2.3.2:
+-    resolution: {integrity: sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA==}
+-    engines: {node: '>=8.6'}
+-
+-  proxy-addr@2.0.7:
+-    resolution: {integrity: sha512-llQsMLSUDUPT44jdrU/O37qlnifitDP+ZwrmmZcoSKyLKvtZxpyV0n2/bD/N4tBAAZ/gJEdZU7KMraoK1+XYAg==}
+-    engines: {node: '>= 0.10'}
+-
+-  pstree.remy@1.1.8:
+-    resolution: {integrity: sha512-77DZwxQmxKnu3aR542U+X8FypNzbfJ+C5XQDk3uWjWxn6151aIMGthWYRXTqT1E5oJvg+ljaa2OJi+VfvCOQ8w==}
+-
+-  qs@6.15.3:
+-    resolution: {integrity: sha512-O9gl3zCl5h5blw1KGUzQKhA5oUXSl8rwUIM5o0S3nCXMliSvy5Dzx7/DJcI+SwgICv+IneSZwhBh1oSyEHA71A==}
+-    engines: {node: '>=0.6'}
+-
+-  range-parser@1.2.1:
+-    resolution: {integrity: sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==}
+-    engines: {node: '>= 0.6'}
+-
+-  raw-body@2.5.3:
+-    resolution: {integrity: sha512-s4VSOf6yN0rvbRZGxs8Om5CWj6seneMwK3oDb4lWDH0UPhWcxwOWw5+qk24bxq87szX1ydrwylIOp2uG1ojUpA==}
+-    engines: {node: '>= 0.8'}
+-
+-  readable-stream@3.6.2:
+-    resolution: {integrity: sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA==}
+-    engines: {node: '>= 6'}
+-
+-  readdirp@3.6.0:
+-    resolution: {integrity: sha512-hOS089on8RduqdbhvQ5Z37A0ESjsqz6qnRcffsMU3495FuTdqSm+7bhJ29JvIOsBDEEnan5DPu9t3To9VRlMzA==}
+-    engines: {node: '>=8.10.0'}
+-
+-  rimraf@3.0.2:
+-    resolution: {integrity: sha512-JZkJMZkAGFFPP2YqXZXPbMlMBgsxzE8ILs4lMIX/2o0L9UBw9O/Y3o6wFw/i9YLapcUJWwqbi3kdxIPdC62TIA==}
+-    deprecated: Rimraf versions prior to v4 are no longer supported
+-    hasBin: true
+-
+-  safe-buffer@5.2.1:
+-    resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
+-
+-  safer-buffer@2.1.2:
+-    resolution: {integrity: sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg==}
+-
+-  semver@6.3.1:
+-    resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
+-    hasBin: true
+-
+-  semver@7.8.5:
+-    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
+-    engines: {node: '>=10'}
+-    hasBin: true
+-
+-  send@0.19.2:
+-    resolution: {integrity: sha512-VMbMxbDeehAxpOtWJXlcUS5E8iXh6QmN+BkRX1GARS3wRaXEEgzCcB10gTQazO42tpNIya8xIyNx8fll1OFPrg==}
+-    engines: {node: '>= 0.8.0'}
+-
+-  serve-static@1.16.3:
+-    resolution: {integrity: sha512-x0RTqQel6g5SY7Lg6ZreMmsOzncHFU7nhnRWkKgWuMTu5NN0DR5oruckMqRvacAN9d5w6ARnRBXl9xhDCgfMeA==}
+-    engines: {node: '>= 0.8.0'}
+-
+-  set-blocking@2.0.0:
+-    resolution: {integrity: sha512-KiKBS8AnWGEyLzofFfmvKwpdPzqiy16LvQfK3yv/fVH7Bj13/wl3JSR1J+rfgRE9q7xUJK4qvgS8raSOeLUehw==}
+-
+-  setprototypeof@1.2.0:
+-    resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
+-
+-  side-channel-list@1.0.1:
+-    resolution: {integrity: sha512-mjn/0bi/oUURjc5Xl7IaWi/OJJJumuoJFQJfDDyO46+hBWsfaVM65TBHq2eoZBhzl9EchxOijpkbRC8SVBQU0w==}
+-    engines: {node: '>= 0.4'}
+-
+-  side-channel-map@1.0.1:
+-    resolution: {integrity: sha512-VCjCNfgMsby3tTdo02nbjtM/ewra6jPHmpThenkTYh8pG9ucZ/1P8So4u4FGBek/BjpOVsDCMoLA/iuBKIFXRA==}
+-    engines: {node: '>= 0.4'}
+-
+-  side-channel-weakmap@1.0.2:
+-    resolution: {integrity: sha512-WPS/HvHQTYnHisLo9McqBHOJk2FkHO/tlpvldyrnem4aeQp4hai3gythswg6p01oSoTl58rcpiFAjF2br2Ak2A==}
+-    engines: {node: '>= 0.4'}
+-
+-  side-channel@1.1.1:
+-    resolution: {integrity: sha512-6x6dK6zJdpTzF4sQeNYxwtvBzf6Eg4GtlesS94HOvTudUeyK2WXAaIfmDgsyslYrRBeFIlsi54AYsFGUuhmvrQ==}
+-    engines: {node: '>= 0.4'}
+-
+-  signal-exit@3.0.7:
+-    resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
+-
+-  simple-update-notifier@2.0.0:
+-    resolution: {integrity: sha512-a2B9Y0KlNXl9u/vsW6sTIu9vGEpfKu2wRV6l1H3XEas/0gUIzGzBoP/IouTcUQbm9JWZLH3COxyn03TYlFax6w==}
+-    engines: {node: '>=10'}
+-
+-  sql-escaper@1.3.3:
+-    resolution: {integrity: sha512-BsTCV265VpTp8tm1wyIm1xqQCS+Q9NHx2Sr+WcnUrgLrQ6yiDIvHYJV5gHxsj1lMBy2zm5twLaZao8Jd+S8JJw==}
+-    engines: {bun: '>=1.0.0', deno: '>=2.0.0', node: '>=12.0.0'}
+-
+-  statuses@2.0.2:
+-    resolution: {integrity: sha512-DvEy55V3DB7uknRo+4iOGT5fP1slR8wQohVdknigZPMpMstaKJQWhwiYBACJE3Ul2pTnATihhBYnRhZQHGBiRw==}
+-    engines: {node: '>= 0.8'}
+-
+-  string-width@4.2.3:
+-    resolution: {integrity: sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==}
+-    engines: {node: '>=8'}
+-
+-  string_decoder@1.3.0:
+-    resolution: {integrity: sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==}
+-
+-  strip-ansi@6.0.1:
+-    resolution: {integrity: sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==}
+-    engines: {node: '>=8'}
+-
+-  supports-color@5.5.0:
+-    resolution: {integrity: sha512-QjVjwdXIt408MIiAqCX4oUKsgU2EqAGzs2Ppkm4aQYbjm+ZEWEcW4SfFNTr4uMNZma0ey4f5lgLrkB0aX0QMow==}
+-    engines: {node: '>=4'}
+-
+-  tar@6.2.1:
+-    resolution: {integrity: sha512-DZ4yORTwrbTj/7MZYq2w+/ZFdI6OZ/f9SFHR+71gIVUZhOQPHzVCLpvRnPgyaMpfWxxk/4ONva3GQSyNIKRv6A==}
+-    engines: {node: '>=10'}
+-    deprecated: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+-
+-  to-regex-range@5.0.1:
+-    resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
+-    engines: {node: '>=8.0'}
+-
+-  toidentifier@1.0.1:
+-    resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
+-    engines: {node: '>=0.6'}
+-
+-  touch@3.1.1:
+-    resolution: {integrity: sha512-r0eojU4bI8MnHr8c5bNo7lJDdI2qXlWWJk6a9EAFG7vbhTjElYhBVS3/miuE0uOuoLdb8Mc/rVfsmm6eo5o9GA==}
+-    hasBin: true
+-
+-  tr46@0.0.3:
+-    resolution: {integrity: sha512-N3WMsuqV66lT30CrXNbEjx4GEwlow3v6rr4mCcv6prnfwhS01rkgyFdjPNBYd9br7LpXV1+Emh01fHnq2Gdgrw==}
+-
+-  type-is@1.6.18:
+-    resolution: {integrity: sha512-TkRKr9sUTxEH8MdfuCSP7VizJyzRNMjj2J2do2Jr3Kym598JVdEksuzPQCnlFPW4ky9Q+iA+ma9BGm06XQBy8g==}
+-    engines: {node: '>= 0.6'}
+-
+-  undefsafe@2.0.5:
+-    resolution: {integrity: sha512-WxONCrssBM8TSPRqN5EmsjVrsv4A8X12J4ArBiiayv3DyyG3ZlIg6yysuuSYdZsVz3TKcTg2fd//Ujd4CHV1iA==}
+-
+-  undici-types@8.3.0:
+-    resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
+-
+-  unpipe@1.0.0:
+-    resolution: {integrity: sha512-pjy2bYhSsufwWlKwPc+l3cN7+wuJlK6uz0YdJEOlQDbl6jo/YlPi4mb8agUkVC8BF7V8NuzeyPNqRksA3hztKQ==}
+-    engines: {node: '>= 0.8'}
+-
+-  util-deprecate@1.0.2:
+-    resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+-
+-  utils-merge@1.0.1:
+-    resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
+-    engines: {node: '>= 0.4.0'}
+-
+-  vary@1.1.2:
+-    resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
+-    engines: {node: '>= 0.8'}
+-
+-  webidl-conversions@3.0.1:
+-    resolution: {integrity: sha512-2JAn3z8AR6rjK8Sm8orRC0h/bcl/DqL7tRPdGZ4I1CjdF+EaMLmYxBHyXuKL849eucPFhvBoxMsflfOb8kxaeQ==}
+-
+-  whatwg-url@5.0.0:
+-    resolution: {integrity: sha512-saE57nupxk6v3HY35+jzBwYa0rKSy0XR8JSxZPwgLr7ys0IBzhGviA1/TUGJLmSVqs8pb9AnvICXEuOHLprYTw==}
+-
+-  wide-align@1.1.5:
+-    resolution: {integrity: sha512-eDMORYaPNZ4sQIuuYPDHdQvf4gyCF9rEEV/yPxGfwPkRodwEgiMUUXTx/dex+Me0wxx53S+NgUHaP7y3MGlDmg==}
+-
+-  wrappy@1.0.2:
+-    resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
+-
+-  yallist@4.0.0:
+-    resolution: {integrity: sha512-3wdGidZyq5PB084XLES5TpOSRA3wjXAlIWMhum2kRcv/41Sn2emQ0dycQW4uZXLejwKvg6EsvbdlVL+FYEct7A==}
+-
+-snapshots:
+-
+-  '@mapbox/node-pre-gyp@1.0.11':
+-    dependencies:
+-      detect-libc: 2.1.2
+-      https-proxy-agent: 5.0.1
+-      make-dir: 3.1.0
+-      node-fetch: 2.7.0
+-      nopt: 5.0.0
+-      npmlog: 5.0.1
+-      rimraf: 3.0.2
+-      semver: 7.8.5
+-      tar: 6.2.1
+-    transitivePeerDependencies:
+-      - encoding
+-      - supports-color
+-
+-  '@types/node@26.1.0':
+-    dependencies:
+-      undici-types: 8.3.0
+-
+-  abbrev@1.1.1: {}
+-
+-  accepts@1.3.8:
+-    dependencies:
+-      mime-types: 2.1.35
+-      negotiator: 0.6.3
+-
+-  agent-base@6.0.2:
+-    dependencies:
+-      debug: 4.4.3(supports-color@5.5.0)
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  ansi-regex@5.0.1: {}
+-
+-  anymatch@3.1.3:
+-    dependencies:
+-      normalize-path: 3.0.0
+-      picomatch: 2.3.2
+-
+-  aproba@2.1.0: {}
+-
+-  are-we-there-yet@2.0.0:
+-    dependencies:
+-      delegates: 1.0.0
+-      readable-stream: 3.6.2
+-
+-  array-flatten@1.1.1: {}
+-
+-  aws-ssl-profiles@1.1.2: {}
+-
+-  balanced-match@1.0.2: {}
+-
+-  balanced-match@4.0.4: {}
+-
+-  bcrypt@5.1.1:
+-    dependencies:
+-      '@mapbox/node-pre-gyp': 1.0.11
+-      node-addon-api: 5.1.0
+-    transitivePeerDependencies:
+-      - encoding
+-      - supports-color
+-
+-  binary-extensions@2.3.0: {}
+-
+-  body-parser@1.20.5:
+-    dependencies:
+-      bytes: 3.1.2
+-      content-type: 1.0.5
+-      debug: 2.6.9
+-      depd: 2.0.0
+-      destroy: 1.2.0
+-      http-errors: 2.0.1
+-      iconv-lite: 0.4.24
+-      on-finished: 2.4.1
+-      qs: 6.15.3
+-      raw-body: 2.5.3
+-      type-is: 1.6.18
+-      unpipe: 1.0.0
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  brace-expansion@1.1.15:
+-    dependencies:
+-      balanced-match: 1.0.2
+-      concat-map: 0.0.1
+-
+-  brace-expansion@5.0.7:
+-    dependencies:
+-      balanced-match: 4.0.4
+-
+-  braces@3.0.3:
+-    dependencies:
+-      fill-range: 7.1.1
+-
+-  buffer-equal-constant-time@1.0.1: {}
+-
+-  bytes@3.1.2: {}
+-
+-  call-bind-apply-helpers@1.0.2:
+-    dependencies:
+-      es-errors: 1.3.0
+-      function-bind: 1.1.2
+-
+-  call-bound@1.0.4:
+-    dependencies:
+-      call-bind-apply-helpers: 1.0.2
+-      get-intrinsic: 1.3.0
+-
+-  chokidar@3.6.0:
+-    dependencies:
+-      anymatch: 3.1.3
+-      braces: 3.0.3
+-      glob-parent: 5.1.2
+-      is-binary-path: 2.1.0
+-      is-glob: 4.0.3
+-      normalize-path: 3.0.0
+-      readdirp: 3.6.0
+-    optionalDependencies:
+-      fsevents: 2.3.3
+-
+-  chownr@2.0.0: {}
+-
+-  color-support@1.1.3: {}
+-
+-  concat-map@0.0.1: {}
+-
+-  console-control-strings@1.1.0: {}
+-
+-  content-disposition@0.5.4:
+-    dependencies:
+-      safe-buffer: 5.2.1
+-
+-  content-type@1.0.5: {}
+-
+-  cookie-parser@1.4.7:
+-    dependencies:
+-      cookie: 0.7.2
+-      cookie-signature: 1.0.6
+-
+-  cookie-signature@1.0.6: {}
+-
+-  cookie-signature@1.0.7: {}
+-
+-  cookie@0.7.2: {}
+-
+-  cors@2.8.6:
+-    dependencies:
+-      object-assign: 4.1.1
+-      vary: 1.1.2
+-
+-  debug@2.6.9:
+-    dependencies:
+-      ms: 2.0.0
+-
+-  debug@4.4.3(supports-color@5.5.0):
+-    dependencies:
+-      ms: 2.1.3
+-    optionalDependencies:
+-      supports-color: 5.5.0
+-
+-  delegates@1.0.0: {}
+-
+-  denque@2.1.0: {}
+-
+-  depd@2.0.0: {}
+-
+-  destroy@1.2.0: {}
+-
+-  detect-libc@2.1.2: {}
+-
+-  dotenv@16.6.1: {}
+-
+-  dunder-proto@1.0.1:
+-    dependencies:
+-      call-bind-apply-helpers: 1.0.2
+-      es-errors: 1.3.0
+-      gopd: 1.2.0
+-
+-  ecdsa-sig-formatter@1.0.11:
+-    dependencies:
+-      safe-buffer: 5.2.1
+-
+-  ee-first@1.1.1: {}
+-
+-  emoji-regex@8.0.0: {}
+-
+-  encodeurl@2.0.0: {}
+-
+-  es-define-property@1.0.1: {}
+-
+-  es-errors@1.3.0: {}
+-
+-  es-object-atoms@1.1.2:
+-    dependencies:
+-      es-errors: 1.3.0
+-
+-  escape-html@1.0.3: {}
+-
+-  etag@1.8.1: {}
+-
+-  express@4.22.2:
+-    dependencies:
+-      accepts: 1.3.8
+-      array-flatten: 1.1.1
+-      body-parser: 1.20.5
+-      content-disposition: 0.5.4
+-      content-type: 1.0.5
+-      cookie: 0.7.2
+-      cookie-signature: 1.0.7
+-      debug: 2.6.9
+-      depd: 2.0.0
+-      encodeurl: 2.0.0
+-      escape-html: 1.0.3
+-      etag: 1.8.1
+-      finalhandler: 1.3.2
+-      fresh: 0.5.2
+-      http-errors: 2.0.1
+-      merge-descriptors: 1.0.3
+-      methods: 1.1.2
+-      on-finished: 2.4.1
+-      parseurl: 1.3.3
+-      path-to-regexp: 0.1.13
+-      proxy-addr: 2.0.7
+-      qs: 6.15.3
+-      range-parser: 1.2.1
+-      safe-buffer: 5.2.1
+-      send: 0.19.2
+-      serve-static: 1.16.3
+-      setprototypeof: 1.2.0
+-      statuses: 2.0.2
+-      type-is: 1.6.18
+-      utils-merge: 1.0.1
+-      vary: 1.1.2
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  fill-range@7.1.1:
+-    dependencies:
+-      to-regex-range: 5.0.1
+-
+-  finalhandler@1.3.2:
+-    dependencies:
+-      debug: 2.6.9
+-      encodeurl: 2.0.0
+-      escape-html: 1.0.3
+-      on-finished: 2.4.1
+-      parseurl: 1.3.3
+-      statuses: 2.0.2
+-      unpipe: 1.0.0
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  forwarded@0.2.0: {}
+-
+-  fresh@0.5.2: {}
+-
+-  fs-minipass@2.1.0:
+-    dependencies:
+-      minipass: 3.3.6
+-
+-  fs.realpath@1.0.0: {}
+-
+-  fsevents@2.3.3:
+-    optional: true
+-
+-  function-bind@1.1.2: {}
+-
+-  gauge@3.0.2:
+-    dependencies:
+-      aproba: 2.1.0
+-      color-support: 1.1.3
+-      console-control-strings: 1.1.0
+-      has-unicode: 2.0.1
+-      object-assign: 4.1.1
+-      signal-exit: 3.0.7
+-      string-width: 4.2.3
+-      strip-ansi: 6.0.1
+-      wide-align: 1.1.5
+-
+-  generate-function@2.3.1:
+-    dependencies:
+-      is-property: 1.0.2
+-
+-  get-intrinsic@1.3.0:
+-    dependencies:
+-      call-bind-apply-helpers: 1.0.2
+-      es-define-property: 1.0.1
+-      es-errors: 1.3.0
+-      es-object-atoms: 1.1.2
+-      function-bind: 1.1.2
+-      get-proto: 1.0.1
+-      gopd: 1.2.0
+-      has-symbols: 1.1.0
+-      hasown: 2.0.4
+-      math-intrinsics: 1.1.0
+-
+-  get-proto@1.0.1:
+-    dependencies:
+-      dunder-proto: 1.0.1
+-      es-object-atoms: 1.1.2
+-
+-  glob-parent@5.1.2:
+-    dependencies:
+-      is-glob: 4.0.3
+-
+-  glob@7.2.3:
+-    dependencies:
+-      fs.realpath: 1.0.0
+-      inflight: 1.0.6
+-      inherits: 2.0.4
+-      minimatch: 3.1.5
+-      once: 1.4.0
+-      path-is-absolute: 1.0.1
+-
+-  gopd@1.2.0: {}
+-
+-  has-flag@3.0.0: {}
+-
+-  has-symbols@1.1.0: {}
+-
+-  has-unicode@2.0.1: {}
+-
+-  hasown@2.0.4:
+-    dependencies:
+-      function-bind: 1.1.2
+-
+-  http-errors@2.0.1:
+-    dependencies:
+-      depd: 2.0.0
+-      inherits: 2.0.4
+-      setprototypeof: 1.2.0
+-      statuses: 2.0.2
+-      toidentifier: 1.0.1
+-
+-  https-proxy-agent@5.0.1:
+-    dependencies:
+-      agent-base: 6.0.2
+-      debug: 4.4.3(supports-color@5.5.0)
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  iconv-lite@0.4.24:
+-    dependencies:
+-      safer-buffer: 2.1.2
+-
+-  iconv-lite@0.7.3:
+-    dependencies:
+-      safer-buffer: 2.1.2
+-
+-  ignore-by-default@1.0.1: {}
+-
+-  inflight@1.0.6:
+-    dependencies:
+-      once: 1.4.0
+-      wrappy: 1.0.2
+-
+-  inherits@2.0.4: {}
+-
+-  ipaddr.js@1.9.1: {}
+-
+-  is-binary-path@2.1.0:
+-    dependencies:
+-      binary-extensions: 2.3.0
+-
+-  is-extglob@2.1.1: {}
+-
+-  is-fullwidth-code-point@3.0.0: {}
+-
+-  is-glob@4.0.3:
+-    dependencies:
+-      is-extglob: 2.1.1
+-
+-  is-number@7.0.0: {}
+-
+-  is-property@1.0.2: {}
+-
+-  jsonwebtoken@9.0.3:
+-    dependencies:
+-      jws: 4.0.1
+-      lodash.includes: 4.3.0
+-      lodash.isboolean: 3.0.3
+-      lodash.isinteger: 4.0.4
+-      lodash.isnumber: 3.0.3
+-      lodash.isplainobject: 4.0.6
+-      lodash.isstring: 4.0.1
+-      lodash.once: 4.1.1
+-      ms: 2.1.3
+-      semver: 7.8.5
+-
+-  jwa@2.0.1:
+-    dependencies:
+-      buffer-equal-constant-time: 1.0.1
+-      ecdsa-sig-formatter: 1.0.11
+-      safe-buffer: 5.2.1
+-
+-  jws@4.0.1:
+-    dependencies:
+-      jwa: 2.0.1
+-      safe-buffer: 5.2.1
+-
+-  lodash.includes@4.3.0: {}
+-
+-  lodash.isboolean@3.0.3: {}
+-
+-  lodash.isinteger@4.0.4: {}
+-
+-  lodash.isnumber@3.0.3: {}
+-
+-  lodash.isplainobject@4.0.6: {}
+-
+-  lodash.isstring@4.0.1: {}
+-
+-  lodash.once@4.1.1: {}
+-
+-  long@5.3.2: {}
+-
+-  lru.min@1.1.4: {}
+-
+-  make-dir@3.1.0:
+-    dependencies:
+-      semver: 6.3.1
+-
+-  math-intrinsics@1.1.0: {}
+-
+-  media-typer@0.3.0: {}
+-
+-  merge-descriptors@1.0.3: {}
+-
+-  methods@1.1.2: {}
+-
+-  mime-db@1.52.0: {}
+-
+-  mime-types@2.1.35:
+-    dependencies:
+-      mime-db: 1.52.0
+-
+-  mime@1.6.0: {}
+-
+-  minimatch@10.2.5:
+-    dependencies:
+-      brace-expansion: 5.0.7
+-
+-  minimatch@3.1.5:
+-    dependencies:
+-      brace-expansion: 1.1.15
+-
+-  minipass@3.3.6:
+-    dependencies:
+-      yallist: 4.0.0
+-
+-  minipass@5.0.0: {}
+-
+-  minizlib@2.1.2:
+-    dependencies:
+-      minipass: 3.3.6
+-      yallist: 4.0.0
+-
+-  mkdirp@1.0.4: {}
+-
+-  ms@2.0.0: {}
+-
+-  ms@2.1.3: {}
+-
+-  mysql2@3.22.5(@types/node@26.1.0):
+-    dependencies:
+-      '@types/node': 26.1.0
+-      aws-ssl-profiles: 1.1.2
+-      denque: 2.1.0
+-      generate-function: 2.3.1
+-      iconv-lite: 0.7.3
+-      long: 5.3.2
+-      lru.min: 1.1.4
+-      named-placeholders: 1.1.6
+-      sql-escaper: 1.3.3
+-
+-  named-placeholders@1.1.6:
+-    dependencies:
+-      lru.min: 1.1.4
+-
+-  negotiator@0.6.3: {}
+-
+-  node-addon-api@5.1.0: {}
+-
+-  node-fetch@2.7.0:
+-    dependencies:
+-      whatwg-url: 5.0.0
+-
+-  nodemon@3.1.14:
+-    dependencies:
+-      chokidar: 3.6.0
+-      debug: 4.4.3(supports-color@5.5.0)
+-      ignore-by-default: 1.0.1
+-      minimatch: 10.2.5
+-      pstree.remy: 1.1.8
+-      semver: 7.8.5
+-      simple-update-notifier: 2.0.0
+-      supports-color: 5.5.0
+-      touch: 3.1.1
+-      undefsafe: 2.0.5
+-
+-  nopt@5.0.0:
+-    dependencies:
+-      abbrev: 1.1.1
+-
+-  normalize-path@3.0.0: {}
+-
+-  npmlog@5.0.1:
+-    dependencies:
+-      are-we-there-yet: 2.0.0
+-      console-control-strings: 1.1.0
+-      gauge: 3.0.2
+-      set-blocking: 2.0.0
+-
+-  object-assign@4.1.1: {}
+-
+-  object-inspect@1.13.4: {}
+-
+-  on-finished@2.4.1:
+-    dependencies:
+-      ee-first: 1.1.1
+-
+-  once@1.4.0:
+-    dependencies:
+-      wrappy: 1.0.2
+-
+-  parseurl@1.3.3: {}
+-
+-  path-is-absolute@1.0.1: {}
+-
+-  path-to-regexp@0.1.13: {}
+-
+-  picomatch@2.3.2: {}
+-
+-  proxy-addr@2.0.7:
+-    dependencies:
+-      forwarded: 0.2.0
+-      ipaddr.js: 1.9.1
+-
+-  pstree.remy@1.1.8: {}
+-
+-  qs@6.15.3:
+-    dependencies:
+-      es-define-property: 1.0.1
+-      side-channel: 1.1.1
+-
+-  range-parser@1.2.1: {}
+-
+-  raw-body@2.5.3:
+-    dependencies:
+-      bytes: 3.1.2
+-      http-errors: 2.0.1
+-      iconv-lite: 0.4.24
+-      unpipe: 1.0.0
+-
+-  readable-stream@3.6.2:
+-    dependencies:
+-      inherits: 2.0.4
+-      string_decoder: 1.3.0
+-      util-deprecate: 1.0.2
+-
+-  readdirp@3.6.0:
+-    dependencies:
+-      picomatch: 2.3.2
+-
+-  rimraf@3.0.2:
+-    dependencies:
+-      glob: 7.2.3
+-
+-  safe-buffer@5.2.1: {}
+-
+-  safer-buffer@2.1.2: {}
+-
+-  semver@6.3.1: {}
+-
+-  semver@7.8.5: {}
+-
+-  send@0.19.2:
+-    dependencies:
+-      debug: 2.6.9
+-      depd: 2.0.0
+-      destroy: 1.2.0
+-      encodeurl: 2.0.0
+-      escape-html: 1.0.3
+-      etag: 1.8.1
+-      fresh: 0.5.2
+-      http-errors: 2.0.1
+-      mime: 1.6.0
+-      ms: 2.1.3
+-      on-finished: 2.4.1
+-      range-parser: 1.2.1
+-      statuses: 2.0.2
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  serve-static@1.16.3:
+-    dependencies:
+-      encodeurl: 2.0.0
+-      escape-html: 1.0.3
+-      parseurl: 1.3.3
+-      send: 0.19.2
+-    transitivePeerDependencies:
+-      - supports-color
+-
+-  set-blocking@2.0.0: {}
+-
+-  setprototypeof@1.2.0: {}
+-
+-  side-channel-list@1.0.1:
+-    dependencies:
+-      es-errors: 1.3.0
+-      object-inspect: 1.13.4
+-
+-  side-channel-map@1.0.1:
+-    dependencies:
+-      call-bound: 1.0.4
+-      es-errors: 1.3.0
+-      get-intrinsic: 1.3.0
+-      object-inspect: 1.13.4
+-
+-  side-channel-weakmap@1.0.2:
+-    dependencies:
+-      call-bound: 1.0.4
+-      es-errors: 1.3.0
+-      get-intrinsic: 1.3.0
+-      object-inspect: 1.13.4
+-      side-channel-map: 1.0.1
+-
+-  side-channel@1.1.1:
+-    dependencies:
+-      es-errors: 1.3.0
+-      object-inspect: 1.13.4
+-      side-channel-list: 1.0.1
+-      side-channel-map: 1.0.1
+-      side-channel-weakmap: 1.0.2
+-
+-  signal-exit@3.0.7: {}
+-
+-  simple-update-notifier@2.0.0:
+-    dependencies:
+-      semver: 7.8.5
+-
+-  sql-escaper@1.3.3: {}
+-
+-  statuses@2.0.2: {}
+-
+-  string-width@4.2.3:
+-    dependencies:
+-      emoji-regex: 8.0.0
+-      is-fullwidth-code-point: 3.0.0
+-      strip-ansi: 6.0.1
+-
+-  string_decoder@1.3.0:
+-    dependencies:
+-      safe-buffer: 5.2.1
+-
+-  strip-ansi@6.0.1:
+-    dependencies:
+-      ansi-regex: 5.0.1
+-
+-  supports-color@5.5.0:
+-    dependencies:
+-      has-flag: 3.0.0
+-
+-  tar@6.2.1:
+-    dependencies:
+-      chownr: 2.0.0
+-      fs-minipass: 2.1.0
+-      minipass: 5.0.0
+-      minizlib: 2.1.2
+-      mkdirp: 1.0.4
+-      yallist: 4.0.0
+-
+-  to-regex-range@5.0.1:
+-    dependencies:
+-      is-number: 7.0.0
+-
+-  toidentifier@1.0.1: {}
+-
+-  touch@3.1.1: {}
+-
+-  tr46@0.0.3: {}
+-
+-  type-is@1.6.18:
+-    dependencies:
+-      media-typer: 0.3.0
+-      mime-types: 2.1.35
+-
+-  undefsafe@2.0.5: {}
+-
+-  undici-types@8.3.0: {}
+-
+-  unpipe@1.0.0: {}
+-
+-  util-deprecate@1.0.2: {}
+-
+-  utils-merge@1.0.1: {}
+-
+-  vary@1.1.2: {}
+-
+-  webidl-conversions@3.0.1: {}
+-
+-  whatwg-url@5.0.0:
+-    dependencies:
+-      tr46: 0.0.3
+-      webidl-conversions: 3.0.1
+-
+-  wide-align@1.1.5:
+-    dependencies:
+-      string-width: 4.2.3
+-
+-  wrappy@1.0.2: {}
+-
+-  yallist@4.0.0: {}
+diff --git a/server/pnpm-workspace.yaml b/server/pnpm-workspace.yaml
+deleted file mode 100644
+index 85a9601..0000000
+--- a/server/pnpm-workspace.yaml
++++ /dev/null
+@@ -1,2 +0,0 @@
+-allowBuilds:
+-  bcrypt: true
+diff --git a/server/routes/adminRoutes.js b/server/routes/adminRoutes.js
+deleted file mode 100644
+index 541a146..0000000
+--- a/server/routes/adminRoutes.js
++++ /dev/null
+@@ -1,17 +0,0 @@
+-import express from 'express';
+-import { verifyToken } from '../middleware/verifyToken.js';
+-import { roleCheck } from '../middleware/roleCheck.js';
+-import {
+-  getAllUsersHandler,
+-  getAllSubscriptionsHandler,
+-  approveSubscription,
+-} from '../controllers/adminController.js';
+-
+-const router = express.Router();
+-
+-// All admin routes require a valid session AND an admin/super-admin role.
+-router.get('/admin/users', verifyToken, roleCheck('admin', 'super-admin'), getAllUsersHandler);
+-router.get('/admin/subscriptions', verifyToken, roleCheck('admin', 'super-admin'), getAllSubscriptionsHandler);
+-router.patch('/admin/subscriptions/:id/approve', verifyToken, roleCheck('admin', 'super-admin'), approveSubscription);
+-
+-export default router;
+\ No newline at end of file
+diff --git a/server/routes/authRoutes.js b/server/routes/authRoutes.js
+index c6da588..6539d45 100644
+--- a/server/routes/authRoutes.js
++++ b/server/routes/authRoutes.js
+@@ -1,13 +1,24 @@
+ import express from 'express';
+-import { signup, login, getMe, logout, refresh } from '../controllers/authController.js';
++import {
++  signup,
++  login,
++  getMe,
++  logout,
++  refresh,
++  forgotPassword,
++  resetPassword,
++} from '../controllers/authController.js';
+ import { verifyToken } from '../middleware/verifyToken.js';
++import { asyncHandler } from '../utils/asyncHandler.js';
+ 
+ const router = express.Router();
+ 
+-router.post('/signup', signup);
+-router.post('/login', login);
+-router.get('/me', verifyToken, getMe);
+-router.post('/logout', logout);
+-router.post('/refresh', refresh);
++router.post('/signup', asyncHandler(signup));
++router.post('/login', asyncHandler(login));
++router.get('/me', verifyToken, asyncHandler(getMe));
++router.post('/logout', asyncHandler(logout));
++router.post('/refresh', asyncHandler(refresh));
++router.post('/forgot-password', asyncHandler(forgotPassword));
++router.post('/reset-password', asyncHandler(resetPassword));
+ 
+-export default router;
+\ No newline at end of file
++export default router;
+diff --git a/server/routes/businessRoutes.js b/server/routes/businessRoutes.js
+deleted file mode 100644
+index 8a79c07..0000000
+--- a/server/routes/businessRoutes.js
++++ /dev/null
+@@ -1,11 +0,0 @@
+-import express from 'express';
+-import { verifyToken } from '../middleware/verifyToken.js';
+-import { getProfile, updateProfileHandler, selectModule } from '../controllers/businessProfileController.js';
+-
+-const router = express.Router();
+-
+-router.get('/profile', verifyToken, getProfile);
+-router.put('/profile', verifyToken, updateProfileHandler);
+-router.post('/business/select-module', verifyToken, selectModule);
+-
+-export default router;
+\ No newline at end of file
+diff --git a/server/routes/inventoryRoutes.js b/server/routes/inventoryRoutes.js
+deleted file mode 100644
+index 3a69caa..0000000
+--- a/server/routes/inventoryRoutes.js
++++ /dev/null
+@@ -1,29 +0,0 @@
+-import express from 'express';
+-import { verifyToken } from '../middleware/verifyToken.js';
+-import {
+-  listItems,
+-  getItem,
+-  addItem,
+-  editItem,
+-  removeItem,
+-  lowStock,
+-  scanBarcode,
+-  search,
+-} from '../controllers/inventoryController.js';
+-
+-const router = express.Router();
+-
+-// All inventory routes require a logged-in user; every query is
+-// scoped to req.user.id at the model layer, so one business's
+-// inventory is never visible to another's.
+-router.get('/inventory/items', verifyToken, listItems);
+-router.post('/inventory/items', verifyToken, addItem);
+-router.get('/inventory/items/:id', verifyToken, getItem);
+-router.put('/inventory/items/:id', verifyToken, editItem);
+-router.delete('/inventory/items/:id', verifyToken, removeItem);
+-
+-router.get('/inventory/low-stock', verifyToken, lowStock);
+-router.get('/inventory/scan/:barcode', verifyToken, scanBarcode);
+-router.get('/inventory/search', verifyToken, search);
+-
+-export default router;
+\ No newline at end of file
+diff --git a/server/routes/subscriptionRoutes.js b/server/routes/subscriptionRoutes.js
+deleted file mode 100644
+index 71c35c1..0000000
+--- a/server/routes/subscriptionRoutes.js
++++ /dev/null
+@@ -1,9 +0,0 @@
+-import express from 'express';
+-import { verifyToken } from '../middleware/verifyToken.js';
+-import { getSubscriptionStatus } from '../controllers/subscriptionController.js';
+-
+-const router = express.Router();
+-
+-router.get('/subscriptions/status', verifyToken, getSubscriptionStatus);
+-
+-export default router;
+\ No newline at end of file
+diff --git a/server/server.js b/server/server.js
+index dff9422..e5e7e1e 100644
+--- a/server/server.js
++++ b/server/server.js
+@@ -1,43 +1,20 @@
+-import inventoryRoutes from './routes/inventoryRoutes.js';
+-import subscriptionRoutes from './routes/subscriptionRoutes.js';
+-import adminRoutes from './routes/adminRoutes.js';
+-import businessRoutes from './routes/businessRoutes.js';
+-import express from 'express';
+-import cors from 'cors';
+-import cookieParser from 'cookie-parser';
+ import dotenv from 'dotenv';
+-import { testConnection } from './config/db.js';
+-import authRoutes from './routes/authRoutes.js';
+-
+ dotenv.config();
+ 
+-const app = express();
+-
+-// ── Core middleware ─────────────────────────────────────
+-app.use(express.json());
+-app.use(cookieParser());
+-app.use(
+-  cors({
+-    origin: process.env.CLIENT_URL, // Vite dev server, e.g. http://localhost:5173
+-    credentials: true,               // required so the browser sends/receives httpOnly cookies
+-  })
+-);
+-
+-// ── Routes ───────────────────────────────────────────────
+-app.get('/api/health', (req, res) => {
+-  res.json({ status: 'ok' });
+-});
++import { app } from './app.js';
++import { testConnection } from './config/db.js';
+ 
+-app.use('/api/auth', authRoutes);
+-app.use('/api', businessRoutes);
+-app.use('/api', subscriptionRoutes);
+-app.use('/api', adminRoutes);
+-app.use('/api', inventoryRoutes);
+-// ── Start ────────────────────────────────────────────────
+ const PORT = process.env.PORT || 5000;
+ 
+-testConnection().then(() => {
+-  app.listen(PORT, () => {
+-    console.log(`🚀 Server running on http://localhost:${PORT}`);
++testConnection()
++  .then(() => {
++    app.listen(PORT, () => {
++      console.log(`🚀 Server running on http://localhost:${PORT}`);
++    });
++  })
++  .catch((err) => {
++    console.error('❌ Could not connect to MySQL. Check server/.env and that the');
++    console.error('   nexus_desktop schema has been applied in MySQL Workbench.');
++    console.error(err.message);
++    process.exit(1);
+   });
+-});
+\ No newline at end of file
+diff --git a/server/utils/ApiError.js b/server/utils/ApiError.js
+new file mode 100644
+index 0000000..879a6c0
+--- /dev/null
++++ b/server/utils/ApiError.js
+@@ -0,0 +1,16 @@
++/**
++ * Throw this from anywhere in the request lifecycle (controllers,
++ * models, middleware) to produce a clean, intentional HTTP error.
++ * Anything else thrown (a real bug) falls through errorHandler as a 500.
++ */
++export class ApiError extends Error {
++  /**
++   * @param {number} status  HTTP status code
++   * @param {string} message User-facing message
++   */
++  constructor(status, message) {
++    super(message);
++    this.status = status;
++    this.name = 'ApiError';
++  }
++}
+diff --git a/server/utils/asyncHandler.js b/server/utils/asyncHandler.js
+new file mode 100644
+index 0000000..8610848
+--- /dev/null
++++ b/server/utils/asyncHandler.js
+@@ -0,0 +1,11 @@
++/**
++ * Wraps an async Express route handler so rejected promises are forwarded
++ * to next(err) instead of crashing the process or hanging the request.
++ *
++ * @param {(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) => Promise<any>} fn
++ */
++export function asyncHandler(fn) {
++  return function wrapped(req, res, next) {
++    Promise.resolve(fn(req, res, next)).catch(next);
++  };
++}
+diff --git a/server/utils/generateTokens.js b/server/utils/generateTokens.js
+deleted file mode 100644
+index 7235ba3..0000000
+--- a/server/utils/generateTokens.js
++++ /dev/null
+@@ -1,40 +0,0 @@
+-import jwt from 'jsonwebtoken';
+-
+-// Access token: short-lived, carries the claims routes/middleware check
+-// on every request (id, username, role).
+-export function generateAccessToken(user) {
+-  return jwt.sign(
+-    { id: user.id, username: user.username, role: user.role },
+-    process.env.JWT_ACCESS_SECRET,
+-    { expiresIn: process.env.JWT_ACCESS_EXPIRES_IN }
+-  );
+-}
+-
+-// Refresh token: long-lived, only used to silently mint a new access
+-// token when it expires. Kept minimal on purpose — just enough to
+-// identify the user, not full claims.
+-export function generateRefreshToken(user) {
+-  return jwt.sign(
+-    { id: user.id },
+-    process.env.JWT_REFRESH_SECRET,
+-    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN }
+-  );
+-}
+-
+-// Shared cookie options. sameSite/secure matter once this is deployed
+-// over HTTPS — 'lax' + secure:false is fine for local dev over http.
+-const isProd = process.env.NODE_ENV === 'production';
+-
+-export const accessTokenCookieOptions = {
+-  httpOnly: true,
+-  secure: isProd,
+-  sameSite: 'lax',
+-  maxAge: 15 * 60 * 1000, // 15 minutes, in ms — keep in sync with JWT_ACCESS_EXPIRES_IN
+-};
+-
+-export const refreshTokenCookieOptions = {
+-  httpOnly: true,
+-  secure: isProd,
+-  sameSite: 'lax',
+-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days, in ms — keep in sync with JWT_REFRESH_EXPIRES_IN
+-};
+\ No newline at end of file
+diff --git a/server/utils/tokens.js b/server/utils/tokens.js
+new file mode 100644
+index 0000000..302e787
+--- /dev/null
++++ b/server/utils/tokens.js
+@@ -0,0 +1,89 @@
++/**
++ * tokens.js — JWT issuing/verification and httpOnly cookie option builders.
++ *
++ * Contract with the frontend (src/lib/api.js / AuthContext.jsx):
++ *  - Access token lives in an httpOnly `accessToken` cookie, short-lived.
++ *  - Refresh token lives in an httpOnly `refreshToken` cookie, long-lived,
++ *    and is ROTATED on every use (old session row is revoked, a new one
++ *    is inserted) so a stolen refresh token has a limited window.
++ *  - We never store the raw refresh token — only its sha256 hash, in
++ *    `sessions.refresh_token_hash` — so a leaked database dump doesn't
++ *    hand out usable sessions.
++ */
++
++import jwt from 'jsonwebtoken';
++import crypto from 'crypto';
++
++/**
++ * JWTs are deterministic: signing the same payload with the same
++ * expiresIn twice within the same second produces byte-identical
++ * tokens. That's fine for access tokens (never stored), but refresh
++ * tokens are stored by their sha256 hash under a UNIQUE constraint
++ * (`sessions.refresh_token_hash`) — two logins/refreshes in the same
++ * second would collide and throw ER_DUP_ENTRY. A random `jti` per
++ * token avoids that.
++ */
++function jti() {
++  return crypto.randomBytes(16).toString('hex');
++}
++
++const ACCESS_EXPIRES = process.env.JWT_ACCESS_EXPIRES || '15m';
++const REFRESH_EXPIRES = process.env.JWT_REFRESH_EXPIRES || '7d';
++const REFRESH_EXPIRES_REMEMBER = process.env.JWT_REFRESH_EXPIRES_REMEMBER || '30d';
++
++const isProd = process.env.NODE_ENV === 'production';
++
++/** ms equivalents, kept in lockstep with the *_EXPIRES strings above. */
++const MS = {
++  access: 15 * 60 * 1000,
++  refresh: 7 * 24 * 60 * 60 * 1000,
++  refreshRemember: 30 * 24 * 60 * 60 * 1000,
++};
++
++/**
++ * @param {{id:number, role:string}} user
++ */
++export function generateAccessToken(user) {
++  return jwt.sign({ id: user.id, role: user.role, jti: jti() }, process.env.JWT_ACCESS_SECRET, {
++    expiresIn: ACCESS_EXPIRES,
++  });
++}
++
++/**
++ * @param {{id:number}} user
++ * @param {boolean} rememberMe
++ */
++export function generateRefreshToken(user, rememberMe = false) {
++  return jwt.sign({ id: user.id, jti: jti() }, process.env.JWT_REFRESH_SECRET, {
++    expiresIn: rememberMe ? REFRESH_EXPIRES_REMEMBER : REFRESH_EXPIRES,
++  });
++}
++
++/** sha256 hex digest — what actually gets stored/looked-up in `sessions`. */
++export function hashToken(rawToken) {
++  return crypto.createHash('sha256').update(rawToken).digest('hex');
++}
++
++export const accessTokenCookieOptions = {
++  httpOnly: true,
++  secure: isProd,
++  sameSite: 'lax',
++  path: '/',
++  maxAge: MS.access,
++};
++
++/** @param {boolean} rememberMe */
++export function refreshTokenCookieOptions(rememberMe = false) {
++  return {
++    httpOnly: true,
++    secure: isProd,
++    sameSite: 'lax',
++    path: '/',
++    maxAge: rememberMe ? MS.refreshRemember : MS.refresh,
++  };
++}
++
++/** @param {boolean} rememberMe */
++export function refreshExpiresAt(rememberMe = false) {
++  return new Date(Date.now() + (rememberMe ? MS.refreshRemember : MS.refresh));
++}
