@@ -13,6 +13,17 @@ export async function findBusinessById(id) {
   return rows[0] || null;
 }
 
+/** Joins in the module code/name — used by requireBusiness to decide which satellite table product writes go to. */
+export async function findBusinessWithModuleByOwner(ownerUserId) {
+  const [rows] = await pool.query(
+    `SELECT b.*, m.code AS module_code, m.name AS module_name
+     FROM businesses b JOIN modules m ON m.id = b.module_id
+     WHERE b.owner_user_id = ? LIMIT 1`,
+    [ownerUserId]
+  );
+  return rows[0] || null;
+}
+
 /**
  * Runs inside the caller's transaction (`conn`), not the shared pool —
  * this is always called alongside subscription creation, and both must

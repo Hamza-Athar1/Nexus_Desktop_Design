@@ -4,6 +4,10 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
 import catalogRoutes from './routes/catalogRoutes.js';
 import registrationRoutes from './routes/registrationRoutes.js';
+import inventoryRoutes from './routes/inventoryRoutes.js';
+import categoryRoutes from './routes/categoryRoutes.js';
+import supplierRoutes from './routes/supplierRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export const app = express();
@@ -27,7 +31,11 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/registration', registrationRoutes);
-// Phase 4+ mounts more routers here: /api/inventory, /api/sales,
+app.use('/api', inventoryRoutes);
+app.use('/api', categoryRoutes);
+app.use('/api', supplierRoutes);
+app.use('/api', customerRoutes);
+// Phase 5+ mounts more routers here: /api/sales, /api/purchases,
 // /api/admin, etc. — kept as separate PRs/patches.
 
 // ── Fallbacks ────────────────────────────────────────────

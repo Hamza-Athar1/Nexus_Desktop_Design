@@ -192,3 +192,100 @@ substantially rewritten:
   plan active, NIC-when-registered, etc.) rather than trusting the
   draft — the draft is for UX convenience, not a source of truth.
 
+## Phase 4: Core POS catalog
+
+Categories, suppliers, customers, products, and the module-specific
+satellite tables — this is what makes `/inventory` and
+`ClothingInventoryPage.jsx` actually work instead of 404ing (they already
+called `/inventory/items` etc. before this patch; nothing existed to
+answer).
+
+### New middleware: `requireBusiness`
+
+Every route from here on is business-scoped. `requireBusiness` (runs
+after `verifyToken`) resolves `req.user.id` → their business and
+attaches `req.businessId` + `req.business` (including `module_code`,
+used to pick the right satellite table). 403s if the owner hasn't
+finished the registration wizard yet.
+
+**Real gap, not fixed here:** this only resolves `businesses.owner_user_id`
+— i.e. the `admin` role. There's no staff-to-business linking in the
+schema (no `business_staff` table, no `business_id` on `users`), so a
+`user`-role login has no way to reach a business's data through this
+middleware yet. Hasn't mattered so far because staff accounts aren't
+creatable either — will need solving before `role='user'` logins do
+anything useful.
+
+### New endpoints
+
+| Method | Path                        | Notes |
+|--------|------------------------------|-------|
+| GET    | `/api/inventory/items`      | Same shape the frontend already expects: `{ items: [{ id, name, category, price, stock_qty, reorder_level, module_specific_fields }] }` |
+| POST   | `/api/inventory/items`      | Creates a product + its satellite row + an `opening` stock movement if `stockQty > 0` |
+| GET/PUT/DELETE | `/api/inventory/items/:id` | DELETE is a **soft delete** (`is_active = 0`), not a hard `DELETE` — see below |
+| GET    | `/api/inventory/low-stock`  | `stock_quantity <= reorder_level` |
+| GET    | `/api/inventory/scan/:barcode` | 404 when nothing matches |
+| GET    | `/api/inventory/search?q=`  | LIKE match on name/sku/barcode/category |
+| GET/POST/PUT/DELETE | `/api/categories`, `/api/suppliers`, `/api/customers` | Plain CRUD. `customers` isn't consumed by any frontend page yet — no customer-facing UI exists. |
+
+### How `category`/`supplier` free text becomes real rows
+
+`ItemFormModal.jsx` sends `category` as a plain string (its dropdowns are
+hardcoded lists, not sourced from a catalog) and grocery's
+`moduleSpecificFields.supplier_name` the same way. `findOrCreateCategory`
+/ `findOrCreateSupplier` resolve or create a real row scoped to the
+business on every write, so `products.category_id` / `.supplier_id` stay
+proper FKs underneath a free-text UI. Product list responses resolve
+these back to name strings via `LEFT JOIN`, matching what the UI already
+renders (`it.category`).
+
+### Module satellite tables — only 3 of 7 wired up
+
+`server/lib/moduleSatellites.js` maps `moduleSpecificFields` onto the
+right satellite table (`grocery_products` / `pharmacy_products` /
+`clothing_products`) based on **the business's actual module** (from
+`requireBusiness`, not anything the client sends). Only these three are
+implemented, because they're the only modules with a real inventory UI —
+`InventoryPage.jsx` falls back to the grocery layout for
+electronics/bakery/restaurant/general_store too (see its `isPharmacy`
+check), so those four modules get a working `products` row but no
+satellite row. Add a case in `moduleSatellites.js` (and a real form) when
+one of those modules gets its own UI.
+
+**Clothing variants are a stopgap, not real per-variant tracking.**
+`clothing_products` models one size + one color per product row (schema
+comment: `size VARCHAR(24) -- S, M, L, 32, 8.5`), but the UI lets someone
+multi-select several sizes and colors for a single listing. Rather than
+silently drop the extra selections or block the UI, sizes/colors are
+stored comma-joined and split back into arrays on read — good enough to
+keep `ClothingInventoryPage.jsx`'s existing variant grid working, but it
+means all sizes/colors share one stock count rather than being tracked
+per-combination. Real variant support would mean one product row per
+size/color combo (with its own SKU and stock) — a bigger feature for
+later, not attempted here.
+
+### Soft delete
+
+`DELETE /api/inventory/items/:id` sets `is_active = 0` rather than
+removing the row. A hard delete would either cascade-orphan
+`stock_movements` history or null out `sale_items.product_id` on past
+receipts — soft delete keeps a discontinued product's sale history
+intact. `listProducts` filters `is_active = 1`, so deleted items
+disappear from the UI exactly as before; nothing in the frontend needed
+to change for this.
+
+### Stock movements
+
+Every create with `stockQty > 0` logs a `stock_movements` row
+(`movement_type: 'opening'`). Every edit where `stockQty` actually
+changed logs an `'adjustment'` row with the delta. `products.stock_quantity`
+stays the fast/cached number the UI reads; `stock_movements` is the
+audit trail behind it, per the schema's own stated design.
+
+### Frontend fix (this patch)
+
+`ItemFormModal.jsx`'s pharmacy branch collected a unit type
+(PCS/STRIP/BOX/BOTTLE) in UI state but never included it in the payload
+sent to the server — grocery's branch already did, pharmacy's didn't.
+Fixed to match.
+
