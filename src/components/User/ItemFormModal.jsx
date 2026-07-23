@@ -163,6 +163,7 @@ export default function ItemFormModal({
     if (moduleType === 'pharmacy') {
       return {
         ...baseFields,
+        unit,
         batch_no: batchNo || undefined,
         manufacturer: manufacturer || undefined,
         expiry_date: expiryDate || undefined,

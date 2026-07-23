@@ -1,0 +1,1063 @@
+diff --git a/server/README.md b/server/README.md
+index 304287f..4dbe72f 100644
+--- a/server/README.md
++++ b/server/README.md
+@@ -192,3 +192,100 @@ substantially rewritten:
+   plan active, NIC-when-registered, etc.) rather than trusting the
+   draft — the draft is for UX convenience, not a source of truth.
+ 
++## Phase 4: Core POS catalog
++
++Categories, suppliers, customers, products, and the module-specific
++satellite tables — this is what makes `/inventory` and
++`ClothingInventoryPage.jsx` actually work instead of 404ing (they already
++called `/inventory/items` etc. before this patch; nothing existed to
++answer).
++
++### New middleware: `requireBusiness`
++
++Every route from here on is business-scoped. `requireBusiness` (runs
++after `verifyToken`) resolves `req.user.id` → their business and
++attaches `req.businessId` + `req.business` (including `module_code`,
++used to pick the right satellite table). 403s if the owner hasn't
++finished the registration wizard yet.
++
++**Real gap, not fixed here:** this only resolves `businesses.owner_user_id`
++— i.e. the `admin` role. There's no staff-to-business linking in the
++schema (no `business_staff` table, no `business_id` on `users`), so a
++`user`-role login has no way to reach a business's data through this
++middleware yet. Hasn't mattered so far because staff accounts aren't
++creatable either — will need solving before `role='user'` logins do
++anything useful.
++
++### New endpoints
++
++| Method | Path                        | Notes |
++|--------|------------------------------|-------|
++| GET    | `/api/inventory/items`      | Same shape the frontend already expects: `{ items: [{ id, name, category, price, stock_qty, reorder_level, module_specific_fields }] }` |
++| POST   | `/api/inventory/items`      | Creates a product + its satellite row + an `opening` stock movement if `stockQty > 0` |
++| GET/PUT/DELETE | `/api/inventory/items/:id` | DELETE is a **soft delete** (`is_active = 0`), not a hard `DELETE` — see below |
++| GET    | `/api/inventory/low-stock`  | `stock_quantity <= reorder_level` |
++| GET    | `/api/inventory/scan/:barcode` | 404 when nothing matches |
++| GET    | `/api/inventory/search?q=`  | LIKE match on name/sku/barcode/category |
++| GET/POST/PUT/DELETE | `/api/categories`, `/api/suppliers`, `/api/customers` | Plain CRUD. `customers` isn't consumed by any frontend page yet — no customer-facing UI exists. |
++
++### How `category`/`supplier` free text becomes real rows
++
++`ItemFormModal.jsx` sends `category` as a plain string (its dropdowns are
++hardcoded lists, not sourced from a catalog) and grocery's
++`moduleSpecificFields.supplier_name` the same way. `findOrCreateCategory`
++/ `findOrCreateSupplier` resolve or create a real row scoped to the
++business on every write, so `products.category_id` / `.supplier_id` stay
++proper FKs underneath a free-text UI. Product list responses resolve
++these back to name strings via `LEFT JOIN`, matching what the UI already
++renders (`it.category`).
++
++### Module satellite tables — only 3 of 7 wired up
++
++`server/lib/moduleSatellites.js` maps `moduleSpecificFields` onto the
++right satellite table (`grocery_products` / `pharmacy_products` /
++`clothing_products`) based on **the business's actual module** (from
++`requireBusiness`, not anything the client sends). Only these three are
++implemented, because they're the only modules with a real inventory UI —
++`InventoryPage.jsx` falls back to the grocery layout for
++electronics/bakery/restaurant/general_store too (see its `isPharmacy`
++check), so those four modules get a working `products` row but no
++satellite row. Add a case in `moduleSatellites.js` (and a real form) when
++one of those modules gets its own UI.
++
++**Clothing variants are a stopgap, not real per-variant tracking.**
++`clothing_products` models one size + one color per product row (schema
++comment: `size VARCHAR(24) -- S, M, L, 32, 8.5`), but the UI lets someone
++multi-select several sizes and colors for a single listing. Rather than
++silently drop the extra selections or block the UI, sizes/colors are
++stored comma-joined and split back into arrays on read — good enough to
++keep `ClothingInventoryPage.jsx`'s existing variant grid working, but it
++means all sizes/colors share one stock count rather than being tracked
++per-combination. Real variant support would mean one product row per
++size/color combo (with its own SKU and stock) — a bigger feature for
++later, not attempted here.
++
++### Soft delete
++
++`DELETE /api/inventory/items/:id` sets `is_active = 0` rather than
++removing the row. A hard delete would either cascade-orphan
++`stock_movements` history or null out `sale_items.product_id` on past
++receipts — soft delete keeps a discontinued product's sale history
++intact. `listProducts` filters `is_active = 1`, so deleted items
++disappear from the UI exactly as before; nothing in the frontend needed
++to change for this.
++
++### Stock movements
++
++Every create with `stockQty > 0` logs a `stock_movements` row
++(`movement_type: 'opening'`). Every edit where `stockQty` actually
++changed logs an `'adjustment'` row with the delta. `products.stock_quantity`
++stays the fast/cached number the UI reads; `stock_movements` is the
++audit trail behind it, per the schema's own stated design.
++
++### Frontend fix (this patch)
++
++`ItemFormModal.jsx`'s pharmacy branch collected a unit type
++(PCS/STRIP/BOX/BOTTLE) in UI state but never included it in the payload
++sent to the server — grocery's branch already did, pharmacy's didn't.
++Fixed to match.
++
+diff --git a/server/app.js b/server/app.js
+index d76e7c9..c583693 100644
+--- a/server/app.js
++++ b/server/app.js
+@@ -4,6 +4,10 @@ import cookieParser from 'cookie-parser';
+ import authRoutes from './routes/authRoutes.js';
+ import catalogRoutes from './routes/catalogRoutes.js';
+ import registrationRoutes from './routes/registrationRoutes.js';
++import inventoryRoutes from './routes/inventoryRoutes.js';
++import categoryRoutes from './routes/categoryRoutes.js';
++import supplierRoutes from './routes/supplierRoutes.js';
++import customerRoutes from './routes/customerRoutes.js';
+ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+ 
+ export const app = express();
+@@ -27,7 +31,11 @@ app.get('/api/health', (req, res) => {
+ app.use('/api/auth', authRoutes);
+ app.use('/api/catalog', catalogRoutes);
+ app.use('/api/registration', registrationRoutes);
+-// Phase 4+ mounts more routers here: /api/inventory, /api/sales,
++app.use('/api', inventoryRoutes);
++app.use('/api', categoryRoutes);
++app.use('/api', supplierRoutes);
++app.use('/api', customerRoutes);
++// Phase 5+ mounts more routers here: /api/sales, /api/purchases,
+ // /api/admin, etc. — kept as separate PRs/patches.
+ 
+ // ── Fallbacks ────────────────────────────────────────────
+diff --git a/server/controllers/categoryController.js b/server/controllers/categoryController.js
+new file mode 100644
+index 0000000..4619055
+--- /dev/null
++++ b/server/controllers/categoryController.js
+@@ -0,0 +1,35 @@
++import { ApiError } from '../utils/ApiError.js';
++import {
++  listCategories,
++  createCategory,
++  updateCategory,
++  deleteCategory,
++} from '../models/categoryModel.js';
++
++export async function getCategories(req, res) {
++  res.json({ categories: await listCategories(req.businessId) });
++}
++
++export async function postCategory(req, res) {
++  if (!req.body.name?.trim()) throw new ApiError(400, 'Category name is required');
++  const category = await createCategory(req.businessId, {
++    name: req.body.name.trim(),
++    parentId: req.body.parentId || null,
++  });
++  res.status(201).json({ category });
++}
++
++export async function putCategory(req, res) {
++  const category = await updateCategory(req.businessId, req.params.id, {
++    name: req.body.name?.trim(),
++    parentId: req.body.parentId,
++  });
++  if (!category) throw new ApiError(404, 'Category not found');
++  res.json({ category });
++}
++
++export async function removeCategory(req, res) {
++  const deleted = await deleteCategory(req.businessId, req.params.id);
++  if (!deleted) throw new ApiError(404, 'Category not found');
++  res.json({ message: 'Category deleted' });
++}
+diff --git a/server/controllers/customerController.js b/server/controllers/customerController.js
+new file mode 100644
+index 0000000..60f4b47
+--- /dev/null
++++ b/server/controllers/customerController.js
+@@ -0,0 +1,29 @@
++import { ApiError } from '../utils/ApiError.js';
++import {
++  listCustomers,
++  createCustomer,
++  updateCustomer,
++  deleteCustomer,
++} from '../models/customerModel.js';
++
++export async function getCustomers(req, res) {
++  res.json({ customers: await listCustomers(req.businessId) });
++}
++
++export async function postCustomer(req, res) {
++  if (!req.body.name?.trim()) throw new ApiError(400, 'Customer name is required');
++  const customer = await createCustomer(req.businessId, req.body);
++  res.status(201).json({ customer });
++}
++
++export async function putCustomer(req, res) {
++  const customer = await updateCustomer(req.businessId, req.params.id, req.body);
++  if (!customer) throw new ApiError(404, 'Customer not found');
++  res.json({ customer });
++}
++
++export async function removeCustomer(req, res) {
++  const deleted = await deleteCustomer(req.businessId, req.params.id);
++  if (!deleted) throw new ApiError(404, 'Customer not found');
++  res.json({ message: 'Customer deleted' });
++}
+diff --git a/server/controllers/inventoryController.js b/server/controllers/inventoryController.js
+new file mode 100644
+index 0000000..4200b74
+--- /dev/null
++++ b/server/controllers/inventoryController.js
+@@ -0,0 +1,73 @@
++import { ApiError } from '../utils/ApiError.js';
++import {
++  listProducts,
++  findProductById,
++  findProductByBarcode,
++  searchProducts,
++  lowStockProducts,
++  createProduct,
++  updateProduct,
++  deactivateProduct,
++} from '../models/productModel.js';
++
++export async function listItems(req, res) {
++  const items = await listProducts(req.businessId, req.business.module_code);
++  res.json({ items });
++}
++
++export async function getItem(req, res) {
++  const item = await findProductById(req.businessId, req.params.id, req.business.module_code);
++  if (!item) throw new ApiError(404, 'Item not found');
++  res.json({ item });
++}
++
++export async function addItem(req, res) {
++  const { name, price } = req.body;
++  if (!name?.trim()) {
++    throw new ApiError(400, 'Item name is required');
++  }
++  if (price !== undefined && Number(price) < 0) {
++    throw new ApiError(400, 'Price cannot be negative');
++  }
++
++  const item = await createProduct(req.business, req.body, req.user.id);
++  res.status(201).json({ message: 'Item created', item });
++}
++
++export async function editItem(req, res) {
++  const { name, price } = req.body;
++  if (name !== undefined && !name.trim()) {
++    throw new ApiError(400, 'Item name cannot be empty');
++  }
++  if (price !== undefined && Number(price) < 0) {
++    throw new ApiError(400, 'Price cannot be negative');
++  }
++
++  const item = await updateProduct(req.business, req.params.id, req.body, req.user.id);
++  if (!item) throw new ApiError(404, 'Item not found');
++  res.json({ message: 'Item updated', item });
++}
++
++export async function removeItem(req, res) {
++  const deleted = await deactivateProduct(req.businessId, req.params.id);
++  if (!deleted) throw new ApiError(404, 'Item not found');
++  res.json({ message: 'Item deleted' });
++}
++
++export async function lowStock(req, res) {
++  const items = await lowStockProducts(req.businessId, req.business.module_code);
++  res.json({ items });
++}
++
++export async function scanBarcode(req, res) {
++  const item = await findProductByBarcode(req.businessId, req.params.barcode, req.business.module_code);
++  if (!item) throw new ApiError(404, 'No item matches that barcode');
++  res.json({ item });
++}
++
++export async function search(req, res) {
++  const q = req.query.q || '';
++  if (!q.trim()) return res.json({ items: [] });
++  const items = await searchProducts(req.businessId, q.trim(), req.business.module_code);
++  res.json({ items });
++}
+diff --git a/server/controllers/supplierController.js b/server/controllers/supplierController.js
+new file mode 100644
+index 0000000..2fa1cc7
+--- /dev/null
++++ b/server/controllers/supplierController.js
+@@ -0,0 +1,29 @@
++import { ApiError } from '../utils/ApiError.js';
++import {
++  listSuppliers,
++  createSupplier,
++  updateSupplier,
++  deleteSupplier,
++} from '../models/supplierModel.js';
++
++export async function getSuppliers(req, res) {
++  res.json({ suppliers: await listSuppliers(req.businessId) });
++}
++
++export async function postSupplier(req, res) {
++  if (!req.body.name?.trim()) throw new ApiError(400, 'Supplier name is required');
++  const supplier = await createSupplier(req.businessId, req.body);
++  res.status(201).json({ supplier });
++}
++
++export async function putSupplier(req, res) {
++  const supplier = await updateSupplier(req.businessId, req.params.id, req.body);
++  if (!supplier) throw new ApiError(404, 'Supplier not found');
++  res.json({ supplier });
++}
++
++export async function removeSupplier(req, res) {
++  const deleted = await deleteSupplier(req.businessId, req.params.id);
++  if (!deleted) throw new ApiError(404, 'Supplier not found');
++  res.json({ message: 'Supplier deleted' });
++}
+diff --git a/server/lib/moduleSatellites.js b/server/lib/moduleSatellites.js
+new file mode 100644
+index 0000000..3e96d75
+--- /dev/null
++++ b/server/lib/moduleSatellites.js
+@@ -0,0 +1,97 @@
++/**
++ * moduleSatellites.js — bridges ItemFormModal.jsx's `moduleSpecificFields`
++ * payload to the right 1:1 satellite table for the business's module.
++ *
++ * Only 'grocery', 'pharmacy', and 'clothing' are wired up here, because
++ * those are the only modules with an actual inventory UI right now
++ * (InventoryPage.jsx falls back to the grocery layout for
++ * electronics/bakery/restaurant/general_store too — see
++ * InventoryPage.jsx's `isPharmacy` check). A business registered under
++ * one of those other four modules will get its `products` row created
++ * fine, just with no satellite row — nothing in module_specific_fields
++ * to map yet, since no one has designed that module's form. Add a case
++ * here (and a real form in the frontend) when one of them gets built.
++ */
++
++const WEIGHED_UNITS = new Set(['KG', 'G', 'L', 'ML']);
++
++/**
++ * @param {string} moduleCode
++ * @returns {{
++ *   table: string,
++ *   toRow: (fields: object) => object,   // moduleSpecificFields -> satellite columns
++ *   fromRow: (row: object) => object,    // satellite columns -> module_specific_fields shape the UI expects
++ * } | null}
++ */
++export function getSatelliteHandler(moduleCode) {
++  switch (moduleCode) {
++    case 'grocery':
++      return {
++        table: 'grocery_products',
++        toRow: (f) => ({
++          brand: null,
++          expiry_date: f.expiry_date || null,
++          is_perishable: f.expiry_date ? 1 : 0,
++          is_weighed: WEIGHED_UNITS.has((f.unit || '').toUpperCase()) ? 1 : 0,
++          package_size: null,
++          country_of_origin: null,
++        }),
++        fromRow: (row) => ({
++          expiry_date: row?.expiry_date || undefined,
++        }),
++      };
++
++    case 'pharmacy':
++      return {
++        table: 'pharmacy_products',
++        toRow: (f) => ({
++          generic_name: null,
++          brand_name: null,
++          manufacturer: f.manufacturer || null,
++          batch_number: f.batch_no || null,
++          expiry_date: f.expiry_date || null,
++          dosage_form: null,
++          strength: null,
++          requires_prescription: 0,
++          is_controlled: 0,
++          storage_conditions: null,
++        }),
++        fromRow: (row) => ({
++          manufacturer: row?.manufacturer || undefined,
++          batch_no: row?.batch_number || undefined,
++          expiry_date: row?.expiry_date || undefined,
++        }),
++      };
++
++    case 'clothing':
++      return {
++        table: 'clothing_products',
++        // clothing_products models ONE size + ONE color per product row
++        // (schema comment: "size VARCHAR(24) -- S, M, L, 32, 8.5"). The UI
++        // lets someone pick several sizes/colors for a single product
++        // listing (a multi-variant mental model the schema doesn't have
++        // yet — true per-variant stock would mean one product row per
++        // size/color combo). Rather than silently drop the extra
++        // selections, we store them comma-joined and split them back out
++        // on read, so the UI's existing sizes[]/colors[] rendering keeps
++        // working. This is a stopgap, not per-variant stock tracking —
++        // see server/README.md.
++        toRow: (f) => ({
++          brand: f.brand || null,
++          size: Array.isArray(f.sizes) ? f.sizes.join(', ') : null,
++          color: Array.isArray(f.colors) ? f.colors.join(', ') : null,
++          material: null,
++          gender: 'unisex',
++          season: null,
++        }),
++        fromRow: (row) => ({
++          brand: row?.brand || undefined,
++          sizes: row?.size ? row.size.split(',').map((s) => s.trim()).filter(Boolean) : [],
++          colors: row?.color ? row.color.split(',').map((c) => c.trim()).filter(Boolean) : [],
++        }),
++      };
++
++    default:
++      return null;
++  }
++}
+diff --git a/server/middleware/requireBusiness.js b/server/middleware/requireBusiness.js
+new file mode 100644
+index 0000000..6d44da5
+--- /dev/null
++++ b/server/middleware/requireBusiness.js
+@@ -0,0 +1,33 @@
++import { findBusinessWithModuleByOwner } from '../models/businessModel.js';
++
++/**
++ * Every route from Phase 4 onward operates on data scoped to a business
++ * (products, categories, suppliers, customers, ...). This resolves
++ * req.user.id -> their business and attaches:
++ *   req.businessId    - for WHERE business_id = ? scoping
++ *   req.business       - the full row, incl. module_code/module_name
++ *
++ * Must run after verifyToken. 403s if the owner hasn't finished the
++ * registration wizard yet (no business exists).
++ *
++ * NOTE: this only resolves businesses.owner_user_id, i.e. the `admin`
++ * role. There is no staff-to-business linking in the schema yet, so a
++ * `user`-role account (a cashier/staff login) has no way to reach a
++ * business's data through this middleware. That's a real gap — staff
++ * accounts aren't creatable yet either, so it hasn't mattered until now,
++ * but it will need a `business_staff` table (or a business_id column on
++ * users) before role='user' logins are useful for anything.
++ */
++export async function requireBusiness(req, res, next) {
++  try {
++    const business = await findBusinessWithModuleByOwner(req.user.id);
++    if (!business) {
++      return res.status(403).json({ message: 'Finish setting up your business first' });
++    }
++    req.businessId = business.id;
++    req.business = business;
++    return next();
++  } catch (err) {
++    return next(err);
++  }
++}
+diff --git a/server/models/businessModel.js b/server/models/businessModel.js
+index 7ed8bfd..e149e9e 100644
+--- a/server/models/businessModel.js
++++ b/server/models/businessModel.js
+@@ -13,6 +13,17 @@ export async function findBusinessById(id) {
+   return rows[0] || null;
+ }
+ 
++/** Joins in the module code/name — used by requireBusiness to decide which satellite table product writes go to. */
++export async function findBusinessWithModuleByOwner(ownerUserId) {
++  const [rows] = await pool.query(
++    `SELECT b.*, m.code AS module_code, m.name AS module_name
++     FROM businesses b JOIN modules m ON m.id = b.module_id
++     WHERE b.owner_user_id = ? LIMIT 1`,
++    [ownerUserId]
++  );
++  return rows[0] || null;
++}
++
+ /**
+  * Runs inside the caller's transaction (`conn`), not the shared pool —
+  * this is always called alongside subscription creation, and both must
+diff --git a/server/models/categoryModel.js b/server/models/categoryModel.js
+new file mode 100644
+index 0000000..566ab81
+--- /dev/null
++++ b/server/models/categoryModel.js
+@@ -0,0 +1,66 @@
++import { pool } from '../config/db.js';
++
++export async function listCategories(businessId) {
++  const [rows] = await pool.query(
++    `SELECT id, name, parent_id FROM categories WHERE business_id = ? ORDER BY name`,
++    [businessId]
++  );
++  return rows;
++}
++
++export async function findCategoryById(businessId, id) {
++  const [rows] = await pool.query(
++    `SELECT * FROM categories WHERE business_id = ? AND id = ? LIMIT 1`,
++    [businessId, id]
++  );
++  return rows[0] || null;
++}
++
++export async function createCategory(businessId, { name, parentId = null }) {
++  const [result] = await pool.query(
++    `INSERT INTO categories (business_id, parent_id, name) VALUES (?, ?, ?)`,
++    [businessId, parentId, name]
++  );
++  return findCategoryById(businessId, result.insertId);
++}
++
++export async function updateCategory(businessId, id, { name, parentId }) {
++  await pool.query(
++    `UPDATE categories SET name = COALESCE(?, name), parent_id = ? WHERE business_id = ? AND id = ?`,
++    [name ?? null, parentId ?? null, businessId, id]
++  );
++  return findCategoryById(businessId, id);
++}
++
++export async function deleteCategory(businessId, id) {
++  const [result] = await pool.query(
++    `DELETE FROM categories WHERE business_id = ? AND id = ?`,
++    [businessId, id]
++  );
++  return result.affectedRows > 0;
++}
++
++/**
++ * The inventory UI sends a plain category name string, not an id
++ * (ItemFormModal's category dropdowns are hardcoded lists like
++ * ['Grain','Dairy',...] or ['Men','Women',...], not sourced from the
++ * catalog yet). This resolves that string to a real categories row,
++ * creating one on first use, so every product still gets a proper
++ * category_id FK underneath.
++ */
++export async function findOrCreateCategory(businessId, name) {
++  const trimmed = name?.trim();
++  if (!trimmed) return null;
++
++  const [existing] = await pool.query(
++    `SELECT id FROM categories WHERE business_id = ? AND name = ? LIMIT 1`,
++    [businessId, trimmed]
++  );
++  if (existing[0]) return existing[0].id;
++
++  const [result] = await pool.query(
++    `INSERT INTO categories (business_id, name) VALUES (?, ?)`,
++    [businessId, trimmed]
++  );
++  return result.insertId;
++}
+diff --git a/server/models/customerModel.js b/server/models/customerModel.js
+new file mode 100644
+index 0000000..b9c850a
+--- /dev/null
++++ b/server/models/customerModel.js
+@@ -0,0 +1,45 @@
++import { pool } from '../config/db.js';
++
++export async function listCustomers(businessId) {
++  const [rows] = await pool.query(
++    `SELECT id, name, phone, email, address, loyalty_points
++     FROM customers WHERE business_id = ? ORDER BY name`,
++    [businessId]
++  );
++  return rows;
++}
++
++export async function findCustomerById(businessId, id) {
++  const [rows] = await pool.query(
++    `SELECT * FROM customers WHERE business_id = ? AND id = ? LIMIT 1`,
++    [businessId, id]
++  );
++  return rows[0] || null;
++}
++
++export async function createCustomer(businessId, { name, phone, email, address }) {
++  const [result] = await pool.query(
++    `INSERT INTO customers (business_id, name, phone, email, address) VALUES (?, ?, ?, ?, ?)`,
++    [businessId, name, phone || null, email || null, address || null]
++  );
++  return findCustomerById(businessId, result.insertId);
++}
++
++export async function updateCustomer(businessId, id, fields) {
++  const current = await findCustomerById(businessId, id);
++  if (!current) return null;
++  const merged = { ...current, ...fields };
++  await pool.query(
++    `UPDATE customers SET name = ?, phone = ?, email = ?, address = ? WHERE business_id = ? AND id = ?`,
++    [merged.name, merged.phone, merged.email, merged.address, businessId, id]
++  );
++  return findCustomerById(businessId, id);
++}
++
++export async function deleteCustomer(businessId, id) {
++  const [result] = await pool.query(
++    `DELETE FROM customers WHERE business_id = ? AND id = ?`,
++    [businessId, id]
++  );
++  return result.affectedRows > 0;
++}
+diff --git a/server/models/productModel.js b/server/models/productModel.js
+new file mode 100644
+index 0000000..ce9a496
+--- /dev/null
++++ b/server/models/productModel.js
+@@ -0,0 +1,263 @@
++import crypto from 'crypto';
++import { pool, withTransaction } from '../config/db.js';
++import { findOrCreateCategory } from './categoryModel.js';
++import { findOrCreateSupplier } from './supplierModel.js';
++import { getSatelliteHandler } from '../lib/moduleSatellites.js';
++
++function generateSku() {
++  return `SKU-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
++}
++
++const BASE_SELECT = `
++  SELECT p.*, c.name AS category_name, s.name AS supplier_name
++  FROM products p
++  LEFT JOIN categories c ON c.id = p.category_id
++  LEFT JOIN suppliers s ON s.id = p.supplier_id
++`;
++
++/**
++ * Shapes a `products` row (+ its satellite row, if any) into the flat
++ * item contract InventoryPage.jsx / ClothingInventoryPage.jsx /
++ * ItemFormModal.jsx already expect: { id, name, category, price,
++ * stock_qty, module_specific_fields: {...} }. `unit` and `cost_price`
++ * are real top-level `products` columns, not module-specific — they're
++ * duplicated into module_specific_fields too, because the existing UI
++ * reads them from there (e.g. `it.module_specific_fields?.unit`).
++ */
++function mapRow(row, satelliteRow, moduleCode) {
++  const handler = getSatelliteHandler(moduleCode);
++  const moduleFields = {
++    cost_price: Number(row.cost_price),
++    unit: row.unit,
++    ...(handler ? handler.fromRow(satelliteRow) : {}),
++  };
++
++  return {
++    id: row.id,
++    name: row.name,
++    sku: row.sku,
++    barcode: row.barcode,
++    category: row.category_name || null,
++    supplier: row.supplier_name || null,
++    price: Number(row.sale_price),
++    stock_qty: Number(row.stock_quantity),
++    reorder_level: Number(row.reorder_level),
++    is_active: Boolean(row.is_active),
++    module_specific_fields: moduleFields,
++  };
++}
++
++async function fetchSatelliteRow(conn, moduleCode, productId) {
++  const handler = getSatelliteHandler(moduleCode);
++  if (!handler) return null;
++  const [rows] = await conn.query(
++    `SELECT * FROM ${handler.table} WHERE product_id = ? LIMIT 1`,
++    [productId]
++  );
++  return rows[0] || null;
++}
++
++export async function listProducts(businessId, moduleCode) {
++  const [rows] = await pool.query(
++    `${BASE_SELECT} WHERE p.business_id = ? AND p.is_active = 1 ORDER BY p.created_at DESC`,
++    [businessId]
++  );
++  const items = [];
++  for (const row of rows) {
++    const satellite = await fetchSatelliteRow(pool, moduleCode, row.id);
++    items.push(mapRow(row, satellite, moduleCode));
++  }
++  return items;
++}
++
++export async function findProductById(businessId, id, moduleCode) {
++  const [rows] = await pool.query(
++    `${BASE_SELECT} WHERE p.business_id = ? AND p.id = ? LIMIT 1`,
++    [businessId, id]
++  );
++  if (!rows[0]) return null;
++  const satellite = await fetchSatelliteRow(pool, moduleCode, id);
++  return mapRow(rows[0], satellite, moduleCode);
++}
++
++export async function findProductByBarcode(businessId, barcode, moduleCode) {
++  const [rows] = await pool.query(
++    `${BASE_SELECT} WHERE p.business_id = ? AND p.barcode = ? AND p.is_active = 1 LIMIT 1`,
++    [businessId, barcode]
++  );
++  if (!rows[0]) return null;
++  const satellite = await fetchSatelliteRow(pool, moduleCode, rows[0].id);
++  return mapRow(rows[0], satellite, moduleCode);
++}
++
++export async function searchProducts(businessId, query, moduleCode) {
++  const like = `%${query}%`;
++  const [rows] = await pool.query(
++    `${BASE_SELECT}
++     WHERE p.business_id = ? AND p.is_active = 1
++       AND (p.name LIKE ? OR p.sku LIKE ? OR p.barcode LIKE ? OR c.name LIKE ?)
++     ORDER BY p.name ASC`,
++    [businessId, like, like, like, like]
++  );
++  const items = [];
++  for (const row of rows) {
++    const satellite = await fetchSatelliteRow(pool, moduleCode, row.id);
++    items.push(mapRow(row, satellite, moduleCode));
++  }
++  return items;
++}
++
++export async function lowStockProducts(businessId, moduleCode) {
++  const [rows] = await pool.query(
++    `${BASE_SELECT} WHERE p.business_id = ? AND p.is_active = 1 AND p.stock_quantity <= p.reorder_level
++     ORDER BY p.stock_quantity ASC`,
++    [businessId]
++  );
++  const items = [];
++  for (const row of rows) {
++    const satellite = await fetchSatelliteRow(pool, moduleCode, row.id);
++    items.push(mapRow(row, satellite, moduleCode));
++  }
++  return items;
++}
++
++/**
++ * @param {object} business  req.business from requireBusiness (needs id + module_code)
++ * @param {object} fields    { name, sku, barcode, category, unit, price, stockQty, reorderLevel, moduleSpecificFields }
++ */
++export async function createProduct(business, fields, userId) {
++  const { name, sku, barcode, category, unit, price, stockQty, reorderLevel, moduleSpecificFields = {} } = fields;
++
++  const categoryId = await findOrCreateCategory(business.id, category);
++  const supplierId = moduleSpecificFields.supplier_name
++    ? await findOrCreateSupplier(business.id, moduleSpecificFields.supplier_name)
++    : null;
++
++  const finalSku = sku?.trim() || generateSku();
++  const finalUnit = unit || moduleSpecificFields.unit || 'pcs';
++  const costPrice = moduleSpecificFields.cost_price ?? 0;
++  const openingStock = Number(stockQty) || 0;
++
++  const productId = await withTransaction(async (conn) => {
++    const [result] = await conn.query(
++      `INSERT INTO products
++         (business_id, category_id, supplier_id, sku, barcode, name, unit,
++          cost_price, sale_price, stock_quantity, reorder_level, is_active)
++       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1)`,
++      [
++        business.id, categoryId, supplierId, finalSku, barcode?.trim() || null, name,
++        finalUnit, costPrice, Number(price) || 0, openingStock, Number(reorderLevel) || 0,
++      ]
++    );
++    const id = result.insertId;
++
++    const handler = getSatelliteHandler(business.module_code);
++    if (handler) {
++      const satelliteFields = handler.toRow(moduleSpecificFields);
++      const columns = Object.keys(satelliteFields);
++      await conn.query(
++        `INSERT INTO ${handler.table} (product_id, ${columns.join(', ')})
++         VALUES (?, ${columns.map(() => '?').join(', ')})`,
++        [id, ...columns.map((c) => satelliteFields[c])]
++      );
++    }
++
++    if (openingStock > 0) {
++      await conn.query(
++        `INSERT INTO stock_movements
++           (business_id, product_id, user_id, movement_type, quantity_change, balance_after, note)
++         VALUES (?, ?, ?, 'opening', ?, ?, 'Opening stock on creation')`,
++        [business.id, id, userId, openingStock, openingStock]
++      );
++    }
++
++    return id;
++  });
++
++  return findProductById(business.id, productId, business.module_code);
++}
++
++/**
++ * @param {object} business  req.business (needs id + module_code)
++ */
++export async function updateProduct(business, id, fields, userId) {
++  const existing = await findProductById(business.id, id, business.module_code);
++  if (!existing) return null;
++
++  const { name, sku, barcode, category, unit, price, stockQty, reorderLevel, moduleSpecificFields = {} } = fields;
++
++  const categoryId = category !== undefined ? await findOrCreateCategory(business.id, category) : undefined;
++  const supplierId = moduleSpecificFields.supplier_name
++    ? await findOrCreateSupplier(business.id, moduleSpecificFields.supplier_name)
++    : undefined;
++
++  const newStock = stockQty !== undefined ? Number(stockQty) : existing.stock_qty;
++  const stockDelta = newStock - existing.stock_qty;
++
++  await withTransaction(async (conn) => {
++    await conn.query(
++      `UPDATE products SET
++         name = COALESCE(?, name),
++         sku = COALESCE(?, sku),
++         barcode = ?,
++         category_id = COALESCE(?, category_id),
++         supplier_id = COALESCE(?, supplier_id),
++         unit = COALESCE(?, unit),
++         cost_price = COALESCE(?, cost_price),
++         sale_price = COALESCE(?, sale_price),
++         stock_quantity = ?,
++         reorder_level = COALESCE(?, reorder_level)
++       WHERE business_id = ? AND id = ?`,
++      [
++        name ?? null,
++        sku?.trim() || null,
++        barcode !== undefined ? (barcode?.trim() || null) : existing.barcode,
++        categoryId ?? null,
++        supplierId ?? null,
++        unit || moduleSpecificFields.unit || null,
++        moduleSpecificFields.cost_price ?? null,
++        price !== undefined ? Number(price) : null,
++        newStock,
++        reorderLevel !== undefined ? Number(reorderLevel) : null,
++        business.id, id,
++      ]
++    );
++
++    const handler = getSatelliteHandler(business.module_code);
++    if (handler && Object.keys(moduleSpecificFields).length) {
++      const satelliteFields = handler.toRow(moduleSpecificFields);
++      const columns = Object.keys(satelliteFields);
++      const assignments = columns.map((c) => `${c} = VALUES(${c})`).join(', ');
++      await conn.query(
++        `INSERT INTO ${handler.table} (product_id, ${columns.join(', ')})
++         VALUES (?, ${columns.map(() => '?').join(', ')})
++         ON DUPLICATE KEY UPDATE ${assignments}`,
++        [id, ...columns.map((c) => satelliteFields[c])]
++      );
++    }
++
++    if (stockDelta !== 0) {
++      await conn.query(
++        `INSERT INTO stock_movements
++           (business_id, product_id, user_id, movement_type, quantity_change, balance_after, note)
++         VALUES (?, ?, ?, 'adjustment', ?, ?, 'Manual inventory edit')`,
++        [business.id, id, userId, stockDelta, newStock]
++      );
++    }
++  });
++
++  return findProductById(business.id, id, business.module_code);
++}
++
++/**
++ * Soft delete — flips is_active off rather than a hard DELETE, so past
++ * sales/purchase history referencing this product (sale_items,
++ * stock_movements) stays intact and reports don't silently lose rows.
++ */
++export async function deactivateProduct(businessId, id) {
++  const [result] = await pool.query(
++    `UPDATE products SET is_active = 0 WHERE business_id = ? AND id = ? AND is_active = 1`,
++    [businessId, id]
++  );
++  return result.affectedRows > 0;
++}
+diff --git a/server/models/supplierModel.js b/server/models/supplierModel.js
+new file mode 100644
+index 0000000..221aebb
+--- /dev/null
++++ b/server/models/supplierModel.js
+@@ -0,0 +1,65 @@
++import { pool } from '../config/db.js';
++
++export async function listSuppliers(businessId) {
++  const [rows] = await pool.query(
++    `SELECT id, name, contact_person, phone, email, address
++     FROM suppliers WHERE business_id = ? ORDER BY name`,
++    [businessId]
++  );
++  return rows;
++}
++
++export async function findSupplierById(businessId, id) {
++  const [rows] = await pool.query(
++    `SELECT * FROM suppliers WHERE business_id = ? AND id = ? LIMIT 1`,
++    [businessId, id]
++  );
++  return rows[0] || null;
++}
++
++export async function createSupplier(businessId, { name, contactPerson, phone, email, address }) {
++  const [result] = await pool.query(
++    `INSERT INTO suppliers (business_id, name, contact_person, phone, email, address)
++     VALUES (?, ?, ?, ?, ?, ?)`,
++    [businessId, name, contactPerson || null, phone || null, email || null, address || null]
++  );
++  return findSupplierById(businessId, result.insertId);
++}
++
++export async function updateSupplier(businessId, id, fields) {
++  const current = await findSupplierById(businessId, id);
++  if (!current) return null;
++  const merged = { ...current, ...fields };
++  await pool.query(
++    `UPDATE suppliers SET name = ?, contact_person = ?, phone = ?, email = ?, address = ?
++     WHERE business_id = ? AND id = ?`,
++    [merged.name, merged.contact_person, merged.phone, merged.email, merged.address, businessId, id]
++  );
++  return findSupplierById(businessId, id);
++}
++
++export async function deleteSupplier(businessId, id) {
++  const [result] = await pool.query(
++    `DELETE FROM suppliers WHERE business_id = ? AND id = ?`,
++    [businessId, id]
++  );
++  return result.affectedRows > 0;
++}
++
++/** Same find-or-create pattern as categories — the grocery form sends a plain supplier name. */
++export async function findOrCreateSupplier(businessId, name) {
++  const trimmed = name?.trim();
++  if (!trimmed) return null;
++
++  const [existing] = await pool.query(
++    `SELECT id FROM suppliers WHERE business_id = ? AND name = ? LIMIT 1`,
++    [businessId, trimmed]
++  );
++  if (existing[0]) return existing[0].id;
++
++  const [result] = await pool.query(
++    `INSERT INTO suppliers (business_id, name) VALUES (?, ?)`,
++    [businessId, trimmed]
++  );
++  return result.insertId;
++}
+diff --git a/server/routes/categoryRoutes.js b/server/routes/categoryRoutes.js
+new file mode 100644
+index 0000000..aaf2f7c
+--- /dev/null
++++ b/server/routes/categoryRoutes.js
+@@ -0,0 +1,15 @@
++import express from 'express';
++import { verifyToken } from '../middleware/verifyToken.js';
++import { requireBusiness } from '../middleware/requireBusiness.js';
++import { asyncHandler } from '../utils/asyncHandler.js';
++import { getCategories, postCategory, putCategory, removeCategory } from '../controllers/categoryController.js';
++
++const router = express.Router();
++router.use(verifyToken, requireBusiness);
++
++router.get('/categories', asyncHandler(getCategories));
++router.post('/categories', asyncHandler(postCategory));
++router.put('/categories/:id', asyncHandler(putCategory));
++router.delete('/categories/:id', asyncHandler(removeCategory));
++
++export default router;
+diff --git a/server/routes/customerRoutes.js b/server/routes/customerRoutes.js
+new file mode 100644
+index 0000000..372879e
+--- /dev/null
++++ b/server/routes/customerRoutes.js
+@@ -0,0 +1,15 @@
++import express from 'express';
++import { verifyToken } from '../middleware/verifyToken.js';
++import { requireBusiness } from '../middleware/requireBusiness.js';
++import { asyncHandler } from '../utils/asyncHandler.js';
++import { getCustomers, postCustomer, putCustomer, removeCustomer } from '../controllers/customerController.js';
++
++const router = express.Router();
++router.use(verifyToken, requireBusiness);
++
++router.get('/customers', asyncHandler(getCustomers));
++router.post('/customers', asyncHandler(postCustomer));
++router.put('/customers/:id', asyncHandler(putCustomer));
++router.delete('/customers/:id', asyncHandler(removeCustomer));
++
++export default router;
+diff --git a/server/routes/inventoryRoutes.js b/server/routes/inventoryRoutes.js
+new file mode 100644
+index 0000000..d03248d
+--- /dev/null
++++ b/server/routes/inventoryRoutes.js
+@@ -0,0 +1,32 @@
++import express from 'express';
++import { verifyToken } from '../middleware/verifyToken.js';
++import { requireBusiness } from '../middleware/requireBusiness.js';
++import { asyncHandler } from '../utils/asyncHandler.js';
++import {
++  listItems,
++  getItem,
++  addItem,
++  editItem,
++  removeItem,
++  lowStock,
++  scanBarcode,
++  search,
++} from '../controllers/inventoryController.js';
++
++const router = express.Router();
++
++// Every route needs a logged-in user AND a completed business — every
++// query is scoped to req.businessId at the model layer.
++router.use(verifyToken, requireBusiness);
++
++router.get('/inventory/items', asyncHandler(listItems));
++router.post('/inventory/items', asyncHandler(addItem));
++router.get('/inventory/items/:id', asyncHandler(getItem));
++router.put('/inventory/items/:id', asyncHandler(editItem));
++router.delete('/inventory/items/:id', asyncHandler(removeItem));
++
++router.get('/inventory/low-stock', asyncHandler(lowStock));
++router.get('/inventory/scan/:barcode', asyncHandler(scanBarcode));
++router.get('/inventory/search', asyncHandler(search));
++
++export default router;
+diff --git a/server/routes/supplierRoutes.js b/server/routes/supplierRoutes.js
+new file mode 100644
+index 0000000..9d11f26
+--- /dev/null
++++ b/server/routes/supplierRoutes.js
+@@ -0,0 +1,15 @@
++import express from 'express';
++import { verifyToken } from '../middleware/verifyToken.js';
++import { requireBusiness } from '../middleware/requireBusiness.js';
++import { asyncHandler } from '../utils/asyncHandler.js';
++import { getSuppliers, postSupplier, putSupplier, removeSupplier } from '../controllers/supplierController.js';
++
++const router = express.Router();
++router.use(verifyToken, requireBusiness);
++
++router.get('/suppliers', asyncHandler(getSuppliers));
++router.post('/suppliers', asyncHandler(postSupplier));
++router.put('/suppliers/:id', asyncHandler(putSupplier));
++router.delete('/suppliers/:id', asyncHandler(removeSupplier));
++
++export default router;
+diff --git a/src/components/User/ItemFormModal.jsx b/src/components/User/ItemFormModal.jsx
+index d6e9313..7ced14e 100644
+--- a/src/components/User/ItemFormModal.jsx
++++ b/src/components/User/ItemFormModal.jsx
+@@ -163,6 +163,7 @@ export default function ItemFormModal({
+     if (moduleType === 'pharmacy') {
+       return {
+         ...baseFields,
++        unit,
+         batch_no: batchNo || undefined,
+         manufacturer: manufacturer || undefined,
+         expiry_date: expiryDate || undefined,
