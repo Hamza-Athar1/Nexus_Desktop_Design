@@ -76,3 +76,85 @@ get mounted.
   premature.
 - Refresh tokens are rotated by **revoking** the old session row (not
   deleting it), so `sessions` doubles as an audit trail.
+
+## Phase 3: Registration wizard
+
+Adds read-only platform catalog endpoints and the business registration
+flow: draft save/resume for wizard steps 2-4, and a `finish` endpoint
+that atomically creates the `businesses` + `subscriptions` +
+`subscription_backup_modules` rows.
+
+**Step 1 (Account) is not part of this — it's `/auth/signup`.** The
+`registration_drafts` table requires a `user_id` (its FK is `NOT NULL`),
+so a draft can only exist for a user that already exists.
+`RegisterBusinessPage.jsx`'s own step-1 form (username/email/password/etc.)
+duplicates what `SignUpPage.jsx` already collects — see "Known gaps" below.
+
+### New endpoints
+
+| Method | Path                         | Auth   | Notes |
+|--------|-------------------------------|--------|-------|
+| GET    | `/api/catalog/modules`        | —      | All modules, incl. `is_available:0` ones ("MORE SOON" tiles). |
+| GET    | `/api/catalog/business-types` | —      | |
+| GET    | `/api/catalog/plans`          | —      | Active plans only. |
+| GET    | `/api/catalog/backup-modules` | —      | Active backup modules only. |
+| GET    | `/api/registration/draft`     | cookie | `{ draft: null }` if none saved yet. |
+| PUT    | `/api/registration/draft`     | cookie | `{ step: 2\|3\|4, payload: {...} }` — upserts. |
+| POST   | `/api/registration/finish`    | cookie | Creates the business. 409 if one already exists for this user. |
+
+`POST /api/registration/finish` body shape:
+```json
+{
+  "business": {
+    "businessName": "Fairy Parcel Co",
+    "businessTypeCode": "grocery",
+    "location": "Karachi, DHA",
+    "cityRegion": "Karachi, Sindh",
+    "shopAddress": "Shop 12, Bahadurabad",
+    "isRegistered": true,
+    "nicNumber": "42101-1234567-1"
+  },
+  "moduleCode": "grocery",
+  "subscription": {
+    "planCode": "retention_6m",
+    "platform": "web_app",
+    "paymentMethod": "card",
+    "backupModuleCodes": ["sales_pos", "inventory"]
+  }
+}
+```
+
+### Known gaps to fix on the frontend (not touched by this patch)
+
+- `RegisterBusinessPage.jsx` step 1 duplicates `SignUpPage.jsx` (both
+  collect username/email/password). Once a user is authenticated via
+  `/auth/signup`, this step should be skipped or pre-filled/read-only.
+- `businessForm.businessType` is free text, not sourced from
+  `GET /api/catalog/business-types`. The backend does a best-effort
+  case-insensitive match and falls back to `'other'` so this doesn't
+  block registration, but a real dropdown would be more correct.
+- The retention-plan buttons (`3month`, `6month`, `3month_dup`) don't
+  match `plans.code` (`retention_3m`/`retention_6m`/`retention_12m`) —
+  there's also a duplicate `3month_dup` button where a 12-month option
+  should be, and no 12-month plan is actually offered in the UI.
+- `platform` state uses `'web'|'mobile'|'both'`; the API expects the
+  schema's exact enum: `'web_app'|'mobile_pos'|'both'`.
+- `paymentMethod` state uses `'card'|'bank'|'jazzcash'`; the API expects
+  `'card'|'bank_transfer'|'jazzcash_easypaisa'`.
+- `backupSales`/`backupInventory` are separate booleans; the API wants
+  `subscription.backupModuleCodes: ['sales_pos', 'inventory']`.
+- `shopAddress` is collected in step 1, but the schema needs it on
+  `businesses` at finish-setup time — it's optional in the request body,
+  so wire it in whenever the frontend has it available.
+- `handleFinishSetup` currently just does `navigate('/dashboard')` with
+  no API call at all — this whole flow needs wiring up.
+
+### Design notes / schema decisions made this phase
+
+- `PUT /api/registration/draft` stores whatever `payload` object the
+  frontend sends, whole — no partial merge server-side. The frontend is
+  expected to always send its full accumulated wizard state, not a diff.
+- `finish` re-validates everything server-side (module availability,
+  plan active, NIC-when-registered, etc.) rather than trusting the
+  draft — the draft is for UX convenience, not a source of truth.
+

@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import authRoutes from './routes/authRoutes.js';
+import catalogRoutes from './routes/catalogRoutes.js';
+import registrationRoutes from './routes/registrationRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export const app = express();
@@ -23,8 +25,10 @@ app.get('/api/health', (req, res) => {
 
 // ── Routes ───────────────────────────────────────────────
 app.use('/api/auth', authRoutes);
-// Phase 3+ mounts more routers here: /api/business, /api/inventory,
-// /api/sales, /api/admin, etc. — kept as separate PRs/patches.
+app.use('/api/catalog', catalogRoutes);
+app.use('/api/registration', registrationRoutes);
+// Phase 4+ mounts more routers here: /api/inventory, /api/sales,
+// /api/admin, etc. — kept as separate PRs/patches.
 
 // ── Fallbacks ────────────────────────────────────────────
 app.use(notFoundHandler);
