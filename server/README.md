@@ -52,17 +52,36 @@ get mounted.
 | POST   | `/api/auth/forgot-password` | —         | Always 200; logs the reset link to the console (no email provider wired up yet). |
 | POST   | `/api/auth/reset-password`  | —         | Consumes the token, revokes all sessions for that user. |
 
-### Known gaps to fix on the frontend (not touched by this patch)
+### Frontend wiring (this patch)
 
-- `LoginPage.jsx`'s `ROLE_REDIRECTS` uses `'super-admin'` (hyphen); the
-  schema/backend use `'super_admin'` (underscore). Role-based redirects
-  won't work until that's aligned.
-- `LoginPage.jsx` has a `remember` checkbox in state but never sends it
-  in the `/auth/login` request body — the backend already accepts and
-  uses it (`remember`), just needs the one-line wiring.
-- `ProtectedRoute.jsx` / `RoleRoute.jsx` exist but aren't used in
-  `App.jsx` yet — every route is currently public.
-- `ForgotPasswordPage.jsx` isn't wired to `apiFetch` yet.
+Originally these endpoints existed but nothing in `src/` called them. This
+patch wires the frontend up completely:
+
+- `SignUpPage.jsx` now sends `{ username, email, password, phoneNumber, city }`
+  (previously sent stale `businessName`/`businessType` fields left over from
+  the old server) and logs the user into `AuthContext` immediately on success.
+- `LoginPage.jsx` now sends `remember` in the request body, and its
+  post-login redirect uses `super_admin` (underscore) via the shared
+  `src/lib/roleRedirects.js` instead of the old `'super-admin'` typo.
+- `ForgotPasswordPage.jsx` calls `POST /auth/forgot-password` for real
+  (was a fake 2-second `setTimeout`).
+- **New page** `ResetPasswordPage.jsx` (route `/reset-password?token=...`)
+  — there was no frontend page to actually consume the reset link before
+  this patch, even though the backend endpoint existed.
+- `ProtectedRoute.jsx` / `RoleRoute.jsx` were stubs ("Temporarily bypass
+  ... for development/testing") — now do real auth/role checks and are
+  applied in `App.jsx`: shared POS pages require login, `/admin` requires
+  `admin`/`super_admin`, `/super-admin/*` requires `super_admin`.
+
+**Left alone, on purpose:** `ModuleSelectPage.jsx` (route `/modules`) posts
+to `/business/select-module`, which doesn't exist in the new backend and
+doesn't fit the new one-module-per-business schema (a business's module is
+now fixed at registration, not re-selectable per staff session). This needs
+a product decision, not a guess — flagging it rather than touching it.
+Google/Facebook sign-in buttons are also still non-functional; no OAuth
+endpoints exist yet (the schema's `oauth_accounts` table is ready for
+this whenever it's prioritized).
+
 
 ### Design notes / schema decisions made this phase
 
@@ -87,8 +106,8 @@ that atomically creates the `businesses` + `subscriptions` +
 **Step 1 (Account) is not part of this — it's `/auth/signup`.** The
 `registration_drafts` table requires a `user_id` (its FK is `NOT NULL`),
 so a draft can only exist for a user that already exists.
-`RegisterBusinessPage.jsx`'s own step-1 form (username/email/password/etc.)
-duplicates what `SignUpPage.jsx` already collects — see "Known gaps" below.
+`RegisterBusinessPage.jsx`'s wizard now opens directly at Business
+details for this reason — see "Frontend wiring" below.
 
 ### New endpoints
 
@@ -124,30 +143,45 @@ duplicates what `SignUpPage.jsx` already collects — see "Known gaps" below.
 }
 ```
 
-### Known gaps to fix on the frontend (not touched by this patch)
+### Frontend wiring (this patch)
 
-- `RegisterBusinessPage.jsx` step 1 duplicates `SignUpPage.jsx` (both
-  collect username/email/password). Once a user is authenticated via
-  `/auth/signup`, this step should be skipped or pre-filled/read-only.
-- `businessForm.businessType` is free text, not sourced from
-  `GET /api/catalog/business-types`. The backend does a best-effort
-  case-insensitive match and falls back to `'other'` so this doesn't
-  block registration, but a real dropdown would be more correct.
-- The retention-plan buttons (`3month`, `6month`, `3month_dup`) don't
-  match `plans.code` (`retention_3m`/`retention_6m`/`retention_12m`) —
-  there's also a duplicate `3month_dup` button where a 12-month option
-  should be, and no 12-month plan is actually offered in the UI.
-- `platform` state uses `'web'|'mobile'|'both'`; the API expects the
-  schema's exact enum: `'web_app'|'mobile_pos'|'both'`.
-- `paymentMethod` state uses `'card'|'bank'|'jazzcash'`; the API expects
-  `'card'|'bank_transfer'|'jazzcash_easypaisa'`.
-- `backupSales`/`backupInventory` are separate booleans; the API wants
-  `subscription.backupModuleCodes: ['sales_pos', 'inventory']`.
-- `shopAddress` is collected in step 1, but the schema needs it on
-  `businesses` at finish-setup time — it's optional in the request body,
-  so wire it in whenever the frontend has it available.
-- `handleFinishSetup` currently just does `navigate('/dashboard')` with
-  no API call at all — this whole flow needs wiring up.
+`RegisterBusinessPage.jsx` previously had zero API calls at all —
+`handleFinishSetup` just did `navigate('/dashboard')`. It's been
+substantially rewritten:
+
+- **Step 1 (Account) removed.** It duplicated `SignUpPage.jsx`
+  (username/email/password again) and can't work as a draft anyway —
+  see the note above about `registration_drafts.user_id`. The wizard
+  now opens straight to Business details, renumbered 1-2-3
+  (Business details → Module Selection → Backup & Plan). The `shopAddress`
+  field that used to live on the old step 1 moved to the business
+  details step, since that's what the backend actually needs it for.
+- Business type is now a real `<select>` sourced from
+  `GET /api/catalog/business-types`, not free text.
+- Module tiles are sourced from `GET /api/catalog/modules` — the old
+  hardcoded list had `'general-store'` (hyphen) vs. the schema's
+  `'general_store'` (underscore), which would have silently sent the
+  wrong code. Modules with `is_available: 0` now render as real
+  disabled "MORE SOON" tiles instead of one static placeholder box.
+- Retention plan buttons are sourced from `GET /api/catalog/plans` —
+  fixes the old UI's duplicate 3-month button (there was no 12-month
+  option at all before).
+- `platform` and `paymentMethod` state now use the backend's exact enum
+  values directly (`web_app`/`mobile_pos`/`both`,
+  `card`/`bank_transfer`/`jazzcash_easypaisa`) instead of a set of
+  values that needed translating.
+- Backup module checkboxes are sourced from
+  `GET /api/catalog/backup-modules` and collected into
+  `subscription.backupModuleCodes` — no more hardcoded `150`/`150`
+  pricing; the cost summary is computed live from the fetched prices.
+- The wizard now calls `PUT /api/registration/draft` after each step
+  and `GET`s it on mount to resume progress, and `handleFinishSetup`
+  calls `POST /api/registration/finish` for real, then
+  `refreshUser()`s `AuthContext` so `businessId` updates immediately.
+- `LoginPage.jsx`'s post-login redirect now sends owners straight to
+  `/register-business` if they haven't finished onboarding
+  (`role === 'admin' && !businessId`) instead of an empty dashboard.
+
 
 ### Design notes / schema decisions made this phase
 

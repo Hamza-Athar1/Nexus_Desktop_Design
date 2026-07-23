@@ -1,174 +1,264 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Eye, 
-  EyeOff, 
-  Syringe, 
-  ShoppingCart, 
-  Monitor, 
-  Cookie, 
-  Utensils, 
-  Store, 
-  Shirt, 
-  Plus 
-} from 'lucide-react';
+import { Syringe, ShoppingCart, Monitor, Cookie, Utensils, Store, Shirt } from 'lucide-react';
+import { apiFetch, apiFetchJson } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 
-const MODULES = [
-  { id: 'pharmacy', name: 'Pharmacy', desc: 'MEDICINE AND RX', icon: Syringe },
-  { id: 'grocery', name: 'Grocery', desc: 'DAILY ESSENTIALS', icon: ShoppingCart },
-  { id: 'electronics', name: 'Electronics', desc: 'DEVICES AND PARTS', icon: Monitor },
-  { id: 'bakery', name: 'Bakery', desc: 'FRESH GOODS', icon: Cookie },
-  { id: 'restaurant', name: 'Restaurant', desc: 'DINE AND SERVE', icon: Utensils },
-  { id: 'general-store', name: 'General Store', desc: 'MULTI-CATEGORY', icon: Store },
-  { id: 'clothing', name: 'Clothing', desc: 'APPAREL AND WEAR', icon: Shirt },
-];
+/** Maps `modules.icon` (a plain string from the catalog) to a lucide component. */
+const MODULE_ICONS = {
+  syringe: Syringe,
+  cart: ShoppingCart,
+  laptop: Monitor,
+  bread: Cookie,
+  utensils: Utensils,
+  store: Store,
+  shirt: Shirt,
+};
 
 export default function RegisterBusinessPage() {
   const navigate = useNavigate();
+  const { user, refreshUser } = useAuth();
 
-  // Wizard Step State
-  const [step, setStep] = useState(1); // 1: Account, 2: Business details, 3: Module Selection, 4: Backup & Plan
+  // Wizard Step State — 1: Business details, 2: Module Selection, 3: Backup & Plan.
+  // (There is no "Account" step here — that's /signup. See server/README.md
+  // Phase 3 "Known gaps" for why.)
+  const [step, setStep] = useState(1);
 
-  // Step 1 Form States
-  const [accountForm, setAccountForm] = useState({
-    username: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-    phoneNumber: '',
-    city: '',
-    shopAddress: '',
-    agreed: false,
-  });
+  // Catalog data, fetched once on mount.
+  const [businessTypes, setBusinessTypes] = useState([]);
+  const [modules, setModules] = useState([]);
+  const [plans, setPlans] = useState([]);
+  const [backupModulesCatalog, setBackupModulesCatalog] = useState([]);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
 
-  const [showPass, setShowPass] = useState(false);
-  const [showConfirmPass, setShowConfirmPass] = useState(false);
-
-  // Step 2 Form States
+  // Step 1 Form State
   const [businessForm, setBusinessForm] = useState({
     businessName: '',
-    businessType: '',
+    businessTypeCode: '',
     businessLocation: '',
     isRegistered: true,
     nicNumber: '',
     cityRegion: '',
+    shopAddress: '',
   });
 
-  // Step 3 Form State
-  const [selectedModule, setSelectedModule] = useState('pharmacy');
+  // Step 2 Form State
+  const [selectedModule, setSelectedModule] = useState('');
 
-  // Step 4 Form States
-  const [platform, setPlatform] = useState('web'); // web | mobile | both
-  const [backupSales, setBackupSales] = useState(true);
-  const [backupInventory, setBackupInventory] = useState(true);
-  const [retention, setRetention] = useState('6month'); // 3month | 6month | 12month (displays as 3 month in image)
-  const [paymentMethod, setPaymentMethod] = useState('card'); // card | bank | jazzcash
+  // Step 3 Form State — values match the backend's ENUMs directly
+  // (see server/README.md Phase 3 "Known gaps" for the mapping this replaces).
+  const [planCode, setPlanCode] = useState('retention_6m');
+  const [platform, setPlatform] = useState('web_app'); // web_app | mobile_pos | both
+  const [paymentMethod, setPaymentMethod] = useState('card'); // card | bank_transfer | jazzcash_easypaisa
+  const [selectedBackupCodes, setSelectedBackupCodes] = useState([]);
 
   const [errorMsg, setErrorMsg] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  // ── Already onboarded? Don't let them redo the wizard. ──────────────────
+  useEffect(() => {
+    if (user?.businessId) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
+  // ── Load catalog + resume any saved draft ────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadEverything() {
+      try {
+        const [typesRes, modulesRes, plansRes, backupRes, draftRes] = await Promise.all([
+          apiFetchJson('/catalog/business-types'),
+          apiFetchJson('/catalog/modules'),
+          apiFetchJson('/catalog/plans'),
+          apiFetchJson('/catalog/backup-modules'),
+          apiFetchJson('/registration/draft'),
+        ]);
+        if (cancelled) return;
+
+        if (typesRes.ok) setBusinessTypes(typesRes.data.businessTypes || []);
+        if (modulesRes.ok) setModules(modulesRes.data.modules || []);
+        if (plansRes.ok) setPlans(plansRes.data.plans || []);
+
+        let backupCodesDefault = [];
+        if (backupRes.ok) {
+          const list = backupRes.data.backupModules || [];
+          setBackupModulesCatalog(list);
+          backupCodesDefault = list.map((m) => m.code); // default: everything selected
+        }
+        setSelectedBackupCodes(backupCodesDefault);
+
+        const draft = draftRes.ok ? draftRes.data.draft : null;
+        if (draft?.payload) {
+          const p = draft.payload;
+          if (p.business) setBusinessForm((prev) => ({ ...prev, ...p.business }));
+          if (p.moduleCode) setSelectedModule(p.moduleCode);
+          if (p.subscription?.planCode) setPlanCode(p.subscription.planCode);
+          if (p.subscription?.platform) setPlatform(p.subscription.platform);
+          if (p.subscription?.paymentMethod) setPaymentMethod(p.subscription.paymentMethod);
+          if (p.subscription?.backupModuleCodes) setSelectedBackupCodes(p.subscription.backupModuleCodes);
+          // Backend draft steps are 2/3/4 (step 1 = account, handled by /signup).
+          // Frontend steps are 1/2/3 — shift down by one.
+          if (draft.current_step) setStep(Math.max(1, draft.current_step - 1));
+        }
+      } catch {
+        // Catalog failed to load — the wizard still renders, just with
+        // empty option lists; step validation stops the user from
+        // continuing with nothing selected rather than crashing here.
+      } finally {
+        if (!cancelled) setLoadingCatalog(false);
+      }
+    }
+
+    loadEverything();
+    return () => { cancelled = true; };
+  }, []);
+
+  // ── Draft autosave — fire-and-forget, never blocks wizard progress ──────
+  async function saveDraft(backendStep) {
+    try {
+      await apiFetch('/registration/draft', {
+        method: 'PUT',
+        body: JSON.stringify({
+          step: backendStep,
+          payload: {
+            business: businessForm,
+            moduleCode: selectedModule,
+            subscription: { planCode, platform, paymentMethod, backupModuleCodes: selectedBackupCodes },
+          },
+        }),
+      });
+    } catch {
+      // Best-effort UX sugar — a failed draft save shouldn't stop the wizard.
+    }
+  }
 
   // Handlers for Step 1
-  const handleAccountChange = (field) => (e) => {
-    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
-    setAccountForm((prev) => ({ ...prev, [field]: value }));
-    setErrorMsg('');
-  };
-
-  const handleAccountSubmit = (e) => {
-    e.preventDefault();
-    if (
-      !accountForm.username.trim() ||
-      !accountForm.email.trim() ||
-      !accountForm.password ||
-      !accountForm.confirmPassword ||
-      !accountForm.phoneNumber.trim() ||
-      !accountForm.city.trim() ||
-      !accountForm.shopAddress.trim()
-    ) {
-      setErrorMsg('All fields are required.');
-      return;
-    }
-    if (accountForm.password !== accountForm.confirmPassword) {
-      setErrorMsg('Passwords do not match.');
-      return;
-    }
-    if (!accountForm.agreed) {
-      setErrorMsg('You must agree to the Terms of services and privacy Policy.');
-      return;
-    }
-
-    setErrorMsg('');
-    setStep(2);
-  };
-
-  // Handlers for Step 2
   const handleBusinessChange = (field, value) => {
     setBusinessForm((prev) => ({ ...prev, [field]: value }));
     setErrorMsg('');
   };
 
-  const handleBusinessSubmit = (e) => {
+  const handleBusinessSubmit = async (e) => {
     e.preventDefault();
     if (
       !businessForm.businessName.trim() ||
-      !businessForm.businessType.trim() ||
+      !businessForm.businessTypeCode ||
       !businessForm.businessLocation.trim()
     ) {
       setErrorMsg('Business Name, Type, and Location are required.');
       return;
     }
-
     if (businessForm.isRegistered) {
       if (!businessForm.nicNumber.trim() || !businessForm.cityRegion.trim()) {
         setErrorMsg('NIC number and City/region are required for registered businesses.');
         return;
       }
     }
-
     setErrorMsg('');
-    setStep(3);
+    await saveDraft(2);
+    setStep(2);
   };
 
-  // Handlers for Step 3
-  const handleModuleSelectSubmit = (e) => {
+  // Handlers for Step 2
+  const handleModuleSelectSubmit = async (e) => {
     e.preventDefault();
     if (!selectedModule) {
       setErrorMsg('Please select a business module.');
       return;
     }
+    const mod = modules.find((m) => m.code === selectedModule);
+    if (mod && !mod.is_available) {
+      setErrorMsg(`${mod.name} isn't available yet.`);
+      return;
+    }
 
     localStorage.setItem('nexus_module', selectedModule);
     setErrorMsg('');
-    setStep(4);
+    await saveDraft(3);
+    setStep(3);
   };
 
-  // Cost Calculations
-  const getRetentionCost = () => {
-    if (retention === '3month') return 1500;
-    if (retention === '6month') return 2200;
-    return 1500; // default / 3 month
-  };
+  // Handlers for Step 3
+  function toggleBackupModule(code) {
+    setSelectedBackupCodes((prev) =>
+      prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
+    );
+  }
 
-  const getModulesCost = () => {
-    let cost = 0;
-    if (backupSales) cost += 150;
-    if (backupInventory) cost += 150;
-    return cost;
-  };
-
-  const retentionCost = getRetentionCost();
-  const modulesCost = getModulesCost();
+  // Cost calculation — driven entirely by fetched catalog data, not
+  // hardcoded prices, so it never drifts from what the backend will charge.
+  const selectedPlan = plans.find((p) => p.code === planCode);
+  const retentionCost = selectedPlan ? Number(selectedPlan.monthly_price) : 0;
+  const modulesCost = backupModulesCatalog
+    .filter((m) => selectedBackupCodes.includes(m.code))
+    .reduce((sum, m) => sum + Number(m.monthly_price), 0);
   const totalCost = retentionCost + modulesCost;
 
-  const handleFinishSetup = (e) => {
+  const handleFinishSetup = async (e) => {
     e.preventDefault();
-    // Finish setup and redirect to dashboard
-    navigate('/dashboard');
+    if (!planCode) {
+      setErrorMsg('Please choose a backup retention plan.');
+      return;
+    }
+    if (!paymentMethod) {
+      setErrorMsg('Please choose a payment method.');
+      return;
+    }
+
+    setErrorMsg('');
+    setSubmitting(true);
+    try {
+      const { ok, data } = await apiFetchJson('/registration/finish', {
+        method: 'POST',
+        body: JSON.stringify({
+          // businessForm's field names are the wizard's own internal
+          // state shape (businessLocation, businessTypeCode, etc.) —
+          // map explicitly to what POST /registration/finish expects
+          // rather than spreading the whole object and hoping they match.
+          business: {
+            businessName: businessForm.businessName,
+            businessTypeCode: businessForm.businessTypeCode,
+            location: businessForm.businessLocation,
+            cityRegion: businessForm.cityRegion,
+            shopAddress: businessForm.shopAddress,
+            isRegistered: businessForm.isRegistered,
+            nicNumber: businessForm.nicNumber,
+          },
+          moduleCode: selectedModule,
+          subscription: { planCode, platform, paymentMethod, backupModuleCodes: selectedBackupCodes },
+        }),
+      });
+
+      if (!ok) {
+        setErrorMsg(data.message || 'Something went wrong. Please try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      // Pulls the freshly created businessId into AuthContext so
+      // ProtectedRoute/dashboard checks see onboarding as complete.
+      await refreshUser();
+      navigate('/dashboard');
+    } catch {
+      setErrorMsg('Unable to reach the server. Please try again.');
+      setSubmitting(false);
+    }
   };
+
+  if (loadingCatalog) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center nexus-bg text-[#14391a]">
+        <span className="loading-dots"><span /><span /><span /><span /></span>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-start py-8 px-4 sm:px-6 lg:px-8 nexus-bg text-[#14391a]">
       <div className="max-w-4xl w-full space-y-6">
-        
+
         {/* Header */}
         <div className="space-y-1">
           <h1 className="text-3xl md:text-4xl font-extrabold tracking-wide">
@@ -181,17 +271,17 @@ export default function RegisterBusinessPage() {
 
         {/* Progress Steps */}
         <div className="flex items-center gap-4 md:gap-8 overflow-x-auto pb-2 scrollbar-none border-b border-[#14391a]/15 text-xs md:text-sm font-semibold">
-          <div 
+          <div
             onClick={() => step > 1 && setStep(1)}
             className={`flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap transition-all ${
               step === 1 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/70'
             }`}
           >
             <span className="w-5 h-5 rounded-full bg-[#14391a] text-white flex items-center justify-center text-[10px]">1</span>
-            <span>Account</span>
+            <span>Business details</span>
           </div>
 
-          <div 
+          <div
             onClick={() => step > 2 && setStep(2)}
             className={`flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap transition-all ${
               step === 2 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/70'
@@ -200,34 +290,22 @@ export default function RegisterBusinessPage() {
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
               step === 2 || step > 2 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
             }`}>2</span>
-            <span>Business details</span>
-          </div>
-
-          <div 
-            onClick={() => step > 3 && setStep(3)}
-            className={`flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap transition-all ${
-              step === 3 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/70'
-            }`}
-          >
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-              step === 3 || step > 3 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
-            }`}>3</span>
             <span>Module Selection</span>
           </div>
 
           <div className={`flex items-center gap-2 pb-2 whitespace-nowrap transition-all ${
-            step === 4 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/50'
+            step === 3 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/50'
           }`}>
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-              step === 4 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
-            }`}>4</span>
+              step === 3 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
+            }`}>3</span>
             <span>Backup & Plan</span>
           </div>
         </div>
 
         {/* Form Card / Selection Area */}
         <div className="bg-transparent md:bg-transparent rounded-xl overflow-hidden">
-          
+
           {errorMsg && (
             <div className="mb-6">
               <div role="alert" className="px-4 py-2.5 rounded-lg bg-red-50 border border-red-200 text-xs md:text-sm text-red-600 text-center font-medium animate-fade-in">
@@ -236,195 +314,22 @@ export default function RegisterBusinessPage() {
             </div>
           )}
 
-          {/* STEP 1: ACCOUNT DETAILS */}
+          {/* STEP 1: BUSINESS DETAILS */}
           {step === 1 && (
-            <div className="bg-white rounded-xl shadow-[0_15px_30px_rgba(20,57,26,0.06)] border border-[#14391a]/5 p-6 md:p-8">
-              <form onSubmit={handleAccountSubmit} className="space-y-6">
-                
+            <div className="bg-white rounded-xl shadow-[0_15px_30px_rgba(20,57,26,0.06)] border border-[#14391a]/5 p-6 md:p-8 animate-fade-in">
+              <form onSubmit={handleBusinessSubmit} className="space-y-6">
+
                 <div className="space-y-1">
                   <h2 className="text-sm md:text-base font-bold tracking-wider text-[#14391a] uppercase">
-                    ACCOUNT DETAILS
+                    BUSINESS DETAILS
                   </h2>
                   <p className="text-xs md:text-sm text-gray-500">
-                    Create your login and tell us here the shop is based
+                    Tell us where the shop is based
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  {/* Username */}
-                  <div className="space-y-1">
-                    <label className="text-xs md:text-sm font-bold text-[#14391a]">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. greenleaf_admin"
-                      value={accountForm.username}
-                      onChange={handleAccountChange('username')}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
-                    />
-                  </div>
 
-                  {/* Email Address */}
-                  <div className="space-y-1">
-                    <label className="text-xs md:text-sm font-bold text-[#14391a]">
-                      Email address
-                    </label>
-                    <input
-                      type="email"
-                      placeholder="you@business.com"
-                      value={accountForm.email}
-                      onChange={handleAccountChange('email')}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
-                    />
-                  </div>
-
-                  {/* Password */}
-                  <div className="space-y-1">
-                    <label className="text-xs md:text-sm font-bold text-[#14391a]">
-                      Password
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        type={showPass ? 'text' : 'password'}
-                        placeholder="At least 8 characters"
-                        value={accountForm.password}
-                        onChange={handleAccountChange('password')}
-                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPass(!showPass)}
-                        className="absolute right-3 text-[#14391a]/60 hover:text-[#14391a] transition-colors cursor-pointer bg-transparent border-none p-0 flex items-center"
-                      >
-                        {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Phone Number */}
-                  <div className="space-y-1">
-                    <label className="text-xs md:text-sm font-bold text-[#14391a]">
-                      Phone number
-                    </label>
-                    <input
-                      type="number"
-                      placeholder="03XX-XXXXXX"
-                      value={accountForm.phoneNumber}
-                      onChange={handleAccountChange('phoneNumber')}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
-                    />
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div className="space-y-1">
-                    <label className="text-xs md:text-sm font-bold text-[#14391a]">
-                      Confirm Password
-                    </label>
-                    <div className="relative flex items-center">
-                      <input
-                        type={showConfirmPass ? 'text' : 'password'}
-                        placeholder="Re-enter password"
-                        value={accountForm.confirmPassword}
-                        onChange={handleAccountChange('confirmPassword')}
-                        className="w-full px-4 py-2.5 pr-10 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPass(!showConfirmPass)}
-                        className="absolute right-3 text-[#14391a]/60 hover:text-[#14391a] transition-colors cursor-pointer bg-transparent border-none p-0 flex items-center"
-                      >
-                        {showConfirmPass ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* City/region */}
-                  <div className="space-y-1">
-                    <label className="text-xs md:text-sm font-bold text-[#14391a]">
-                      City/region
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g Karachi,sindh"
-                      value={accountForm.city}
-                      onChange={handleAccountChange('city')}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
-                    />
-                  </div>
-
-                  {/* Shop Address */}
-                  <div className="space-y-1 md:col-span-2">
-                    <label className="text-xs md:text-sm font-bold text-[#14391a]">
-                      Shop address
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Shop number, street, area, landmark"
-                      value={accountForm.shopAddress}
-                      onChange={handleAccountChange('shopAddress')}
-                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
-                    />
-                    <p className="text-[10px] md:text-xs text-gray-400">
-                      This is where any physical backup devices or invoices would be delivered
-                    </p>
-                  </div>
-                </div>
-
-                {/* Terms Checkbox */}
-                <div className="flex items-center gap-2 pt-2 text-xs md:text-sm font-semibold">
-                  <input
-                    id="agree-terms"
-                    type="checkbox"
-                    checked={accountForm.agreed}
-                    onChange={handleAccountChange('agreed')}
-                    className="w-4 h-4 rounded border-gray-300 text-[#14391a] accent-[#14391a] cursor-pointer"
-                  />
-                  <label htmlFor="agree-terms" className="cursor-pointer select-none">
-                    I agree to the <span className="underline">Terms of services and privacy Policy</span>
-                  </label>
-                </div>
-
-                <div className="w-full h-px bg-gray-100 pt-2" />
-
-                {/* Footer Buttons */}
-                <div className="flex flex-row items-center justify-between">
-                  <button
-                    type="button"
-                    onClick={() => navigate('/')}
-                    className="text-xs md:text-sm font-bold text-gray-700 hover:text-black transition-colors cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => navigate('/signup')}
-                      className="px-6 py-2.5 bg-[#e6e2b8] hover:bg-[#dcd8ae] text-[#14391a] text-xs md:text-sm font-bold rounded-lg border border-[#14391a]/15 shadow-sm active:scale-[0.99] transition-all duration-200 cursor-pointer"
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 bg-[#14391a] hover:bg-[#0f2a13] text-white text-xs md:text-sm font-bold rounded-lg shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer"
-                    >
-                      Continue
-                    </button>
-                  </div>
-                </div>
-
-              </form>
-            </div>
-          )}
-
-          {/* STEP 2: BUSINESS DETAILS */}
-          {step === 2 && (
-            <div className="bg-white rounded-xl shadow-[0_15px_30px_rgba(20,57,26,0.06)] border border-[#14391a]/5 p-6 md:p-8 animate-fade-in">
-              <form onSubmit={handleBusinessSubmit} className="space-y-6">
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                  
                   {/* Business Name (Spans full width) */}
                   <div className="space-y-1 md:col-span-2">
                     <label className="text-xs md:text-sm font-bold text-[#14391a]">
@@ -444,13 +349,16 @@ export default function RegisterBusinessPage() {
                     <label className="text-xs md:text-sm font-bold text-[#14391a]">
                       Business type
                     </label>
-                    <input
-                      type="text"
-                      placeholder="Pharmacy"
-                      value={businessForm.businessType}
-                      onChange={(e) => handleBusinessChange('businessType', e.target.value)}
-                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
-                    />
+                    <select
+                      value={businessForm.businessTypeCode}
+                      onChange={(e) => handleBusinessChange('businessTypeCode', e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all bg-white"
+                    >
+                      <option value="">Select a type</option>
+                      {businessTypes.map((bt) => (
+                        <option key={bt.code} value={bt.code}>{bt.name}</option>
+                      ))}
+                    </select>
                   </div>
 
                   {/* Business Location */}
@@ -465,6 +373,23 @@ export default function RegisterBusinessPage() {
                       onChange={(e) => handleBusinessChange('businessLocation', e.target.value)}
                       className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
                     />
+                  </div>
+
+                  {/* Shop Address */}
+                  <div className="space-y-1 md:col-span-2">
+                    <label className="text-xs md:text-sm font-bold text-[#14391a]">
+                      Shop address
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Shop number, street, area, landmark"
+                      value={businessForm.shopAddress}
+                      onChange={(e) => handleBusinessChange('shopAddress', e.target.value)}
+                      className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] text-xs md:text-sm outline-none transition-all"
+                    />
+                    <p className="text-[10px] md:text-xs text-gray-400">
+                      This is where any physical backup devices or invoices would be delivered
+                    </p>
                   </div>
 
                   {/* Is your business registered? (Spans full width) */}
@@ -510,8 +435,8 @@ export default function RegisterBusinessPage() {
                       onChange={(e) => handleBusinessChange('nicNumber', e.target.value)}
                       disabled={!businessForm.isRegistered}
                       className={`w-full px-4 py-2.5 rounded-lg border text-xs md:text-sm outline-none transition-all ${
-                        businessForm.isRegistered 
-                          ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black' 
+                        businessForm.isRegistered
+                          ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black'
                           : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
                       }`}
                     />
@@ -529,8 +454,8 @@ export default function RegisterBusinessPage() {
                       onChange={(e) => handleBusinessChange('cityRegion', e.target.value)}
                       disabled={!businessForm.isRegistered}
                       className={`w-full px-4 py-2.5 rounded-lg border text-xs md:text-sm outline-none transition-all ${
-                        businessForm.isRegistered 
-                          ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black' 
+                        businessForm.isRegistered
+                          ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black'
                           : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
                       }`}
                     />
@@ -549,33 +474,23 @@ export default function RegisterBusinessPage() {
                   >
                     Cancel
                   </button>
-                  
-                  <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      className="px-6 py-2.5 bg-[#e6e2b8] hover:bg-[#dcd8ae] text-[#14391a] text-xs md:text-sm font-bold rounded-lg border border-[#14391a]/15 shadow-sm active:scale-[0.99] transition-all duration-200 cursor-pointer"
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 bg-[#14391a] hover:bg-[#0f2a13] text-white text-xs md:text-sm font-bold rounded-lg shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer"
-                    >
-                      Continue
-                    </button>
-                  </div>
+
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-[#14391a] hover:bg-[#0f2a13] text-white text-xs md:text-sm font-bold rounded-lg shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer"
+                  >
+                    Continue
+                  </button>
                 </div>
 
               </form>
             </div>
           )}
 
-          {/* STEP 3: MODULE SELECTION */}
-          {step === 3 && (
+          {/* STEP 2: MODULE SELECTION */}
+          {step === 2 && (
             <div className="space-y-8 animate-fade-in">
-              
-              {/* Header inside Selection Area */}
+
               <div className="text-center">
                 <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold font-mono tracking-tight text-[#14391a]">
                   Choose Your Business Module
@@ -585,36 +500,34 @@ export default function RegisterBusinessPage() {
                 </p>
               </div>
 
-              {/* Module Grid */}
+              {/* Module Grid — sourced from GET /api/catalog/modules */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full" role="list">
-                {MODULES.map((mod) => {
-                  const IconComponent = mod.icon;
-                  const isActive = selectedModule === mod.id;
+                {modules.map((mod) => {
+                  const IconComponent = MODULE_ICONS[mod.icon] || Store;
+                  const isActive = selectedModule === mod.code;
+                  const isAvailable = Boolean(mod.is_available);
                   return (
                     <button
-                      key={mod.id}
+                      key={mod.code}
                       type="button"
-                      onClick={() => setSelectedModule(mod.id)}
-                      className={`flex flex-col items-center justify-center p-6 rounded-lg border text-center transition-all duration-200 cursor-pointer select-none gap-3 h-44 ${
-                        isActive 
-                          ? 'bg-[#14391a] border-[#14391a] text-white shadow-lg' 
-                          : 'bg-[#e5dcba]/30 border-[#14391a]/20 hover:border-[#14391a]/40 text-[#14391a] hover:bg-[#e5dcba]/40'
+                      disabled={!isAvailable}
+                      onClick={() => isAvailable && setSelectedModule(mod.code)}
+                      className={`flex flex-col items-center justify-center p-6 rounded-lg border text-center transition-all duration-200 gap-3 h-44 select-none ${
+                        !isAvailable
+                          ? 'border-dashed border-[#14391a]/30 opacity-50 cursor-not-allowed bg-transparent text-[#14391a]'
+                          : isActive
+                            ? 'bg-[#14391a] border-[#14391a] text-white shadow-lg cursor-pointer'
+                            : 'bg-[#e5dcba]/30 border-[#14391a]/20 hover:border-[#14391a]/40 text-[#14391a] hover:bg-[#e5dcba]/40 cursor-pointer'
                       }`}
                     >
                       <IconComponent size={28} className={isActive ? 'text-white' : 'text-[#14391a]'} />
                       <span className="text-sm font-bold">{mod.name}</span>
                       <span className={`text-[9px] font-mono tracking-wider ${isActive ? 'text-white/70' : 'text-[#14391a]/60'}`}>
-                        {mod.desc}
+                        {isAvailable ? mod.tagline : 'MORE SOON'}
                       </span>
                     </button>
                   );
                 })}
-
-                {/* More Soon (Disabled/Dashed placeholder) */}
-                <div className="flex flex-col items-center justify-center p-6 rounded-lg border border-dashed border-[#14391a]/40 text-center gap-2 h-44 select-none opacity-60">
-                  <Plus size={24} className="text-[#14391a]" />
-                  <span className="text-xs font-bold text-[#14391a] font-mono tracking-wider">MORE SOON</span>
-                </div>
               </div>
 
               <div className="w-full h-px bg-gray-300 pt-2" />
@@ -628,11 +541,11 @@ export default function RegisterBusinessPage() {
                 >
                   Cancel
                 </button>
-                
+
                 <div className="flex gap-4">
                   <button
                     type="button"
-                    onClick={() => setStep(2)}
+                    onClick={() => setStep(1)}
                     className="px-6 py-2.5 bg-[#e6e2b8] hover:bg-[#dcd8ae] text-[#14391a] text-xs md:text-sm font-bold rounded-lg border border-[#14391a]/15 shadow-sm active:scale-[0.99] transition-all duration-200 cursor-pointer"
                   >
                     Back
@@ -650,10 +563,10 @@ export default function RegisterBusinessPage() {
             </div>
           )}
 
-          {/* STEP 4: BACKUP & PLAN */}
-          {step === 4 && (
+          {/* STEP 3: BACKUP & PLAN */}
+          {step === 3 && (
             <div className="bg-white rounded-xl shadow-[0_15px_30px_rgba(20,57,26,0.06)] border border-[#14391a]/5 p-6 md:p-8 space-y-6 animate-fade-in">
-              
+
               <div className="space-y-1">
                 <h2 className="text-sm md:text-base font-bold tracking-wider text-[#14391a] uppercase">
                   BACKUP & PLAN
@@ -671,22 +584,18 @@ export default function RegisterBusinessPage() {
                 <div className="flex border border-gray-200 rounded-lg overflow-hidden">
                   <button
                     type="button"
-                    onClick={() => setPlatform('web')}
+                    onClick={() => setPlatform('web_app')}
                     className={`flex-1 py-3 text-xs md:text-sm font-bold text-center transition-all ${
-                      platform === 'web'
-                        ? 'bg-[#14391a] text-white'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
+                      platform === 'web_app' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                   >
                     Web app
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPlatform('mobile')}
+                    onClick={() => setPlatform('mobile_pos')}
                     className={`flex-1 py-3 border-x border-gray-200 text-xs md:text-sm font-bold text-center transition-all ${
-                      platform === 'mobile'
-                        ? 'bg-[#14391a] text-white'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
+                      platform === 'mobile_pos' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                   >
                     Mobile POS
@@ -695,9 +604,7 @@ export default function RegisterBusinessPage() {
                     type="button"
                     onClick={() => setPlatform('both')}
                     className={`flex-1 py-3 text-xs md:text-sm font-bold text-center transition-all ${
-                      platform === 'both'
-                        ? 'bg-[#14391a] text-white'
-                        : 'bg-white text-gray-500 hover:bg-gray-50'
+                      platform === 'both' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
                     }`}
                   >
                     Both
@@ -708,7 +615,7 @@ export default function RegisterBusinessPage() {
                 </p>
               </div>
 
-              {/* Selected Modules for Backup */}
+              {/* Selected Modules for Backup — sourced from GET /api/catalog/backup-modules */}
               <div className="space-y-2 pt-2">
                 <label className="text-xs md:text-sm font-bold text-[#14391a] block">
                   Selected modules for backup.
@@ -717,83 +624,50 @@ export default function RegisterBusinessPage() {
                   These records are selected - each adds a small amount to your monthly cost.
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Sales Backup Option */}
-                  <button
-                    type="button"
-                    onClick={() => setBackupSales(!backupSales)}
-                    className={`p-4 rounded-lg border text-left transition-all ${
-                      backupSales
-                        ? 'bg-[#e5dcba]/20 border-[#14391a] text-[#14391a] shadow-sm'
-                        : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="font-bold text-xs md:text-sm block">Sales & POS data</span>
-                    <span className="text-[10px] opacity-80 mt-1 block">Daily transactions, receipts, refunds.</span>
-                  </button>
-
-                  {/* Inventory Backup Option */}
-                  <button
-                    type="button"
-                    onClick={() => setBackupInventory(!backupInventory)}
-                    className={`p-4 rounded-lg border text-left transition-all ${
-                      backupInventory
-                        ? 'bg-[#e5dcba]/20 border-[#14391a] text-[#14391a] shadow-sm'
-                        : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="font-bold text-xs md:text-sm block">Inventory records</span>
-                    <span className="text-[10px] opacity-80 mt-1 block">Daily transactions, receipts, refunds.</span>
-                  </button>
+                  {backupModulesCatalog.map((m) => {
+                    const isSelected = selectedBackupCodes.includes(m.code);
+                    return (
+                      <button
+                        key={m.code}
+                        type="button"
+                        onClick={() => toggleBackupModule(m.code)}
+                        className={`p-4 rounded-lg border text-left transition-all ${
+                          isSelected
+                            ? 'bg-[#e5dcba]/20 border-[#14391a] text-[#14391a] shadow-sm'
+                            : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className="font-bold text-xs md:text-sm block">{m.name}</span>
+                        <span className="text-[10px] opacity-80 mt-1 block">{m.description}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* Backup Retention */}
+              {/* Backup Retention / Plan — sourced from GET /api/catalog/plans */}
               <div className="space-y-2 pt-2">
                 <label className="text-xs md:text-sm font-bold text-[#14391a] block">
                   How long should backups be kept?
                 </label>
                 <div className="grid grid-cols-3 gap-3 md:gap-4">
-                  {/* 3 Months */}
-                  <button
-                    type="button"
-                    onClick={() => setRetention('3month')}
-                    className={`p-3 rounded-lg border text-center transition-all ${
-                      retention === '3month'
-                        ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="text-xs md:text-sm font-bold block">3 month</span>
-                    <span className="text-[9px] md:text-[10px] mt-0.5 block opacity-80">Rs 1,500/mo</span>
-                  </button>
-
-                  {/* 6 Months */}
-                  <button
-                    type="button"
-                    onClick={() => setRetention('6month')}
-                    className={`p-3 rounded-lg border text-center transition-all ${
-                      retention === '6month'
-                        ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="text-xs md:text-sm font-bold block">6 month</span>
-                    <span className="text-[9px] md:text-[10px] mt-0.5 block opacity-80">Rs 2,200/mo</span>
-                  </button>
-
-                  {/* Duplicate 3 Months / Alternative Option */}
-                  <button
-                    type="button"
-                    onClick={() => setRetention('3month_dup')}
-                    className={`p-3 rounded-lg border text-center transition-all ${
-                      retention === '3month_dup'
-                        ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="text-xs md:text-sm font-bold block">3 month</span>
-                    <span className="text-[9px] md:text-[10px] mt-0.5 block opacity-80">Rs 1,500/mo</span>
-                  </button>
+                  {plans.map((p) => (
+                    <button
+                      key={p.code}
+                      type="button"
+                      onClick={() => setPlanCode(p.code)}
+                      className={`p-3 rounded-lg border text-center transition-all ${
+                        planCode === p.code
+                          ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
+                          : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                      }`}
+                    >
+                      <span className="text-xs md:text-sm font-bold block">{p.name}</span>
+                      <span className="text-[9px] md:text-[10px] mt-0.5 block opacity-80">
+                        Rs {p.monthly_price}/mo
+                      </span>
+                    </button>
+                  ))}
                 </div>
                 <p className="text-[10px] md:text-xs text-gray-400">
                   Longer retention means you can restore older data if something goes wrong.
@@ -813,31 +687,25 @@ export default function RegisterBusinessPage() {
                     type="button"
                     onClick={() => setPaymentMethod('card')}
                     className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${
-                      paymentMethod === 'card'
-                        ? 'bg-[#14391a] border-[#14391a] text-white'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                      paymentMethod === 'card' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
                     }`}
                   >
                     Debit/ credit card
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('bank')}
+                    onClick={() => setPaymentMethod('bank_transfer')}
                     className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${
-                      paymentMethod === 'bank'
-                        ? 'bg-[#14391a] border-[#14391a] text-white'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                      paymentMethod === 'bank_transfer' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
                     }`}
                   >
                     Bank transfer
                   </button>
                   <button
                     type="button"
-                    onClick={() => setPaymentMethod('jazzcash')}
+                    onClick={() => setPaymentMethod('jazzcash_easypaisa')}
                     className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${
-                      paymentMethod === 'jazzcash'
-                        ? 'bg-[#14391a] border-[#14391a] text-white'
-                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                      paymentMethod === 'jazzcash_easypaisa' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
                     }`}
                   >
                     JazzCash/Easypaisa
@@ -848,7 +716,7 @@ export default function RegisterBusinessPage() {
               {/* Estimated monthly cost card */}
               <div className="bg-[#e5dcba]/50 border border-[#14391a]/10 rounded-lg p-4 space-y-2">
                 <div className="flex justify-between text-xs md:text-sm font-semibold">
-                  <span>Backup retention ({retention.replace('dup', '')})</span>
+                  <span>Backup retention ({selectedPlan?.name || '—'})</span>
                   <span>Rs {retentionCost}</span>
                 </div>
                 <div className="flex justify-between text-xs md:text-sm font-semibold">
@@ -873,21 +741,22 @@ export default function RegisterBusinessPage() {
                 >
                   Cancel
                 </button>
-                
+
                 <div className="flex gap-4">
                   <button
                     type="button"
-                    onClick={() => setStep(3)}
+                    onClick={() => setStep(2)}
                     className="px-6 py-2.5 bg-[#e6e2b8] hover:bg-[#dcd8ae] text-[#14391a] text-xs md:text-sm font-bold rounded-lg border border-[#14391a]/15 shadow-sm active:scale-[0.99] transition-all duration-200 cursor-pointer"
                   >
                     Back
                   </button>
                   <button
                     type="button"
+                    disabled={submitting}
                     onClick={handleFinishSetup}
-                    className="px-6 py-2.5 bg-[#14391a] hover:bg-[#0f2a13] text-white text-xs md:text-sm font-bold rounded-lg shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer"
+                    className="px-6 py-2.5 bg-[#14391a] hover:bg-[#0f2a13] text-white text-xs md:text-sm font-bold rounded-lg shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    Finish setup
+                    {submitting ? 'Setting up…' : 'Finish setup'}
                   </button>
                 </div>
               </div>

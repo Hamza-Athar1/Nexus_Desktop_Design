@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowRight, ArrowLeft, CheckCircle } from 'lucide-react';
 import NexusLogo from '../components/NexusLogo';
+import { apiFetchJson } from '../lib/api';
 
 /* ── Shared shell ───────────────────────────────────────────────── */
 function Page({ children }) {
@@ -38,8 +39,17 @@ export default function ForgotPasswordPage() {
       return;
     }
     setStatus('loading');
-    await new Promise(res => setTimeout(res, 2000));
-    setStatus('success');
+    try {
+      // Always resolves 200 whether or not the email exists, by design —
+      // see server/controllers/authController.js forgotPassword().
+      await apiFetchJson('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      setStatus('success');
+    } catch {
+      setStatus('error');
+    }
   };
 
   /* ── SUCCESS ─────────────────────────────────────────────────────── */

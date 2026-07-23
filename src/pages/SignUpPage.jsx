@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { apiFetchJson } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
 import { GoogleLogin } from '@react-oauth/google';
 
 export default function SignUpPage() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   // Form state
   const [form, setForm] = useState({
@@ -49,15 +51,14 @@ export default function SignUpPage() {
     setStatus('loading');
 
     try {
-      // Map to expected backend fields (businessName, businessType)
       const { ok, data } = await apiFetchJson('/auth/signup', {
         method: 'POST',
         body: JSON.stringify({
           username: form.username.trim(),
           email: form.email.trim(),
           password: form.password,
-          businessName: form.username.trim() + " POS",
-          businessType: "General",
+          phoneNumber: form.phoneNumber.trim(),
+          city: form.city.trim(),
         }),
       });
 
@@ -66,6 +67,10 @@ export default function SignUpPage() {
         setStatus('error');
         return;
       }
+
+      // The backend already set the session cookies and returned the
+      // user — no need for a second round-trip to /auth/me.
+      if (data.user) login(data.user);
 
       setStatus('success');
       window.setTimeout(() => navigate('/register-business'), 2000);

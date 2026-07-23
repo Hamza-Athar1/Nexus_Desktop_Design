@@ -1,11 +1,16 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 
+// ── Route guards ─────────────────────────────────────────────────────────────
+import ProtectedRoute          from './components/ProtectedRoute';
+import RoleRoute               from './components/RoleRoute';
+
 // ── Pages ──────────────────────────────────────────────────────────────────────
 import LandingPage           from './pages/LandingPage';
 import LoginPage              from './pages/LoginPage';
 import SignUpPage             from './pages/SignUpPage';
 import RegisterBusinessPage   from './pages/RegisterBusinessPage';
 import ForgotPasswordPage     from './pages/ForgotPasswordPage';
+import ResetPasswordPage      from './pages/ResetPasswordPage';
 import ModuleSelectPage       from './pages/ModuleSelectPage';
 import DashboardPage          from './pages/User/Shared/DashboardPage';
 import POSSystemPage          from './pages/User/Grocery/POSSystemPage';
@@ -49,29 +54,42 @@ function InventoryRouter() {
 export default function App() {
   return (
     <Routes>
-      {/* ── All Routes Open ──────────────── */}
+      {/* ── Public routes ─────────────────── */}
       <Route path="/"                 element={<LandingPage />} />
       <Route path="/login"            element={<LoginPage />} />
       <Route path="/signup"           element={<SignUpPage />} />
-      <Route path="/register-business" element={<RegisterBusinessPage />} />
       <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
-      <Route path="/modules"          element={<ModuleSelectPage />} />
-      <Route path="/dashboard"        element={<DashboardPage />} />
-      <Route path="/pos"              element={<POSSystemPage />} />
-      <Route path="/inventory"        element={<InventoryRouter />} />
-      <Route path="/billing"          element={<BillingPage />} />
-      <Route path="/reports"          element={<ReportsPage />} />
-      <Route path="/settings"         element={<SettingsPage />} />
-      <Route path="/profile"          element={<EditProfilePage />} />
-      <Route path="/admin"            element={<AdminDashboardPage />} />
-      <Route path="/super-admin" element={<SuperAdminLayout />}>
-        <Route index element={<SuperAdminDashboardPage />} />
-        <Route path="requests" element={<SuperAdminRequestsPage />} />
-        <Route path="users" element={<SuperAdminUserManagementPage />} />
-        <Route path="billing" element={<SuperAdminBillingPage />} />
-        <Route path="payment" element={<SuperAdminPaymentPage />} />
-        <Route path="profile" element={<SuperAdminProfilePage />} />
-        <Route path="pos" element={<SuperAdminPlaceholderPage tab="pos" />} />
+      <Route path="/reset-password"   element={<ResetPasswordPage />} />
+
+      {/* ── Requires login, any role ──────── */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/register-business" element={<RegisterBusinessPage />} />
+        <Route path="/modules"          element={<ModuleSelectPage />} />
+        <Route path="/dashboard"        element={<DashboardPage />} />
+        <Route path="/pos"              element={<POSSystemPage />} />
+        <Route path="/inventory"        element={<InventoryRouter />} />
+        <Route path="/billing"          element={<BillingPage />} />
+        <Route path="/reports"          element={<ReportsPage />} />
+        <Route path="/settings"         element={<SettingsPage />} />
+        <Route path="/profile"          element={<EditProfilePage />} />
+      </Route>
+
+      {/* ── Requires admin (business owner) role ──────── */}
+      <Route element={<RoleRoute allowedRoles={['admin', 'super_admin']} />}>
+        <Route path="/admin" element={<AdminDashboardPage />} />
+      </Route>
+
+      {/* ── Requires super_admin role ─────── */}
+      <Route element={<RoleRoute allowedRoles={['super_admin']} />}>
+        <Route path="/super-admin" element={<SuperAdminLayout />}>
+          <Route index element={<SuperAdminDashboardPage />} />
+          <Route path="requests" element={<SuperAdminRequestsPage />} />
+          <Route path="users" element={<SuperAdminUserManagementPage />} />
+          <Route path="billing" element={<SuperAdminBillingPage />} />
+          <Route path="payment" element={<SuperAdminPaymentPage />} />
+          <Route path="profile" element={<SuperAdminProfilePage />} />
+          <Route path="pos" element={<SuperAdminPlaceholderPage tab="pos" />} />
+        </Route>
       </Route>
 
       {/* ── Fallback ─────────────────────── */}

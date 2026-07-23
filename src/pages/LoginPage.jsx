@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { apiFetchJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { roleHome } from '../lib/roleRedirects';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -15,12 +16,6 @@ export default function LoginPage() {
   // UI state
   const [status, setStatus] = useState('idle'); // idle | error | loading | success
   const [errorMsg, setErrorMsg] = useState('Invalid username or password');
-
-  const ROLE_REDIRECTS = {
-    user: '/modules',
-    admin: '/admin',
-    'super-admin': '/super-admin',
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +31,7 @@ export default function LoginPage() {
     try {
       const { ok, data } = await apiFetchJson('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ username: username.trim(), password }),
+        body: JSON.stringify({ username: username.trim(), password, remember }),
       });
 
       if (!ok) {
@@ -48,7 +43,12 @@ export default function LoginPage() {
       if (data.user) login(data.user);
 
       setStatus('success');
-      const destination = ROLE_REDIRECTS[data.user?.role] ?? '/modules';
+      // Owners who haven't finished the registration wizard yet don't have
+      // a business row — send them there instead of an empty dashboard.
+      const destination =
+        data.user?.role === 'admin' && !data.user?.businessId
+          ? '/register-business'
+          : roleHome(data.user?.role);
       window.setTimeout(() => navigate(destination), 1600);
     } catch {
       setErrorMsg('Unable to reach the server. Please try again.');
