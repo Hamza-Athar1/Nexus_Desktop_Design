@@ -32,7 +32,8 @@ import { apiFetch, apiFetchJson } from '../lib/api';
  * @property {number} id
  * @property {string} username
  * @property {string} businessName
- * @property {'user'|'admin'|'super-admin'} role
+ * @property {'user'|'admin'|'super_admin'} role
+ * @property {number|null} businessId
  */
 
 // ─── Context ──────────────────────────────────────────────────────────────────

@@ -14,24 +14,40 @@
  *  ```jsx
  *  <Route
  *    path="/admin"
- *    element={<RoleRoute allowedRoles={['admin', 'super-admin']} />}
+ *    element={<RoleRoute allowedRoles={['admin', 'super_admin']} />}
  *  >
  *    <Route index element={<AdminDashboardPage />} />
  *  </Route>
  *  ```
  */
 
-import { Outlet } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { roleHome } from '../lib/roleRedirects';
 
-// ─── Component ────────────────────────────────────────────────────────────────
+function FullScreenLoader() {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center nexus-bg">
+      <span className="loading-dots"><span /><span /><span /><span /></span>
+    </div>
+  );
+}
 
 /**
  * @param {{
- *   allowedRoles?: Array<'user'|'admin'|'super-admin'>,
+ *   allowedRoles?: Array<'user'|'admin'|'super_admin'>,
  *   children?: React.ReactNode,
  * }} props
  */
-export default function RoleRoute({ children }) {
-  // Temporarily bypass role checking for development/testing
+export default function RoleRoute({ allowedRoles = [], children }) {
+  const { isReady, isAuthenticated, user } = useAuth();
+
+  if (!isReady) return <FullScreenLoader />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (allowedRoles.length && !allowedRoles.includes(user.role)) {
+    return <Navigate to={roleHome(user.role)} replace />;
+  }
+
   return children ?? <Outlet />;
 }

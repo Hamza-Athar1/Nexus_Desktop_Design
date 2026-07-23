@@ -1,19 +1,21 @@
-// Restricts a route to one or more roles. Must run AFTER verifyToken,
-// since it relies on req.user being already set from the access token.
-//
-// Usage: router.get('/admin/users', verifyToken, roleCheck('admin', 'super-admin'), getUsers)
+/**
+ * roleCheck('admin', 'super_admin') — must run after verifyToken.
+ *
+ * Role values match the `users.role` ENUM exactly: 'super_admin' | 'admin' | 'user'.
+ * NOTE FOR THE FRONTEND: LoginPage.jsx's ROLE_REDIRECTS map currently uses
+ * the string 'super-admin' (hyphen) while the schema/backend use
+ * 'super_admin' (underscore) — that mismatch needs a small frontend patch
+ * before role-based redirects will work correctly. Flagging it here since
+ * it'll bite silently otherwise.
+ */
 export function roleCheck(...allowedRoles) {
-  return (req, res, next) => {
+  return function checkRole(req, res, next) {
     if (!req.user) {
-      // Defensive check — should never actually hit this if verifyToken
-      // ran first, but fails safely rather than assuming req.user exists.
       return res.status(401).json({ message: 'Not authenticated' });
     }
-
     if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({ message: 'You do not have permission to access this resource' });
+      return res.status(403).json({ message: 'You do not have permission to do that' });
     }
-
-    next();
+    return next();
   };
 }

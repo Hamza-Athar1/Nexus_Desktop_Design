@@ -1,8 +1,11 @@
 import jwt from 'jsonwebtoken';
 
-// Reads the accessToken httpOnly cookie, verifies it, and attaches the
-// decoded payload ({ id, username, role }) to req.user for downstream
-// route handlers to use. If missing/invalid/expired, blocks the request.
+/**
+ * Reads the httpOnly `accessToken` cookie, verifies it, and attaches
+ * `req.user = { id, role }`. On failure (missing/expired/invalid) it
+ * responds 401 — the frontend's `apiFetch` treats any 401 as a cue to
+ * hit `/auth/refresh` and retry the original request once.
+ */
 export function verifyToken(req, res, next) {
   const token = req.cookies?.accessToken;
 
@@ -12,12 +15,9 @@ export function verifyToken(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-    req.user = decoded;
-    next();
+    req.user = { id: decoded.id, role: decoded.role };
+    return next();
   } catch {
-    // Covers both an invalid signature and a naturally expired token.
-    // The frontend should react to this specific status by attempting
-    // a token refresh (built in a later step) before giving up.
-    return res.status(401).json({ message: 'Session expired, please log in again' });
+    return res.status(401).json({ message: 'Access token expired or invalid' });
   }
 }

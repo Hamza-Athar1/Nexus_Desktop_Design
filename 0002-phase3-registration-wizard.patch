@@ -1,0 +1,607 @@
+diff --git a/server/README.md b/server/README.md
+index 5825356..07e8c84 100644
+--- a/server/README.md
++++ b/server/README.md
+@@ -76,3 +76,85 @@ get mounted.
+   premature.
+ - Refresh tokens are rotated by **revoking** the old session row (not
+   deleting it), so `sessions` doubles as an audit trail.
++
++## Phase 3: Registration wizard
++
++Adds read-only platform catalog endpoints and the business registration
++flow: draft save/resume for wizard steps 2-4, and a `finish` endpoint
++that atomically creates the `businesses` + `subscriptions` +
++`subscription_backup_modules` rows.
++
++**Step 1 (Account) is not part of this — it's `/auth/signup`.** The
++`registration_drafts` table requires a `user_id` (its FK is `NOT NULL`),
++so a draft can only exist for a user that already exists.
++`RegisterBusinessPage.jsx`'s own step-1 form (username/email/password/etc.)
++duplicates what `SignUpPage.jsx` already collects — see "Known gaps" below.
++
++### New endpoints
++
++| Method | Path                         | Auth   | Notes |
++|--------|-------------------------------|--------|-------|
++| GET    | `/api/catalog/modules`        | —      | All modules, incl. `is_available:0` ones ("MORE SOON" tiles). |
++| GET    | `/api/catalog/business-types` | —      | |
++| GET    | `/api/catalog/plans`          | —      | Active plans only. |
++| GET    | `/api/catalog/backup-modules` | —      | Active backup modules only. |
++| GET    | `/api/registration/draft`     | cookie | `{ draft: null }` if none saved yet. |
++| PUT    | `/api/registration/draft`     | cookie | `{ step: 2\|3\|4, payload: {...} }` — upserts. |
++| POST   | `/api/registration/finish`    | cookie | Creates the business. 409 if one already exists for this user. |
++
++`POST /api/registration/finish` body shape:
++```json
++{
++  "business": {
++    "businessName": "Fairy Parcel Co",
++    "businessTypeCode": "grocery",
++    "location": "Karachi, DHA",
++    "cityRegion": "Karachi, Sindh",
++    "shopAddress": "Shop 12, Bahadurabad",
++    "isRegistered": true,
++    "nicNumber": "42101-1234567-1"
++  },
++  "moduleCode": "grocery",
++  "subscription": {
++    "planCode": "retention_6m",
++    "platform": "web_app",
++    "paymentMethod": "card",
++    "backupModuleCodes": ["sales_pos", "inventory"]
++  }
++}
++```
++
++### Known gaps to fix on the frontend (not touched by this patch)
++
++- `RegisterBusinessPage.jsx` step 1 duplicates `SignUpPage.jsx` (both
++  collect username/email/password). Once a user is authenticated via
++  `/auth/signup`, this step should be skipped or pre-filled/read-only.
++- `businessForm.businessType` is free text, not sourced from
++  `GET /api/catalog/business-types`. The backend does a best-effort
++  case-insensitive match and falls back to `'other'` so this doesn't
++  block registration, but a real dropdown would be more correct.
++- The retention-plan buttons (`3month`, `6month`, `3month_dup`) don't
++  match `plans.code` (`retention_3m`/`retention_6m`/`retention_12m`) —
++  there's also a duplicate `3month_dup` button where a 12-month option
++  should be, and no 12-month plan is actually offered in the UI.
++- `platform` state uses `'web'|'mobile'|'both'`; the API expects the
++  schema's exact enum: `'web_app'|'mobile_pos'|'both'`.
++- `paymentMethod` state uses `'card'|'bank'|'jazzcash'`; the API expects
++  `'card'|'bank_transfer'|'jazzcash_easypaisa'`.
++- `backupSales`/`backupInventory` are separate booleans; the API wants
++  `subscription.backupModuleCodes: ['sales_pos', 'inventory']`.
++- `shopAddress` is collected in step 1, but the schema needs it on
++  `businesses` at finish-setup time — it's optional in the request body,
++  so wire it in whenever the frontend has it available.
++- `handleFinishSetup` currently just does `navigate('/dashboard')` with
++  no API call at all — this whole flow needs wiring up.
++
++### Design notes / schema decisions made this phase
++
++- `PUT /api/registration/draft` stores whatever `payload` object the
++  frontend sends, whole — no partial merge server-side. The frontend is
++  expected to always send its full accumulated wizard state, not a diff.
++- `finish` re-validates everything server-side (module availability,
++  plan active, NIC-when-registered, etc.) rather than trusting the
++  draft — the draft is for UX convenience, not a source of truth.
++
+diff --git a/server/app.js b/server/app.js
+index 6e3b26b..d76e7c9 100644
+--- a/server/app.js
++++ b/server/app.js
+@@ -2,6 +2,8 @@ import express from 'express';
+ import cors from 'cors';
+ import cookieParser from 'cookie-parser';
+ import authRoutes from './routes/authRoutes.js';
++import catalogRoutes from './routes/catalogRoutes.js';
++import registrationRoutes from './routes/registrationRoutes.js';
+ import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+ 
+ export const app = express();
+@@ -23,8 +25,10 @@ app.get('/api/health', (req, res) => {
+ 
+ // ── Routes ───────────────────────────────────────────────
+ app.use('/api/auth', authRoutes);
+-// Phase 3+ mounts more routers here: /api/business, /api/inventory,
+-// /api/sales, /api/admin, etc. — kept as separate PRs/patches.
++app.use('/api/catalog', catalogRoutes);
++app.use('/api/registration', registrationRoutes);
++// Phase 4+ mounts more routers here: /api/inventory, /api/sales,
++// /api/admin, etc. — kept as separate PRs/patches.
+ 
+ // ── Fallbacks ────────────────────────────────────────────
+ app.use(notFoundHandler);
+diff --git a/server/controllers/catalogController.js b/server/controllers/catalogController.js
+new file mode 100644
+index 0000000..0f491d3
+--- /dev/null
++++ b/server/controllers/catalogController.js
+@@ -0,0 +1,22 @@
++import {
++  listModules,
++  listBusinessTypes,
++  listPlans,
++  listBackupModules,
++} from '../models/catalogModel.js';
++
++export async function getModules(req, res) {
++  res.json({ modules: await listModules() });
++}
++
++export async function getBusinessTypes(req, res) {
++  res.json({ businessTypes: await listBusinessTypes() });
++}
++
++export async function getPlans(req, res) {
++  res.json({ plans: await listPlans() });
++}
++
++export async function getBackupModules(req, res) {
++  res.json({ backupModules: await listBackupModules() });
++}
+diff --git a/server/controllers/registrationController.js b/server/controllers/registrationController.js
+new file mode 100644
+index 0000000..f691c13
+--- /dev/null
++++ b/server/controllers/registrationController.js
+@@ -0,0 +1,166 @@
++import { ApiError } from '../utils/ApiError.js';
++import { withTransaction } from '../config/db.js';
++import {
++  findDraftByUser,
++  upsertDraft,
++  deleteDraftByUser,
++} from '../models/registrationDraftModel.js';
++import { findBusinessByOwner, createBusiness } from '../models/businessModel.js';
++import { createSubscription, addSubscriptionBackupModules } from '../models/subscriptionModel.js';
++import {
++  getModuleByCode,
++  resolveBusinessType,
++  getPlanByCode,
++  getBackupModulesByCodes,
++} from '../models/catalogModel.js';
++
++const VALID_PLATFORMS = ['web_app', 'mobile_pos', 'both'];
++const VALID_PAYMENT_METHODS = ['card', 'bank_transfer', 'jazzcash_easypaisa'];
++
++// ── GET /api/registration/draft ───────────────────────────────────────────
++export async function getDraft(req, res) {
++  const draft = await findDraftByUser(req.user.id);
++  res.json({ draft });
++}
++
++// ── PUT /api/registration/draft ───────────────────────────────────────────
++// Body: { step: 2|3|4, payload: <accumulated wizard state so far> }
++// Step 1 (Account) isn't saved here — it's what created the user via
++// /auth/signup in the first place.
++export async function saveDraft(req, res) {
++  const { step, payload } = req.body;
++
++  if (![2, 3, 4].includes(Number(step))) {
++    throw new ApiError(400, 'step must be 2, 3, or 4');
++  }
++  if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
++    throw new ApiError(400, 'payload must be an object');
++  }
++
++  const existingBusiness = await findBusinessByOwner(req.user.id);
++  if (existingBusiness) {
++    throw new ApiError(409, 'You have already completed business setup');
++  }
++
++  const draft = await upsertDraft(req.user.id, Number(step), payload);
++  res.json({ message: 'Draft saved', draft });
++}
++
++// ── POST /api/registration/finish ─────────────────────────────────────────
++// Validates everything, then creates businesses + subscriptions +
++// subscription_backup_modules atomically, and clears the draft.
++//
++// Expected body shape:
++// {
++//   business: { businessName, businessTypeCode|businessType, location,
++//               cityRegion, shopAddress, isRegistered, nicNumber },
++//   moduleCode: 'pharmacy',
++//   subscription: { planCode, platform, paymentMethod, backupModuleCodes: [] }
++// }
++export async function finishSetup(req, res) {
++  const { business, moduleCode, subscription } = req.body;
++
++  if (await findBusinessByOwner(req.user.id)) {
++    throw new ApiError(409, 'You have already completed business setup');
++  }
++
++  // ── Business details ────────────────────────────────────────────────
++  if (!business?.businessName?.trim()) {
++    throw new ApiError(400, 'Business name is required');
++  }
++  if (!business?.location?.trim()) {
++    throw new ApiError(400, 'Business location is required');
++  }
++  const isRegistered = Boolean(business.isRegistered);
++  if (isRegistered && !business.nicNumber?.trim()) {
++    throw new ApiError(400, 'NIC number is required for a registered business');
++  }
++  if (isRegistered && !business.cityRegion?.trim()) {
++    throw new ApiError(400, 'City/region is required for a registered business');
++  }
++
++  // businessTypeCode is the correct field once the frontend has a real
++  // dropdown; businessType (free text) is what it sends today. Either works.
++  const businessType = business.businessTypeCode
++    ? await resolveBusinessType(business.businessTypeCode)
++    : await resolveBusinessType(business.businessType);
++
++  // ── Module ───────────────────────────────────────────────────────────
++  if (!moduleCode) {
++    throw new ApiError(400, 'moduleCode is required');
++  }
++  const module = await getModuleByCode(moduleCode);
++  if (!module) {
++    throw new ApiError(400, 'Unknown module');
++  }
++  if (!module.is_available) {
++    throw new ApiError(400, `${module.name} isn't available yet`);
++  }
++
++  // ── Subscription ─────────────────────────────────────────────────────
++  if (!subscription?.planCode) {
++    throw new ApiError(400, 'subscription.planCode is required');
++  }
++  const plan = await getPlanByCode(subscription.planCode);
++  if (!plan) {
++    throw new ApiError(400, 'Unknown or inactive plan');
++  }
++
++  const platform = subscription.platform || 'web_app';
++  if (!VALID_PLATFORMS.includes(platform)) {
++    throw new ApiError(400, `platform must be one of: ${VALID_PLATFORMS.join(', ')}`);
++  }
++
++  if (!VALID_PAYMENT_METHODS.includes(subscription.paymentMethod)) {
++    throw new ApiError(400, `paymentMethod must be one of: ${VALID_PAYMENT_METHODS.join(', ')}`);
++  }
++
++  const backupModules = await getBackupModulesByCodes(subscription.backupModuleCodes || []);
++  const backupModulesPrice = backupModules.reduce((sum, m) => sum + Number(m.monthly_price), 0);
++
++  // ── All validated — create business + subscription together ───────────
++  const result = await withTransaction(async (conn) => {
++    const createdBusiness = await createBusiness(conn, {
++      ownerUserId: req.user.id,
++      moduleId: module.id,
++      businessTypeId: businessType?.id ?? null,
++      name: business.businessName.trim(),
++      location: business.location.trim(),
++      cityRegion: business.cityRegion?.trim() || null,
++      shopAddress: business.shopAddress?.trim() || null,
++      isRegistered,
++      nicNumber: isRegistered ? business.nicNumber.trim() : null,
++    });
++
++    const subscriptionId = await createSubscription(conn, {
++      businessId: createdBusiness.id,
++      planId: plan.id,
++      platform,
++      paymentMethod: subscription.paymentMethod,
++      planPrice: plan.monthly_price,
++      backupModulesPrice,
++    });
++
++    await addSubscriptionBackupModules(conn, subscriptionId, backupModules);
++
++    return { business: createdBusiness, subscriptionId };
++  });
++
++  await deleteDraftByUser(req.user.id);
++
++  return res.status(201).json({
++    message: 'Business setup complete',
++    business: {
++      id: result.business.id,
++      name: result.business.name,
++      moduleCode: module.code,
++      status: result.business.status,
++      onboardingStatus: result.business.onboarding_status,
++    },
++    subscription: {
++      planCode: plan.code,
++      estimatedMonthlyCost: Number(plan.monthly_price) + backupModulesPrice,
++      currency: plan.currency,
++    },
++  });
++}
+diff --git a/server/models/businessModel.js b/server/models/businessModel.js
+new file mode 100644
+index 0000000..7ed8bfd
+--- /dev/null
++++ b/server/models/businessModel.js
+@@ -0,0 +1,53 @@
++import { pool } from '../config/db.js';
++
++export async function findBusinessByOwner(ownerUserId) {
++  const [rows] = await pool.query(
++    `SELECT * FROM businesses WHERE owner_user_id = ? LIMIT 1`,
++    [ownerUserId]
++  );
++  return rows[0] || null;
++}
++
++export async function findBusinessById(id) {
++  const [rows] = await pool.query(`SELECT * FROM businesses WHERE id = ? LIMIT 1`, [id]);
++  return rows[0] || null;
++}
++
++/**
++ * Runs inside the caller's transaction (`conn`), not the shared pool —
++ * this is always called alongside subscription creation, and both must
++ * commit or roll back together.
++ *
++ * @param {import('mysql2/promise').PoolConnection} conn
++ */
++export async function createBusiness(conn, {
++  ownerUserId,
++  moduleId,
++  businessTypeId,
++  name,
++  location,
++  cityRegion,
++  shopAddress,
++  isRegistered,
++  nicNumber,
++}) {
++  const [result] = await conn.query(
++    `INSERT INTO businesses
++       (owner_user_id, module_id, business_type_id, name, location, city_region,
++        shop_address, is_registered, nic_number, onboarding_status, terms_accepted_at)
++     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())`,
++    [
++      ownerUserId,
++      moduleId,
++      businessTypeId,
++      name,
++      location,
++      cityRegion,
++      shopAddress,
++      isRegistered ? 1 : 0,
++      nicNumber,
++    ]
++  );
++  const [rows] = await conn.query(`SELECT * FROM businesses WHERE id = ?`, [result.insertId]);
++  return rows[0];
++}
+diff --git a/server/models/catalogModel.js b/server/models/catalogModel.js
+new file mode 100644
+index 0000000..2246d5b
+--- /dev/null
++++ b/server/models/catalogModel.js
+@@ -0,0 +1,81 @@
++import { pool } from '../config/db.js';
++
++/**
++ * Platform catalog reads — modules, business types, plans, backup modules.
++ * All seeded in schema.sql Section 9. Nothing here is tenant-scoped.
++ */
++
++/** Every module, including unavailable ones — the frontend renders those as "MORE SOON" tiles. */
++export async function listModules() {
++  const [rows] = await pool.query(
++    `SELECT id, code, name, tagline, icon, is_available, display_order
++     FROM modules ORDER BY display_order`
++  );
++  return rows;
++}
++
++export async function getModuleByCode(code) {
++  const [rows] = await pool.query(`SELECT * FROM modules WHERE code = ? LIMIT 1`, [code]);
++  return rows[0] || null;
++}
++
++export async function listBusinessTypes() {
++  const [rows] = await pool.query(
++    `SELECT id, code, name, display_order FROM business_types ORDER BY display_order`
++  );
++  return rows;
++}
++
++export async function getBusinessTypeByCode(code) {
++  const [rows] = await pool.query(`SELECT * FROM business_types WHERE code = ? LIMIT 1`, [code]);
++  return rows[0] || null;
++}
++
++/**
++ * businessType on the frontend is currently a free-text input (not yet a
++ * dropdown sourced from this catalog — see server/README.md). This does a
++ * best-effort case-insensitive match against name/code, falling back to
++ * the 'other' business type so free text never blocks registration.
++ */
++export async function resolveBusinessType(freeText) {
++  if (!freeText?.trim()) return getBusinessTypeByCode('other');
++  const [rows] = await pool.query(
++    `SELECT * FROM business_types WHERE LOWER(name) = LOWER(?) OR LOWER(code) = LOWER(?) LIMIT 1`,
++    [freeText.trim(), freeText.trim()]
++  );
++  return rows[0] || (await getBusinessTypeByCode('other'));
++}
++
++export async function listPlans() {
++  const [rows] = await pool.query(
++    `SELECT id, code, name, retention_months, monthly_price, currency
++     FROM plans WHERE is_active = 1 ORDER BY display_order`
++  );
++  return rows;
++}
++
++export async function getPlanByCode(code) {
++  const [rows] = await pool.query(
++    `SELECT * FROM plans WHERE code = ? AND is_active = 1 LIMIT 1`,
++    [code]
++  );
++  return rows[0] || null;
++}
++
++export async function listBackupModules() {
++  const [rows] = await pool.query(
++    `SELECT id, code, name, description, monthly_price
++     FROM backup_modules WHERE is_active = 1 ORDER BY display_order`
++  );
++  return rows;
++}
++
++/** @param {string[]} codes */
++export async function getBackupModulesByCodes(codes) {
++  if (!codes?.length) return [];
++  const [rows] = await pool.query(
++    `SELECT * FROM backup_modules WHERE code IN (?) AND is_active = 1`,
++    [codes]
++  );
++  return rows;
++}
+diff --git a/server/models/registrationDraftModel.js b/server/models/registrationDraftModel.js
+new file mode 100644
+index 0000000..d29657b
+--- /dev/null
++++ b/server/models/registrationDraftModel.js
+@@ -0,0 +1,40 @@
++import { pool } from '../config/db.js';
++
++/**
++ * One draft per user (registration_drafts.user_id is UNIQUE). Draft data
++ * is intentionally schemaless — `payload` holds whatever the frontend's
++ * accumulated wizard state looks like at each step. See server/README.md
++ * for why step 1 (Account) isn't part of this: it's handled by
++ * /auth/signup, since a draft row requires a user to already exist
++ * (registration_drafts.user_id has a NOT NULL FK to users).
++ */
++export async function findDraftByUser(userId) {
++  const [rows] = await pool.query(
++    `SELECT current_step, payload, last_saved_at, created_at
++     FROM registration_drafts WHERE user_id = ? LIMIT 1`,
++    [userId]
++  );
++  return rows[0] || null;
++}
++
++/**
++ * @param {number} userId
++ * @param {number} step   1..4 — which step this save came from
++ * @param {object} payload
++ */
++export async function upsertDraft(userId, step, payload) {
++  await pool.query(
++    `INSERT INTO registration_drafts (user_id, current_step, payload)
++     VALUES (?, ?, CAST(? AS JSON))
++     ON DUPLICATE KEY UPDATE
++       current_step = VALUES(current_step),
++       payload = VALUES(payload),
++       last_saved_at = NOW()`,
++    [userId, step, JSON.stringify(payload)]
++  );
++  return findDraftByUser(userId);
++}
++
++export async function deleteDraftByUser(userId) {
++  await pool.query(`DELETE FROM registration_drafts WHERE user_id = ?`, [userId]);
++}
+diff --git a/server/models/subscriptionModel.js b/server/models/subscriptionModel.js
+new file mode 100644
+index 0000000..28bba0d
+--- /dev/null
++++ b/server/models/subscriptionModel.js
+@@ -0,0 +1,47 @@
++import { pool } from '../config/db.js';
++
++export async function findSubscriptionByBusiness(businessId) {
++  const [rows] = await pool.query(
++    `SELECT s.*, p.code AS plan_code, p.name AS plan_name
++     FROM subscriptions s JOIN plans p ON p.id = s.plan_id
++     WHERE s.business_id = ? LIMIT 1`,
++    [businessId]
++  );
++  return rows[0] || null;
++}
++
++/**
++ * @param {import('mysql2/promise').PoolConnection} conn
++ */
++export async function createSubscription(conn, {
++  businessId,
++  planId,
++  platform,
++  paymentMethod,
++  planPrice,
++  backupModulesPrice,
++  currency = 'PKR',
++}) {
++  const estimatedMonthlyCost = Number(planPrice) + Number(backupModulesPrice);
++  const [result] = await conn.query(
++    `INSERT INTO subscriptions
++       (business_id, plan_id, platform, payment_method, plan_price,
++        backup_modules_price, estimated_monthly_cost, currency)
++     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
++    [businessId, planId, platform, paymentMethod, planPrice, backupModulesPrice, estimatedMonthlyCost, currency]
++  );
++  return result.insertId;
++}
++
++/**
++ * @param {import('mysql2/promise').PoolConnection} conn
++ * @param {Array<{id:number, monthly_price:number}>} backupModules
++ */
++export async function addSubscriptionBackupModules(conn, subscriptionId, backupModules) {
++  if (!backupModules.length) return;
++  const values = backupModules.map((m) => [subscriptionId, m.id, m.monthly_price]);
++  await conn.query(
++    `INSERT INTO subscription_backup_modules (subscription_id, backup_module_id, unit_price) VALUES ?`,
++    [values]
++  );
++}
+diff --git a/server/routes/catalogRoutes.js b/server/routes/catalogRoutes.js
+new file mode 100644
+index 0000000..007c7cb
+--- /dev/null
++++ b/server/routes/catalogRoutes.js
+@@ -0,0 +1,20 @@
++import express from 'express';
++import {
++  getModules,
++  getBusinessTypes,
++  getPlans,
++  getBackupModules,
++} from '../controllers/catalogController.js';
++import { asyncHandler } from '../utils/asyncHandler.js';
++
++const router = express.Router();
++
++// Public — this is seeded reference data (business modules, plans, etc.),
++// not tenant data. The registration wizard needs it before a business
++// (or in the frontend's current form, sometimes even before login) exists.
++router.get('/modules', asyncHandler(getModules));
++router.get('/business-types', asyncHandler(getBusinessTypes));
++router.get('/plans', asyncHandler(getPlans));
++router.get('/backup-modules', asyncHandler(getBackupModules));
++
++export default router;
+diff --git a/server/routes/registrationRoutes.js b/server/routes/registrationRoutes.js
+new file mode 100644
+index 0000000..0039628
+--- /dev/null
++++ b/server/routes/registrationRoutes.js
+@@ -0,0 +1,14 @@
++import express from 'express';
++import { getDraft, saveDraft, finishSetup } from '../controllers/registrationController.js';
++import { verifyToken } from '../middleware/verifyToken.js';
++import { asyncHandler } from '../utils/asyncHandler.js';
++
++const router = express.Router();
++
++// All registration routes require an authenticated user — the account
++// (step 1) is created by /auth/signup before any of these are reachable.
++router.get('/draft', verifyToken, asyncHandler(getDraft));
++router.put('/draft', verifyToken, asyncHandler(saveDraft));
++router.post('/finish', verifyToken, asyncHandler(finishSetup));
++
++export default router;
