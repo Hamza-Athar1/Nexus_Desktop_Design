@@ -43,6 +43,7 @@ async function toAuthUser(user) {
     id: user.id,
     username: user.username,
     email: user.email,
+    phone: user.phone,
     role: user.role, // 'super_admin' | 'admin' | 'user'
     status: user.status,
     businessId, // null until the registration wizard finishes — drives frontend routing

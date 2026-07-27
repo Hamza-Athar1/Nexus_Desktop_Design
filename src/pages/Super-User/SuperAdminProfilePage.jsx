@@ -1,14 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Shield, Monitor, Check, LogOut, Trash2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function SuperAdminProfilePage() {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'security', 'actions'
-  
+
   // Profile Info States
   const [fullName, setFullName] = useState('Aiesha Asad');
   const [email, setEmail] = useState('aiesha.asad@nexus.com');
   const [phone, setPhone] = useState('0300-1234567');
-  
+
+  // Sync state with logged in user from AuthContext
+  useEffect(() => {
+    if (user) {
+      if (user.fullName) {
+        setFullName(user.fullName);
+      } else if (user.username) {
+        const parts = user.username.split('@')[0].split(/[._-]/);
+        const capitalized = parts.map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+        setFullName(capitalized || 'Aiesha Asad');
+      }
+      if (user.username) {
+        setEmail(user.username);
+      }
+      if (user.phone) {
+        setPhone(user.phone);
+      }
+    }
+  }, [user]);
+
   // Password States
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -78,7 +99,7 @@ export default function SuperAdminProfilePage() {
             <span>{email}</span>
           </p>
         </div>
-        
+
         {/* Status Badge */}
         <span className="inline-flex px-5 py-2.5 bg-[#cbebc7] border border-[#14391a]/30 rounded-[12px] text-sm font-extrabold text-[#14391a] leading-tight">
           Active
@@ -89,33 +110,30 @@ export default function SuperAdminProfilePage() {
       <div className="flex border-b border-[#14391a]/15 mb-7">
         <button
           onClick={() => setActiveTab('profile')}
-          className={`pb-3.5 px-3.5 font-bold text-[15px] border-b-3 transition cursor-pointer flex items-center gap-2 ${
-            activeTab === 'profile'
-              ? 'border-[#14391a] text-[#14391a]'
-              : 'border-transparent text-[#14391a]/60 hover:text-[#14391a]'
-          }`}
+          className={`pb-3.5 px-3.5 font-bold text-[15px] border-b-3 transition cursor-pointer flex items-center gap-2 ${activeTab === 'profile'
+            ? 'border-[#14391a] text-[#14391a]'
+            : 'border-transparent text-[#14391a]/60 hover:text-[#14391a]'
+            }`}
         >
           <User size={18} />
           <span>Profile</span>
         </button>
         <button
           onClick={() => setActiveTab('security')}
-          className={`pb-3.5 px-3.5 font-bold text-[15px] border-b-3 transition cursor-pointer flex items-center gap-2 ${
-            activeTab === 'security'
-              ? 'border-[#14391a] text-[#14391a]'
-              : 'border-transparent text-[#14391a]/60 hover:text-[#14391a]'
-          }`}
+          className={`pb-3.5 px-3.5 font-bold text-[15px] border-b-3 transition cursor-pointer flex items-center gap-2 ${activeTab === 'security'
+            ? 'border-[#14391a] text-[#14391a]'
+            : 'border-transparent text-[#14391a]/60 hover:text-[#14391a]'
+            }`}
         >
           <Shield size={18} />
           <span>Security</span>
         </button>
         <button
           onClick={() => setActiveTab('actions')}
-          className={`pb-3.5 px-3.5 font-bold text-[15px] border-b-3 transition cursor-pointer flex items-center gap-2 ${
-            activeTab === 'actions'
-              ? 'border-[#14391a] text-[#14391a]'
-              : 'border-transparent text-[#14391a]/60 hover:text-[#14391a]'
-          }`}
+          className={`pb-3.5 px-3.5 font-bold text-[15px] border-b-3 transition cursor-pointer flex items-center gap-2 ${activeTab === 'actions'
+            ? 'border-[#14391a] text-[#14391a]'
+            : 'border-transparent text-[#14391a]/60 hover:text-[#14391a]'
+            }`}
         >
           <Monitor size={18} />
           <span>Account Actions</span>
@@ -125,7 +143,7 @@ export default function SuperAdminProfilePage() {
       {/* Profile Tab View */}
       {activeTab === 'profile' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          
+
           {/* Card 1: Profile Information */}
           <div className="bg-[#fcfbfa] border border-[#14391a]/15 rounded-[20px] p-6.5 flex flex-col gap-5">
             <div>
@@ -146,7 +164,7 @@ export default function SuperAdminProfilePage() {
                   type="text"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/20 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/40"
+                  className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50"
                 />
               </div>
 
@@ -159,7 +177,7 @@ export default function SuperAdminProfilePage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="flex-1 bg-[#fcfbfa] border border-[#14391a]/20 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/40"
+                    className="flex-1 bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50"
                   />
                   <button
                     type="button"
@@ -179,7 +197,7 @@ export default function SuperAdminProfilePage() {
                   type="text"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/20 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/40"
+                  className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50"
                 />
               </div>
 
@@ -204,6 +222,16 @@ export default function SuperAdminProfilePage() {
             </div>
 
             <form onSubmit={handleUpdatePassword} className="flex flex-col gap-4">
+              {/* Hidden username field for password manager accessibility */}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={email}
+                readOnly
+                className="hidden"
+                style={{ display: 'none' }}
+              />
               <div>
                 <label className="block text-sm font-extrabold text-[#14391a] mb-1.5">
                   Current password
@@ -214,7 +242,7 @@ export default function SuperAdminProfilePage() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   autoComplete="current-password"
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/20 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/40 placeholder-[#14391a]/40"
+                  className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50 placeholder-[#14391a]/40"
                 />
               </div>
 
@@ -228,7 +256,7 @@ export default function SuperAdminProfilePage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   autoComplete="new-password"
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/20 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/40 placeholder-[#14391a]/40"
+                  className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50 placeholder-[#14391a]/40"
                 />
               </div>
 
@@ -242,18 +270,17 @@ export default function SuperAdminProfilePage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   autoComplete="new-password"
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/20 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/40 placeholder-[#14391a]/40"
+                  className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50 placeholder-[#14391a]/40"
                 />
               </div>
 
               {/* Password must contain list */}
               <div className="bg-[#faf8ed] rounded-[12px] p-4 flex flex-col gap-2">
                 <span className="text-xs font-extrabold text-[#14391a]/85">Password must contain:</span>
-                
+
                 <div className="flex items-center gap-2 text-xs font-bold">
-                  <span className={`p-0.5 rounded-full flex items-center justify-center transition-colors ${
-                    hasMinLength ? 'bg-[#cbebc7] text-[#14391a]' : 'bg-gray-200 text-gray-400'
-                  }`}>
+                  <span className={`p-0.5 rounded-full flex items-center justify-center transition-colors ${hasMinLength ? 'bg-[#cbebc7] text-[#14391a]' : 'bg-gray-200 text-gray-400'
+                    }`}>
                     <Check size={12} strokeWidth={3} />
                   </span>
                   <span className={hasMinLength ? 'text-[#14391a]' : 'text-[#14391a]/60'}>
@@ -262,9 +289,8 @@ export default function SuperAdminProfilePage() {
                 </div>
 
                 <div className="flex items-center gap-2 text-xs font-bold">
-                  <span className={`p-0.5 rounded-full flex items-center justify-center transition-colors ${
-                    hasUppercase ? 'bg-[#cbebc7] text-[#14391a]' : 'bg-gray-200 text-gray-400'
-                  }`}>
+                  <span className={`p-0.5 rounded-full flex items-center justify-center transition-colors ${hasUppercase ? 'bg-[#cbebc7] text-[#14391a]' : 'bg-gray-200 text-gray-400'
+                    }`}>
                     <Check size={12} strokeWidth={3} />
                   </span>
                   <span className={hasUppercase ? 'text-[#14391a]' : 'text-[#14391a]/60'}>
@@ -273,9 +299,8 @@ export default function SuperAdminProfilePage() {
                 </div>
 
                 <div className="flex items-center gap-2 text-xs font-bold">
-                  <span className={`p-0.5 rounded-full flex items-center justify-center transition-colors ${
-                    hasNumberOrSpecial ? 'bg-[#cbebc7] text-[#14391a]' : 'bg-gray-200 text-gray-400'
-                  }`}>
+                  <span className={`p-0.5 rounded-full flex items-center justify-center transition-colors ${hasNumberOrSpecial ? 'bg-[#cbebc7] text-[#14391a]' : 'bg-gray-200 text-gray-400'
+                    }`}>
                     <Check size={12} strokeWidth={3} />
                   </span>
                   <span className={hasNumberOrSpecial ? 'text-[#14391a]' : 'text-[#14391a]/60'}>
@@ -299,7 +324,7 @@ export default function SuperAdminProfilePage() {
       {/* Security Tab View */}
       {activeTab === 'security' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
-          
+
           {/* Card 1: Two-factor authentication */}
           <div className="bg-[#fcfbfa] border border-[#14391a]/15 rounded-[20px] p-6.5 flex flex-col gap-5">
             <div>
@@ -313,7 +338,7 @@ export default function SuperAdminProfilePage() {
 
             <div className="flex flex-col gap-4">
               {/* Row 1: 2FA is enabled status card */}
-              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#fcfbfa] border border-[#14391a]/20 rounded-[12px]">
+              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#fcfbfa] border border-[#14391a]/35 rounded-[12px]">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-[#cbebc7] text-[#14391a] rounded-[8px]">
                     <Shield size={20} strokeWidth={2.5} />
@@ -327,20 +352,18 @@ export default function SuperAdminProfilePage() {
                 <button
                   type="button"
                   onClick={() => setTwoFactorEnabled(!twoFactorEnabled)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    twoFactorEnabled ? 'bg-[#113819]' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${twoFactorEnabled ? 'bg-[#113819]' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      twoFactorEnabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${twoFactorEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
 
               {/* Row 2: Authenticator App */}
-              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#fcfbfa] border border-[#14391a]/20 rounded-[12px]">
+              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#fcfbfa] border border-[#14391a]/35 rounded-[12px]">
                 <div>
                   <h3 className="text-sm font-extrabold text-[#14391a] leading-tight">Authenticator App</h3>
                   <p className="text-xs text-[#14391a]/70 font-semibold mt-0.5">You are using Google Authenticator</p>
@@ -355,7 +378,7 @@ export default function SuperAdminProfilePage() {
               </div>
 
               {/* Row 3: Disable 2FA */}
-              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#f7d6d3]/30 border border-[#99221b]/30 rounded-[12px]">
+              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#f7d6d3]/30 border border-[#99221b]/45 rounded-[12px]">
                 <div>
                   <h3 className="text-sm font-extrabold text-[#99221b] leading-tight">Disable 2FA</h3>
                   <p className="text-xs text-[#99221b]/80 font-semibold mt-0.5">Disabling 2FA will reduce your account security.</p>
@@ -388,7 +411,7 @@ export default function SuperAdminProfilePage() {
             </div>
 
             <div className="flex flex-col gap-4.5 divide-y divide-[#14391a]/10">
-              
+
               {/* Row 1: Security alerts */}
               <div className="flex items-center justify-between gap-4 pt-1">
                 <div>
@@ -398,14 +421,12 @@ export default function SuperAdminProfilePage() {
                 <button
                   type="button"
                   onClick={() => setPrefSecurityAlerts(!prefSecurityAlerts)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    prefSecurityAlerts ? 'bg-[#113819]' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${prefSecurityAlerts ? 'bg-[#113819]' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      prefSecurityAlerts ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${prefSecurityAlerts ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -419,14 +440,12 @@ export default function SuperAdminProfilePage() {
                 <button
                   type="button"
                   onClick={() => setPrefNewLogins(!prefNewLogins)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    prefNewLogins ? 'bg-[#113819]' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${prefNewLogins ? 'bg-[#113819]' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      prefNewLogins ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${prefNewLogins ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -440,14 +459,12 @@ export default function SuperAdminProfilePage() {
                 <button
                   type="button"
                   onClick={() => setPrefBillingUpdates(!prefBillingUpdates)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    prefBillingUpdates ? 'bg-[#113819]' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${prefBillingUpdates ? 'bg-[#113819]' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      prefBillingUpdates ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${prefBillingUpdates ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -461,14 +478,12 @@ export default function SuperAdminProfilePage() {
                 <button
                   type="button"
                   onClick={() => setPrefSystemAnnouncements(!prefSystemAnnouncements)}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                    prefSystemAnnouncements ? 'bg-[#113819]' : 'bg-gray-200'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${prefSystemAnnouncements ? 'bg-[#113819]' : 'bg-gray-200'
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                      prefSystemAnnouncements ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${prefSystemAnnouncements ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -502,7 +517,7 @@ export default function SuperAdminProfilePage() {
           <div className="flex flex-col gap-6">
             {/* Row 1 */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 border-b border-[#14391a]/10">
-              
+
               {/* Active Sessions */}
               <div className="flex items-center justify-between gap-4 p-4.5 bg-[#fcfbfa] rounded-[12px] border border-gray-100 hover:border-[#14391a]/20 transition duration-200">
                 <div className="flex items-center gap-3">
