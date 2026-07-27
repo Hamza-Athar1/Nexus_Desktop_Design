@@ -196,7 +196,7 @@ export default function AddPaletteForm({ onCancel, onAdd }) {
 
   return (
     <div className="relative bg-[#fcfbfa] border border-[#14391a]/30 rounded-[20px] p-5.5 flex flex-col gap-4.5 mt-2">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
         {/* Name Input */}
         <div>
           <input
@@ -274,13 +274,14 @@ export default function AddPaletteForm({ onCancel, onAdd }) {
             Cancel
           </button>
           <button
-            type="submit"
+            type="button"
+            onClick={handleSubmit}
             className="px-4.5 py-2.5 bg-[#113819] hover:bg-[#14391a] text-white text-xs font-extrabold rounded-[10px] transition cursor-pointer shadow-xs"
           >
             Add Palette
           </button>
         </div>
-      </form>
+      </div>
 
       {/* Self-Contained Color Picker Popover (Side-by-Side to the Right) */}
       {activeBlock && (
