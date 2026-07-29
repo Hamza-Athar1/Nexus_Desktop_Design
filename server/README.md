@@ -289,3 +289,80 @@ audit trail behind it, per the schema's own stated design.
 sent to the server — grocery's branch already did, pharmacy's didn't.
 Fixed to match.
 
+## Phase 5: Super Admin — Requests workflow
+
+Wires up `SuperAdminRequestsPage.jsx` (previously a fully static mock with
+an in-memory `INITIAL_REQUESTS` array) to `shop_requests`, a table that
+already existed in the schema (Section 4) but nothing wrote to or read
+from it until this patch.
+
+### New endpoints
+
+| Method | Path                    | Auth        | Notes |
+|--------|-------------------------|-------------|-------|
+| POST   | `/api/requests`         | admin (own business) | Files a new request. `requestType` must be one of `pos_terminal`\|`plan_upgrade`\|`module_change`\|`other`. |
+| GET    | `/api/requests/mine`    | admin (own business) | Requests filed by the caller's own business. |
+| GET    | `/api/admin/requests`   | super_admin | All requests, platform-wide. Optional `?module=<code>&status=<Pending\|Approved\|Rejected\|Resubmit>` narrowing — the frontend currently filters client-side over the full set, but the API supports server-side filtering too. |
+| GET    | `/api/admin/requests/meta` | super_admin | `{ modules: [{code,name,label}], pendingCount }` — populates the POS module filter dropdown and the page header's pending count (deliberately platform-wide, not filter-scoped). |
+| GET    | `/api/admin/requests/:id` | super_admin | Single request, joined with business/module/reviewer. |
+| PATCH  | `/api/admin/requests/:id` | super_admin | `{ status, note? }`. Drives Approve/Reject/Resubmit and the "Update" re-review modal. `note` is required when `status: 'Resubmit'` (it's the "suggestion or improvement" shown back to the owner), optional otherwise. |
+
+`shop_requests.status` already used the exact strings the UI renders
+(`Pending`/`Approved`/`Rejected`/`Resubmit`) — no translation layer needed
+between the ENUM and the frontend.
+
+### Frontend wiring (this patch)
+
+`SuperAdminRequestsPage.jsx` previously held all 8 rows in a hardcoded
+`INITIAL_REQUESTS` array and `handleAction` just mutated local state —
+nothing persisted, and a page refresh reset everything. This patch:
+
+- Fetches the request list + filter metadata from the API on mount
+  (`loading`/error states added; a Retry affordance on fetch failure).
+- The POS module filter dropdown is now sourced from `GET
+  /admin/requests/meta` instead of 4 hardcoded `<option>`s (which
+  included `'Gifting POS'` — not a real module in `modules`; the demo
+  data below reassigns those rows to real modules).
+- Approve/Reject/Resubmit call `PATCH /admin/requests/:id` for real and
+  update local state from the server's response; the pending count is
+  re-pulled after every mutation since it's platform-wide, not
+  filter-scoped.
+- **New:** "View details" (shown on Approved/Rejected/Resubmit rows) opens
+  a read-only modal with the full request — business, module, type,
+  submitted date, details, reviewer note, and who reviewed it and when.
+- **New:** "Update" (same rows) opens a modal to re-review a
+  already-decided request — change its status and/or note via the same
+  `PATCH` endpoint. Neither action existed before; the mockup had the
+  buttons but no behavior wired to them.
+- "Submitted" (`"2 days ago"`) is now computed client-side from the
+  real `createdAt` timestamp rather than a hardcoded string.
+
+### Seed data for local testing
+
+`shop_requests` had no writer anywhere in the app before this patch (no
+business-side "file a request" UI exists yet), so a fresh database has
+nothing for the Requests page to show. `server/db/seed.js` (`npm run
+db:seed`, after `npm run db:reset`) creates a `super_admin` login plus 8
+demo businesses/owners — one per module — with requests roughly matching
+the original mockup rows (adjusted off `'Gifting POS'`, which isn't a
+real module, onto `general_store`). Idempotent — safe to re-run.
+
+```
+npm run db:reset   # fresh schema
+npm run db:seed    # demo businesses + requests
+npm run dev
+```
+
+Login as `superadmin` / `Demo@12345` and visit `/super-admin/requests`.
+
+### Design notes / scope
+
+- **Reject has no reason field in the UI** (only Resubmit does), so
+  `PATCH` only requires `note` when `status: 'Resubmit'`. The "Update"
+  modal can still attach a note to any status change if a super admin
+  wants to record one.
+- `POST /api/requests` (business files a request) has no frontend caller
+  yet — `AdminDashboardPage.jsx` doesn't have a "file a request" form.
+  Built for completeness/symmetry and so the seed script and any future
+  business-side UI have a real endpoint to hit, not because a screen
+  calls it today.

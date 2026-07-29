@@ -8,6 +8,7 @@ import inventoryRoutes from './routes/inventoryRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import supplierRoutes from './routes/supplierRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
+import requestRoutes from './routes/requestRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export const app = express();
@@ -35,8 +36,9 @@ app.use('/api', inventoryRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', supplierRoutes);
 app.use('/api', customerRoutes);
-// Phase 5+ mounts more routers here: /api/sales, /api/purchases,
-// /api/admin, etc. — kept as separate PRs/patches.
+app.use('/api', requestRoutes);
+// Phase 5+ mounts more routers here: /api/sales, /api/purchases, etc.
+// — kept as separate PRs/patches.
 
 // ── Fallbacks ────────────────────────────────────────────
 app.use(notFoundHandler);
