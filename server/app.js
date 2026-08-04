@@ -9,6 +9,7 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import supplierRoutes from './routes/supplierRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
+import userManagementRoutes from './routes/userManagementRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export const app = express();
@@ -33,6 +34,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/registration', registrationRoutes);
 app.use('/api', requestRoutes);  // must precede business-scoped routers (they apply requireBusiness globally)
+app.use('/api', userManagementRoutes);
 app.use('/api', inventoryRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', supplierRoutes);

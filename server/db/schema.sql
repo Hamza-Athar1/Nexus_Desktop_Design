@@ -88,6 +88,7 @@ CREATE TABLE users (
   username            VARCHAR(64)  NOT NULL,
   email               VARCHAR(191) NOT NULL,
   phone               VARCHAR(24)  NULL,
+  full_name           VARCHAR(128) NULL,  -- display name shown in super admin dashboard
   password_hash       VARCHAR(255) NULL,     -- NULL when the account is OAuth-only
   role                ENUM('super_admin','admin','user') NOT NULL DEFAULT 'admin',
   status              ENUM('pending','active','suspended','blocked') NOT NULL DEFAULT 'pending',
@@ -209,6 +210,11 @@ CREATE TABLE businesses (
   pos_purchased       INT UNSIGNED NOT NULL DEFAULT 1,
   pos_active          INT UNSIGNED NOT NULL DEFAULT 1,
   onboarding_status   ENUM('in_progress','completed') NOT NULL DEFAULT 'in_progress',
+  -- Billing summary columns populated / updated by the super admin.
+  bill_amount         DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  bill_due_date       DATE NULL,           -- "Expires" column in User Management
+  last_paid_at        DATE NULL,           -- "Last Paid" column in User Management
+  status_reason       VARCHAR(255) NULL,   -- reason recorded when status changed,
   terms_accepted_at   TIMESTAMP    NULL,
   created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -710,6 +716,43 @@ CREATE TABLE stock_movements (
     REFERENCES products(id) ON DELETE CASCADE,
   CONSTRAINT fk_stock_movements_user FOREIGN KEY (user_id)
     REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+
+-- =====================================================================
+-- SECTION 4b: USER MANAGEMENT SUPPORTING TABLES
+-- Added in Phase 6 (Super Admin User Management workflow).
+-- =====================================================================
+
+-- Append-only audit trail per business, last 30 days surface in the
+-- Activity log modal. Super-admin actions (status changes, messages)
+-- are also written here so the log is a single source of truth.
+CREATE TABLE business_activity_log (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  business_id   BIGINT UNSIGNED NOT NULL,
+  event_type    ENUM('login','edit','bill','pos','key','status','message','other') NOT NULL DEFAULT 'other',
+  description   VARCHAR(255) NOT NULL,
+  created_at    TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_bal_business_date (business_id, created_at),
+  CONSTRAINT fk_bal_business FOREIGN KEY (business_id)
+    REFERENCES businesses(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Messages sent by the super admin to a business owner.
+CREATE TABLE admin_messages (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  business_id   BIGINT UNSIGNED NOT NULL,
+  from_user_id  BIGINT UNSIGNED NOT NULL,
+  subject       VARCHAR(255) NOT NULL,
+  body          TEXT NOT NULL,
+  sent_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_admin_messages_business (business_id),
+  CONSTRAINT fk_admin_messages_business FOREIGN KEY (business_id)
+    REFERENCES businesses(id) ON DELETE CASCADE,
+  CONSTRAINT fk_admin_messages_sender FOREIGN KEY (from_user_id)
+    REFERENCES users(id)
 ) ENGINE=InnoDB;
 
 -- =====================================================================
