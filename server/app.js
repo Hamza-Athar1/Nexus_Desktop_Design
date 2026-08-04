@@ -32,11 +32,11 @@ app.get('/api/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/registration', registrationRoutes);
+app.use('/api', requestRoutes);  // must precede business-scoped routers (they apply requireBusiness globally)
 app.use('/api', inventoryRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', supplierRoutes);
 app.use('/api', customerRoutes);
-app.use('/api', requestRoutes);
 // Phase 5+ mounts more routers here: /api/sales, /api/purchases, etc.
 // — kept as separate PRs/patches.
 
