@@ -89,6 +89,11 @@ CREATE TABLE users (
   email               VARCHAR(191) NOT NULL,
   phone               VARCHAR(24)  NULL,
   full_name           VARCHAR(128) NULL,  -- display name shown in super admin dashboard
+  twofa_enabled         TINYINT(1)   NOT NULL DEFAULT 0,
+  pref_security_alerts  TINYINT(1)   NOT NULL DEFAULT 1,
+  pref_new_logins       TINYINT(1)   NOT NULL DEFAULT 1,
+  pref_billing_updates  TINYINT(1)   NOT NULL DEFAULT 1,
+  pref_announcements    TINYINT(1)   NOT NULL DEFAULT 1,
   password_hash       VARCHAR(255) NULL,     -- NULL when the account is OAuth-only
   role                ENUM('super_admin','admin','user') NOT NULL DEFAULT 'admin',
   status              ENUM('pending','active','suspended','blocked') NOT NULL DEFAULT 'pending',
@@ -815,3 +820,62 @@ SELECT
 FROM products p
 WHERE p.is_active = 1
   AND p.stock_quantity <= p.reorder_level;
+
+-- =====================================================================
+-- SECTION 4c: BILLING INVOICES (Phase 7)
+-- One row per invoice issued by the super admin to a business.
+-- Historical rows accumulate; the latest per business surfaces on the
+-- Billing page; all rows appear on the Payment analytics page.
+-- =====================================================================
+
+CREATE TABLE invoices (
+  id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  business_id    BIGINT UNSIGNED NOT NULL,
+  invoice_number VARCHAR(32)     NOT NULL,
+  amount         DECIMAL(12,2)   NOT NULL,
+  status         ENUM('paid','pending','overdue') NOT NULL DEFAULT 'pending',
+  method         VARCHAR(32)     NULL,       -- 'Card' | 'Bank' | 'JazzCash' | NULL
+  due_date       DATE            NOT NULL,
+  paid_at        DATE            NULL,
+  created_at     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_invoices_number (invoice_number),
+  KEY idx_invoices_business (business_id),
+  KEY idx_invoices_status   (status),
+  KEY idx_invoices_due_date (due_date),
+  CONSTRAINT fk_invoices_business FOREIGN KEY (business_id)
+    REFERENCES businesses(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- =====================================================================
+-- SECTION 4d: POS MODULES + PALETTES (Phase 9)
+-- Super admin manages POS product catalogue with color themes.
+-- =====================================================================
+
+CREATE TABLE pos_palettes (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name          VARCHAR(64)     NOT NULL,
+  color_primary VARCHAR(7)      NOT NULL DEFAULT '#14391a',
+  color_accent  VARCHAR(7)      NOT NULL DEFAULT '#4caf50',
+  color_shade   VARCHAR(7)      NOT NULL DEFAULT '#81c784',
+  color_light   VARCHAR(7)      NOT NULL DEFAULT '#e8f5e9',
+  is_preset     TINYINT(1)      NOT NULL DEFAULT 0,
+  created_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_pos_palettes_name (name)
+) ENGINE=InnoDB;
+
+CREATE TABLE pos_modules (
+  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  name          VARCHAR(64)     NOT NULL,
+  price_cents   INT UNSIGNED    NOT NULL DEFAULT 0,
+  status        ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  palette_id    BIGINT UNSIGNED NULL,
+  created_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_pos_modules_name (name),
+  KEY idx_pos_modules_status (status),
+  CONSTRAINT fk_pos_modules_palette FOREIGN KEY (palette_id)
+    REFERENCES pos_palettes(id) ON DELETE SET NULL
+) ENGINE=InnoDB;

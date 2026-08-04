@@ -268,12 +268,27 @@ const OWNERS = [
 
 async function upsertSuperAdmin() {
   const [existing] = await pool.query(`SELECT id FROM users WHERE username = ?`, ['superadmin']);
-  if (existing[0]) return existing[0].id;
+  if (existing[0]) {
+    // Keep pref/2fa columns fresh on re-seed
+    await pool.query(
+      `UPDATE users SET
+         full_name = 'Aiesha Asad', phone = '0300-1234567',
+         twofa_enabled = 1,
+         pref_security_alerts = 1, pref_new_logins = 1,
+         pref_billing_updates = 1, pref_announcements = 1
+       WHERE id = ?`,
+      [existing[0].id]
+    );
+    return existing[0].id;
+  }
 
   const hash = await bcrypt.hash(DEMO_PASSWORD, 10);
   const [result] = await pool.query(
-    `INSERT INTO users (username, email, phone, password_hash, role, status)
-     VALUES ('superadmin', 'superadmin@nexus.local', '0300-0000000', ?, 'super_admin', 'active')`,
+    `INSERT INTO users
+       (username, full_name, email, phone, password_hash, role, status,
+        twofa_enabled, pref_security_alerts, pref_new_logins, pref_billing_updates, pref_announcements)
+     VALUES ('superadmin', 'Aiesha Asad', 'superadmin@nexus.local', '0300-1234567',
+             ?, 'super_admin', 'active', 1, 1, 1, 1, 1)`,
     [hash]
   );
   console.log(`  ✔ created super_admin -> superadmin / ${DEMO_PASSWORD}`);
@@ -377,6 +392,125 @@ async function upsertActivityLog(businessId, activities) {
 
 // ── main ─────────────────────────────────────────────────────────────────────
 
+
+// ── Invoice seed data (Phase 7) ───────────────────────────────────────────────
+// Keyed by owner username. `current` shows in the Billing table; `history`
+// builds up historical paid invoices (e.g. Piato Bakery gets 14 total so the
+// Payment page Bakery POS KPI cards show realistic data).
+
+const INVOICE_SETS = {
+  piatobakery: {
+    // Earliest business created_at so "POS since" is Sep 2024 in Payment KPIs
+    createdAt: '2024-09-01 00:00:00',
+    invoices: [
+      // 13 historical paid invoices (oldest → newest)
+      { num: 'INV-2410-100', amt: 3500, status: 'paid', method: 'Card',  due: '2024-10-14', paid: '2024-10-01' },
+      { num: 'INV-2412-101', amt: 3500, status: 'paid', method: 'Card',  due: '2024-12-14', paid: '2024-12-01' },
+      { num: 'INV-2502-102', amt: 3500, status: 'paid', method: 'Card',  due: '2025-02-14', paid: '2025-01-31' },
+      { num: 'INV-2504-103', amt: 4500, status: 'paid', method: 'Card',  due: '2025-04-14', paid: '2025-04-02' },
+      { num: 'INV-2506-104', amt: 3500, status: 'paid', method: 'Card',  due: '2025-06-14', paid: '2025-06-01' },
+      { num: 'INV-2508-105', amt: 3500, status: 'paid', method: 'Card',  due: '2025-08-14', paid: '2025-07-31' },
+      { num: 'INV-2510-106', amt: 4000, status: 'paid', method: 'Card',  due: '2025-10-14', paid: '2025-10-01' },
+      { num: 'INV-2512-107', amt: 3500, status: 'paid', method: 'Card',  due: '2025-12-14', paid: '2025-12-01' },
+      { num: 'INV-2602-108', amt: 4500, status: 'paid', method: 'Card',  due: '2026-02-14', paid: '2026-02-01' },
+      { num: 'INV-2604-109', amt: 3800, status: 'paid', method: 'Card',  due: '2026-04-14', paid: '2026-04-01' },
+      { num: 'INV-2606-110', amt: 3800, status: 'paid', method: 'Card',  due: '2026-06-14', paid: '2026-06-01' },
+      { num: 'INV-2607-111', amt: 4500, status: 'paid', method: 'Card',  due: '2026-07-14', paid: '2026-07-02' },
+      { num: 'INV-2607-112', amt: 4920, status: 'paid', method: 'Card',  due: '2026-07-25', paid: '2026-07-17' },
+      // current (Aug 2026) — shows in Billing table; total paid = 54,000
+      { num: 'INV-0231',     amt: 4500, status: 'paid', method: 'Card',  due: '2026-08-14', paid: '2026-07-17' },
+    ],
+  },
+
+  fairyparcel: {
+    invoices: [
+      { num: 'INV-2602-200', amt: 5000, status: 'paid', method: 'Card', due: '2026-02-10', paid: '2026-02-01' },
+      { num: 'INV-2605-201', amt: 5500, status: 'paid', method: 'Card', due: '2026-05-10', paid: '2026-05-02' },
+      { num: 'INV-0232',     amt: 6000, status: 'paid', method: 'Card', due: '2026-09-02', paid: '2026-07-25' },
+    ],
+  },
+
+  greenvalley: {
+    invoices: [
+      { num: 'INV-2603-300', amt: 5000, status: 'paid', method: 'Bank', due: '2026-03-25', paid: '2026-03-10' },
+      { num: 'INV-2606-301', amt: 4800, status: 'paid', method: 'Bank', due: '2026-06-25', paid: '2026-06-10' },
+      { num: 'INV-0233',     amt: 5200, status: 'overdue', method: null, due: '2026-07-25', paid: null },
+    ],
+  },
+
+  rafirestaurant: {
+    invoices: [
+      { num: 'INV-2601-400', amt: 2800, status: 'paid', method: 'JazzCash', due: '2026-01-20', paid: '2026-01-12' },
+      { num: 'INV-2604-401', amt: 2800, status: 'paid', method: 'JazzCash', due: '2026-04-20', paid: '2026-04-12' },
+      { num: 'INV-0234',     amt: 2800, status: 'pending', method: null,     due: '2026-08-20', paid: null },
+    ],
+  },
+
+  alkaram_pharmacy: {
+    invoices: [
+      { num: 'INV-2603-500', amt: 2800, status: 'paid', method: 'Bank', due: '2026-03-28', paid: '2026-03-15' },
+      { num: 'INV-2606-501', amt: 3000, status: 'paid', method: 'Bank', due: '2026-06-28', paid: '2026-05-20' },
+      { num: 'INV-0235',     amt: 3000, status: 'paid', method: 'Bank', due: '2026-08-28', paid: '2026-08-01' },
+    ],
+  },
+
+  pixeltech: {
+    invoices: [
+      { num: 'INV-2606-600', amt: 3200, status: 'paid', method: 'Card', due: '2026-06-20', paid: '2026-06-05' },
+      { num: 'INV-0236',     amt: 3200, status: 'paid', method: 'Card', due: '2026-08-20', paid: '2026-07-23' },
+    ],
+  },
+
+  thegiftery: {
+    invoices: [
+      { num: 'INV-2606-700', amt: 2500, status: 'paid', method: 'Card', due: '2026-06-30', paid: '2026-06-18' },
+      { num: 'INV-0237',     amt: 2500, status: 'paid', method: 'Card', due: '2026-08-30', paid: '2026-07-30' },
+    ],
+  },
+
+  parienhouse: {
+    invoices: [
+      { num: 'INV-2606-800', amt: 4000, status: 'paid', method: 'Bank', due: '2026-06-30', paid: '2026-06-19' },
+      { num: 'INV-0238',     amt: 4100, status: 'paid', method: 'Bank', due: '2026-08-30', paid: '2026-07-27' },
+    ],
+  },
+};
+
+async function upsertBusinessCreatedAt(businessId, createdAt) {
+  if (!createdAt) return;
+  await pool.query(
+    `UPDATE businesses SET created_at = ? WHERE id = ?`,
+    [createdAt, businessId]
+  );
+}
+
+async function upsertInvoices(businessId, set) {
+  if (!set) return;
+  for (const inv of set.invoices) {
+    const [existing] = await pool.query(
+      `SELECT id FROM invoices WHERE invoice_number = ?`,
+      [inv.num]
+    );
+    if (existing[0]) continue;
+    await pool.query(
+      `INSERT INTO invoices
+         (business_id, invoice_number, amount, status, method, due_date, paid_at, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?,
+               COALESCE(?, CURRENT_TIMESTAMP))`,
+      [
+        businessId, inv.num, inv.amt, inv.status,
+        inv.method ?? null,
+        inv.due,
+        inv.paid ?? null,
+        // created_at = paid_at if paid, else due_date (so ordering is sensible)
+        inv.paid ?? inv.due,
+      ]
+    );
+  }
+}
+
+// ── main ─────────────────────────────────────────────────────────────────────
+
 async function main() {
   console.log('⏳  Seeding demo data...');
   const superAdminId = await upsertSuperAdmin();
@@ -386,8 +520,19 @@ async function main() {
     const businessId = await upsertBusiness(ownerId, owner);
     await upsertRequest(businessId, owner.request, superAdminId);
     await upsertActivityLog(businessId, owner.activities);
+
+    // Phase 7: invoices
+    const invSet = INVOICE_SETS[owner.username];
+    if (invSet) {
+      await upsertBusinessCreatedAt(businessId, invSet.createdAt);
+      await upsertInvoices(businessId, invSet);
+    }
+
     console.log(`  ✔ ${owner.businessName}`);
   }
+
+  const paletteIdMap = await upsertPosPalettes();
+  await upsertPosModules(paletteIdMap);
 
   console.log(`\n✅  Done! ${OWNERS.length} businesses seeded.`);
   console.log(`   Super admin -> superadmin / ${DEMO_PASSWORD}`);
@@ -399,3 +544,61 @@ main().catch((err) => {
   console.error('❌  Seed failed:', err.message);
   process.exit(1);
 });
+
+// ── Phase 9: POS palettes + modules ──────────────────────────────────────────
+
+const PRESET_PALETTES = [
+  { name: 'Bakery', colorPrimary: '#a0522d', colorAccent: '#cd853f', colorShade: '#deb887', colorLight: '#3e2723' },
+  { name: 'Forest', colorPrimary: '#14391a', colorAccent: '#4caf50', colorShade: '#81c784', colorLight: '#e8f5e9' },
+  { name: 'Ocean',  colorPrimary: '#0d47a1', colorAccent: '#2196f3', colorShade: '#90caf9', colorLight: '#0a192f' },
+  { name: 'Slate',  colorPrimary: '#424242', colorAccent: '#9e9e9e', colorShade: '#e0e0e0', colorLight: '#1a1a1a' },
+  { name: 'Berry',  colorPrimary: '#880e4f', colorAccent: '#e91e63', colorShade: '#f48fb1', colorLight: '#4a148c' },
+  { name: 'Amber',  colorPrimary: '#5c3a21', colorAccent: '#a0522d', colorShade: '#e2b350', colorLight: '#3e2723' },
+];
+
+const SEED_POS_MODULES = [
+  { name: 'Bakery POS',     priceCents: 350000, palette: 'Bakery', status: 'active'   },
+  { name: 'Grocery POS',    priceCents: 420000, palette: 'Forest', status: 'active'   },
+  { name: 'Restaurant POS', priceCents: 500000, palette: 'Ocean',  status: 'active'   },
+  { name: 'Clothing POS',   priceCents: 300000, palette: 'Slate',  status: 'active'   },
+  { name: 'Gifting POS',    priceCents: 270000, palette: 'Berry',  status: 'inactive' },
+];
+
+async function upsertPosPalettes() {
+  const idMap = {};
+  for (const p of PRESET_PALETTES) {
+    const [rows] = await pool.query('SELECT id FROM pos_palettes WHERE name = ?', [p.name]);
+    if (rows.length) {
+      await pool.query(
+        `UPDATE pos_palettes SET color_primary=?, color_accent=?, color_shade=?, color_light=?, is_preset=1 WHERE id=?`,
+        [p.colorPrimary, p.colorAccent, p.colorShade, p.colorLight, rows[0].id]
+      );
+      idMap[p.name] = rows[0].id;
+    } else {
+      const [res] = await pool.query(
+        `INSERT INTO pos_palettes (name, color_primary, color_accent, color_shade, color_light, is_preset) VALUES (?,?,?,?,?,1)`,
+        [p.name, p.colorPrimary, p.colorAccent, p.colorShade, p.colorLight]
+      );
+      idMap[p.name] = res.insertId;
+    }
+  }
+  return idMap;
+}
+
+async function upsertPosModules(paletteIdMap) {
+  for (const m of SEED_POS_MODULES) {
+    const paletteId = paletteIdMap[m.palette] || null;
+    const [rows] = await pool.query('SELECT id FROM pos_modules WHERE name = ?', [m.name]);
+    if (rows.length) {
+      await pool.query(
+        `UPDATE pos_modules SET price_cents=?, palette_id=?, status=? WHERE id=?`,
+        [m.priceCents, paletteId, m.status, rows[0].id]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO pos_modules (name, price_cents, palette_id, status) VALUES (?,?,?,?)`,
+        [m.name, m.priceCents, paletteId, m.status]
+      );
+    }
+  }
+}

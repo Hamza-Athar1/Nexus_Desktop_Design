@@ -10,6 +10,9 @@ import supplierRoutes from './routes/supplierRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import requestRoutes from './routes/requestRoutes.js';
 import userManagementRoutes from './routes/userManagementRoutes.js';
+import billingRoutes from './routes/billingRoutes.js';
+import profileRoutes from './routes/profileRoutes.js';
+import posRoutes from './routes/posRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export const app = express();
@@ -34,6 +37,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/catalog', catalogRoutes);
 app.use('/api/registration', registrationRoutes);
 app.use('/api', requestRoutes);  // must precede business-scoped routers (they apply requireBusiness globally)
+app.use('/api', billingRoutes);   // must precede business-scoped routers
+app.use('/api', profileRoutes);   // must precede business-scoped routers
+app.use('/api', posRoutes);        // must precede business-scoped routers
 app.use('/api', userManagementRoutes);
 app.use('/api', inventoryRoutes);
 app.use('/api', categoryRoutes);
