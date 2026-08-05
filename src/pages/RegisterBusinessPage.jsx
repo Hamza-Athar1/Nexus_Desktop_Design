@@ -256,7 +256,7 @@ export default function RegisterBusinessPage() {
   }
 
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-start py-8 px-4 sm:px-6 lg:px-8 nexus-bg text-[#14391a]">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center py-8 px-4 sm:px-6 lg:px-8 nexus-bg text-[#14391a]">
       <div className="max-w-4xl w-full space-y-6">
 
         {/* Header */}
@@ -273,9 +273,8 @@ export default function RegisterBusinessPage() {
         <div className="flex items-center gap-4 md:gap-8 overflow-x-auto pb-2 scrollbar-none border-b border-[#14391a]/15 text-xs md:text-sm font-semibold">
           <div
             onClick={() => step > 1 && setStep(1)}
-            className={`flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap transition-all ${
-              step === 1 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/70'
-            }`}
+            className={`flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap transition-all ${step === 1 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/70'
+              }`}
           >
             <span className="w-5 h-5 rounded-full bg-[#14391a] text-white flex items-center justify-center text-[10px]">1</span>
             <span>Business details</span>
@@ -283,22 +282,18 @@ export default function RegisterBusinessPage() {
 
           <div
             onClick={() => step > 2 && setStep(2)}
-            className={`flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap transition-all ${
-              step === 2 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/70'
-            }`}
+            className={`flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap transition-all ${step === 2 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/70'
+              }`}
           >
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-              step === 2 || step > 2 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
-            }`}>2</span>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 || step > 2 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
+              }`}>2</span>
             <span>Module Selection</span>
           </div>
 
-          <div className={`flex items-center gap-2 pb-2 whitespace-nowrap transition-all ${
-            step === 3 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/50'
-          }`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-              step === 3 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
-            }`}>3</span>
+          <div className={`flex items-center gap-2 pb-2 whitespace-nowrap transition-all ${step === 3 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/50'
+            }`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 3 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
+              }`}>3</span>
             <span>Backup & Plan</span>
           </div>
         </div>
@@ -401,22 +396,20 @@ export default function RegisterBusinessPage() {
                       <button
                         type="button"
                         onClick={() => handleBusinessChange('isRegistered', true)}
-                        className={`flex-1 py-3.5 rounded-lg text-xs md:text-sm font-bold text-center border transition-all duration-200 cursor-pointer ${
-                          businessForm.isRegistered
-                            ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
-                            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                        }`}
+                        className={`flex-1 py-3.5 rounded-lg text-xs md:text-sm font-bold text-center border transition-all duration-200 cursor-pointer ${businessForm.isRegistered
+                          ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
+                          : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                          }`}
                       >
                         Yes, registered
                       </button>
                       <button
                         type="button"
                         onClick={() => handleBusinessChange('isRegistered', false)}
-                        className={`flex-1 py-3.5 rounded-lg text-xs md:text-sm font-bold text-center border transition-all duration-200 cursor-pointer ${
-                          !businessForm.isRegistered
-                            ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
-                            : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                        }`}
+                        className={`flex-1 py-3.5 rounded-lg text-xs md:text-sm font-bold text-center border transition-all duration-200 cursor-pointer ${!businessForm.isRegistered
+                          ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
+                          : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                          }`}
                       >
                         Not registered
                       </button>
@@ -434,11 +427,10 @@ export default function RegisterBusinessPage() {
                       value={businessForm.nicNumber}
                       onChange={(e) => handleBusinessChange('nicNumber', e.target.value)}
                       disabled={!businessForm.isRegistered}
-                      className={`w-full px-4 py-2.5 rounded-lg border text-xs md:text-sm outline-none transition-all ${
-                        businessForm.isRegistered
-                          ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black'
-                          : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
-                      }`}
+                      className={`w-full px-4 py-2.5 rounded-lg border text-xs md:text-sm outline-none transition-all ${businessForm.isRegistered
+                        ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black'
+                        : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
+                        }`}
                     />
                   </div>
 
@@ -453,11 +445,10 @@ export default function RegisterBusinessPage() {
                       value={businessForm.cityRegion}
                       onChange={(e) => handleBusinessChange('cityRegion', e.target.value)}
                       disabled={!businessForm.isRegistered}
-                      className={`w-full px-4 py-2.5 rounded-lg border text-xs md:text-sm outline-none transition-all ${
-                        businessForm.isRegistered
-                          ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black'
-                          : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
-                      }`}
+                      className={`w-full px-4 py-2.5 rounded-lg border text-xs md:text-sm outline-none transition-all ${businessForm.isRegistered
+                        ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black'
+                        : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'
+                        }`}
                     />
                   </div>
 
@@ -512,13 +503,12 @@ export default function RegisterBusinessPage() {
                       type="button"
                       disabled={!isAvailable}
                       onClick={() => isAvailable && setSelectedModule(mod.code)}
-                      className={`flex flex-col items-center justify-center p-6 rounded-lg border text-center transition-all duration-200 gap-3 h-44 select-none ${
-                        !isAvailable
-                          ? 'border-dashed border-[#14391a]/30 opacity-50 cursor-not-allowed bg-transparent text-[#14391a]'
-                          : isActive
-                            ? 'bg-[#14391a] border-[#14391a] text-white shadow-lg cursor-pointer'
-                            : 'bg-[#e5dcba]/30 border-[#14391a]/20 hover:border-[#14391a]/40 text-[#14391a] hover:bg-[#e5dcba]/40 cursor-pointer'
-                      }`}
+                      className={`flex flex-col items-center justify-center p-6 rounded-lg border text-center transition-all duration-200 gap-3 h-44 select-none border-4 ${!isAvailable
+                        ? 'border-dashed border-[#14391a]/30 opacity-50 cursor-not-allowed bg-transparent text-[#14391a]'
+                        : isActive
+                          ? 'bg-[#14391a] border-[#14391a] text-white shadow-lg cursor-pointer'
+                          : 'bg-[#e5dcba]/30 border-[#14391a]/20 hover:border-[#14391a]/40 text-[#14391a] hover:bg-[#e5dcba]/40 cursor-pointer'
+                        }`}
                     >
                       <IconComponent size={28} className={isActive ? 'text-white' : 'text-[#14391a]'} />
                       <span className="text-sm font-bold">{mod.name}</span>
@@ -585,27 +575,24 @@ export default function RegisterBusinessPage() {
                   <button
                     type="button"
                     onClick={() => setPlatform('web_app')}
-                    className={`flex-1 py-3 text-xs md:text-sm font-bold text-center transition-all ${
-                      platform === 'web_app' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
+                    className={`flex-1 py-3 text-xs md:text-sm font-bold text-center transition-all ${platform === 'web_app' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                      }`}
                   >
                     Web app
                   </button>
                   <button
                     type="button"
                     onClick={() => setPlatform('mobile_pos')}
-                    className={`flex-1 py-3 border-x border-gray-200 text-xs md:text-sm font-bold text-center transition-all ${
-                      platform === 'mobile_pos' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
+                    className={`flex-1 py-3 border-x border-gray-200 text-xs md:text-sm font-bold text-center transition-all ${platform === 'mobile_pos' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                      }`}
                   >
                     Mobile POS
                   </button>
                   <button
                     type="button"
                     onClick={() => setPlatform('both')}
-                    className={`flex-1 py-3 text-xs md:text-sm font-bold text-center transition-all ${
-                      platform === 'both' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
-                    }`}
+                    className={`flex-1 py-3 text-xs md:text-sm font-bold text-center transition-all ${platform === 'both' ? 'bg-[#14391a] text-white' : 'bg-white text-gray-500 hover:bg-gray-50'
+                      }`}
                   >
                     Both
                   </button>
@@ -631,11 +618,10 @@ export default function RegisterBusinessPage() {
                         key={m.code}
                         type="button"
                         onClick={() => toggleBackupModule(m.code)}
-                        className={`p-4 rounded-lg border text-left transition-all ${
-                          isSelected
-                            ? 'bg-[#e5dcba]/20 border-[#14391a] text-[#14391a] shadow-sm'
-                            : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
-                        }`}
+                        className={`p-4 rounded-lg border text-left transition-all ${isSelected
+                          ? 'bg-[#e5dcba]/20 border-[#14391a] text-[#14391a] shadow-sm'
+                          : 'bg-white border-gray-200 text-gray-400 hover:bg-gray-50'
+                          }`}
                       >
                         <span className="font-bold text-xs md:text-sm block">{m.name}</span>
                         <span className="text-[10px] opacity-80 mt-1 block">{m.description}</span>
@@ -656,11 +642,10 @@ export default function RegisterBusinessPage() {
                       key={p.code}
                       type="button"
                       onClick={() => setPlanCode(p.code)}
-                      className={`p-3 rounded-lg border text-center transition-all ${
-                        planCode === p.code
-                          ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
-                          : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                      }`}
+                      className={`p-3 rounded-lg border text-center transition-all ${planCode === p.code
+                        ? 'bg-[#14391a] border-[#14391a] text-white shadow-sm'
+                        : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                        }`}
                     >
                       <span className="text-xs md:text-sm font-bold block">{p.name}</span>
                       <span className="text-[9px] md:text-[10px] mt-0.5 block opacity-80">
@@ -686,27 +671,24 @@ export default function RegisterBusinessPage() {
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('card')}
-                    className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${
-                      paymentMethod === 'card' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                    }`}
+                    className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${paymentMethod === 'card' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                      }`}
                   >
                     Debit/ credit card
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('bank_transfer')}
-                    className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${
-                      paymentMethod === 'bank_transfer' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                    }`}
+                    className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${paymentMethod === 'bank_transfer' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                      }`}
                   >
                     Bank transfer
                   </button>
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('jazzcash_easypaisa')}
-                    className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${
-                      paymentMethod === 'jazzcash_easypaisa' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
-                    }`}
+                    className={`py-3 rounded-lg border text-center transition-all text-xs md:text-sm font-bold ${paymentMethod === 'jazzcash_easypaisa' ? 'bg-[#14391a] border-[#14391a] text-white' : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50'
+                      }`}
                   >
                     JazzCash/Easypaisa
                   </button>

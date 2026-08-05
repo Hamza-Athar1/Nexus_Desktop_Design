@@ -23,7 +23,11 @@ export default function SignUpPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const set = (field) => (e) => {
-    setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    let val = e.target.value;
+    if (field === 'phoneNumber') {
+      val = val.replace(/\D/g, '').slice(0, 11);
+    }
+    setForm((prev) => ({ ...prev, [field]: val }));
     if (status === 'error') {
       setStatus('idle');
       setErrorMsg('');
@@ -33,8 +37,8 @@ export default function SignUpPage() {
   const validate = () => {
     if (!form.username.trim()) return 'Username is required';
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) return 'A valid email is required';
-    if (form.password.length < 6) return 'Password must be at least 6 characters';
     if (!form.phoneNumber.trim()) return 'Phone number is required';
+    if (form.phoneNumber.replace(/\D/g, '').length !== 11) return 'Phone number must be exactly 11 digits';
     if (!form.city.trim()) return 'City/region is required';
     return null;
   };
