@@ -1,5 +1,21 @@
-import React, { useState } from 'react';
-import { Search, ChevronDown, PlusCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { Search, ChevronDown, PlusCircle, Package, Snowflake, Milk, Flame, Soup } from 'lucide-react';
+
+export function getCategoryIcon(category, size = 24) {
+  switch (category) {
+    case 'Frozen Items':
+      return <Snowflake size={size} className="text-[#3b82f6]" />;
+    case 'Dairy Products':
+      return <Milk size={size} className="text-[#b45309]" />;
+    case 'Spices':
+      return <Flame size={size} className="text-[#ef4444]" />;
+    case 'Noodles':
+      return <Soup size={size} className="text-[#eab308]" />;
+    default:
+      return <Package size={size} className="text-[#607455]" />;
+  }
+}
 
 const INITIAL_PRODUCTS = [
   {
@@ -59,6 +75,17 @@ const INITIAL_PRODUCTS = [
 ];
 
 export default function AdminProductsPage() {
+  const { setHeaderDetails } = useOutletContext() || {};
+
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: 'Manage Products',
+        subtitle: 'Product catalog, pricing, and stock levels'
+      });
+    }
+  }, [setHeaderDetails]);
+
   const [products, setProducts] = useState(INITIAL_PRODUCTS);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
@@ -95,7 +122,7 @@ export default function AdminProductsPage() {
   return (
     <div className="flex flex-col gap-6 w-full">
       {/* Page Title */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between lg:hidden">
         <h2 className="text-[28px] font-bold text-[#0c3818] tracking-tight">
           Manage Products
         </h2>
@@ -204,8 +231,8 @@ export default function AdminProductsPage() {
                 <tr key={p.id} className="text-[#0c3818] text-sm font-bold align-middle hover:bg-[#efeacb]/5 transition">
                   {/* Image */}
                   <td className="py-4 px-6 text-center">
-                    <div className="w-16 h-16 mx-auto flex items-center justify-center">
-                      <img src={p.image} alt={p.name} className="max-w-full max-h-full object-contain" />
+                    <div className="w-12 h-12 mx-auto flex items-center justify-center rounded-lg bg-[#efeacb]/40 border border-[#bfbc9b]/35">
+                      {getCategoryIcon(p.category, 24)}
                     </div>
                   </td>
                   {/* Name */}

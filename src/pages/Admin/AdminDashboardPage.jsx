@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { getCategoryIcon } from './AdminProductsPage';
 import {
   TrendingUp,
   Package,
@@ -14,6 +17,7 @@ import {
   XAxis,
   YAxis,
   Tooltip,
+  CartesianGrid,
 } from 'recharts';
 
 // Mock data for the AreaChart
@@ -34,6 +38,18 @@ const RECENT_SALES = [
 ];
 
 export default function AdminDashboardPage() {
+  const { setHeaderDetails } = useOutletContext() || {};
+  const { user } = useAuth();
+  
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: user?.businessName || 'Imtiaz Super Market',
+        subtitle: 'Store Analytics & Management Summary'
+      });
+    }
+  }, [setHeaderDetails, user]);
+
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('This week');
 
@@ -43,74 +59,78 @@ export default function AdminDashboardPage() {
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
 
         {/* Card 1: Total Sales */}
-        <div className="bg-[#0c3818] rounded-[24px] border border-[#3f5a3b]/30 p-6 flex items-center gap-5 text-[#efeacb] shadow-sm hover:scale-[1.01] transition duration-200">
-          <div className="w-14 h-14 rounded-full bg-[#fbcfe8] flex items-center justify-center shrink-0">
-            <TrendingUp size={24} className="text-[#be123c]" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#a2bc90]">
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Total Sales
             </span>
-            <h3 className="text-2xl font-black font-mono mt-0.5">
+            <h3 className="text-3xl font-black text-white tracking-tight leading-none">
               Rs 28,785
             </h3>
-            <span className="text-[10px] font-bold text-[#fbcfe8] block mt-1">
-              +5% <span className="text-[#a2bc90]/70 font-normal">from yesterday</span>
+            <span className="text-xs font-semibold text-[#a2bc90]/70 mt-1">
+              +5% <span className="opacity-60 font-normal">from yesterday</span>
             </span>
+          </div>
+          {/* 3D Inset Icon Badge */}
+          <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-pink-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <TrendingUp size={22} className="stroke-[1.75]" />
           </div>
         </div>
 
         {/* Card 2: Total Orders */}
-        <div className="bg-[#0c3818] rounded-[24px] border border-[#3f5a3b]/30 p-6 flex items-center gap-5 text-[#efeacb] shadow-sm hover:scale-[1.01] transition duration-200">
-          <div className="w-14 h-14 rounded-full bg-[#fef3c7] flex items-center justify-center shrink-0">
-            <ShoppingCart size={24} className="text-[#b45309]" />
-          </div>
-          <div>
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#a2bc90]">
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Total Orders
             </span>
-            <h3 className="text-2xl font-black font-mono mt-0.5">
+            <h3 className="text-3xl font-black text-white tracking-tight leading-none">
               30
             </h3>
-            <span className="text-[10px] font-bold text-[#fef3c7] block mt-1">
-              -2% <span className="text-[#a2bc90]/70 font-normal">from yesterday</span>
+            <span className="text-xs font-semibold text-[#a2bc90]/70 mt-1">
+              -2% <span className="opacity-60 font-normal">from yesterday</span>
             </span>
+          </div>
+          {/* 3D Inset Icon Badge */}
+          <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-amber-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <ShoppingCart size={22} className="stroke-[1.75]" />
           </div>
         </div>
 
         {/* Card 3: Total Products */}
-        <div className="bg-[#0c3818] rounded-[24px] border border-[#3f5a3b]/30 p-6 flex items-center gap-5 text-[#efeacb] shadow-sm hover:scale-[1.01] transition duration-200">
-          <div className="w-14 h-14 rounded-full bg-[#ccfbf1] flex items-center justify-center shrink-0">
-            <Package size={24} className="text-[#0f766e]" />
-          </div>
-          <div className="flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#a2bc90]">
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Total Products
             </span>
-            <h3 className="text-2xl font-black font-mono mt-0.5">
+            <h3 className="text-3xl font-black text-white tracking-tight leading-none">
               95
             </h3>
-            <button className="text-xs font-extrabold text-[#efeacb] underline mt-2 hover:text-white transition block text-left cursor-pointer">
+            <button className="text-xs font-extrabold text-[#efeacb] underline mt-1 hover:text-white transition block text-left cursor-pointer">
               View Products
             </button>
+          </div>
+          {/* 3D Inset Icon Badge */}
+          <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-teal-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <Package size={22} className="stroke-[1.75]" />
           </div>
         </div>
 
         {/* Card 4: Low Stock Items */}
-        <div className="bg-[#0c3818] rounded-[24px] border border-[#3f5a3b]/30 p-6 flex items-center gap-5 text-[#efeacb] shadow-sm hover:scale-[1.01] transition duration-200">
-          <div className="w-14 h-14 rounded-full bg-[#ffe4e6] flex items-center justify-center shrink-0">
-            <ClipboardCheck size={24} className="text-[#e11d48]" />
-          </div>
-          <div className="flex-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-[#a2bc90]">
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Low Stock Items
             </span>
-            <h3 className="text-2xl font-black font-mono mt-0.5">
+            <h3 className="text-3xl font-black text-[#e5432d] tracking-tight leading-none">
               12
             </h3>
-            <button className="text-xs font-extrabold text-[#efeacb] underline mt-2 hover:text-white transition block text-left cursor-pointer">
+            <button className="text-xs font-extrabold text-[#efeacb] underline mt-1 hover:text-white transition block text-left cursor-pointer">
               View Items
             </button>
+          </div>
+          {/* 3D Inset Icon Badge */}
+          <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-rose-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <ClipboardCheck size={22} className="stroke-[1.75]" />
           </div>
         </div>
       </section>
@@ -161,11 +181,12 @@ export default function AdminDashboardPage() {
               <AreaChart data={SALES_OVERVIEW_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0c3818" stopOpacity={0.2} />
+                    <stop offset="5%" stopColor="#0c3818" stopOpacity={0.25} />
                     <stop offset="95%" stopColor="#0c3818" stopOpacity={0.0} />
                   </linearGradient>
                 </defs>
-                <XAxis dataKey="name" stroke="#607455" strokeWidth={1} fontSize={10} tickLine={false} />
+                <CartesianGrid stroke="#0c3818" strokeOpacity={0.07} strokeDasharray="4 4" vertical={false} />
+                <XAxis dataKey="name" stroke="#607455" strokeWidth={1} fontSize={10} tickLine={false} axisLine={{ stroke: '#0c3818', strokeOpacity: 0.1 }} />
                 <YAxis
                   stroke="#607455"
                   strokeWidth={1}
@@ -175,10 +196,19 @@ export default function AdminDashboardPage() {
                   tickFormatter={(val) => `${val}K`}
                 />
                 <Tooltip
-                  contentStyle={{ backgroundColor: '#fcfbe8', borderColor: '#bfbc9b', borderRadius: '12px' }}
+                  contentStyle={{ backgroundColor: '#fcfbe8', borderColor: '#bfbc9b', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}
                   labelStyle={{ fontWeight: 'bold', color: '#0c3818' }}
+                  itemStyle={{ color: '#0c3818', fontWeight: 'bold' }}
                 />
-                <Area type="monotone" dataKey="sales" stroke="#0c3818" strokeWidth={2} fillOpacity={1} fill="url(#salesGrad)" />
+                <Area 
+                  type="monotone" 
+                  dataKey="sales" 
+                  stroke="#0c3818" 
+                  strokeWidth={3} 
+                  fillOpacity={1} 
+                  fill="url(#salesGrad)" 
+                  activeDot={{ r: 6, fill: '#0c3818', stroke: '#efeacb', strokeWidth: 2 }}
+                />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -191,13 +221,15 @@ export default function AdminDashboardPage() {
 
             <div className="flex flex-col gap-3">
               {[
-                { name: 'Cooking Oil 1L', sold: 45, image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=80&auto=format&fit=crop&q=60' },
-                { name: 'Lewis Bread', sold: 36, image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&auto=format&fit=crop&q=60' },
-                { name: 'Ramen Noodles', sold: 28, image: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=80&auto=format&fit=crop&q=60' },
+                { name: 'Cooking Oil 1L', sold: 45, category: 'Spices' },
+                { name: 'Lewis Bread', sold: 36, category: 'Frozen Items' },
+                { name: 'Ramen Noodles', sold: 28, category: 'Noodles' },
               ].map((prod, i) => (
                 <div key={i} className="flex items-center justify-between border-b border-[#bfbc9b]/15 pb-2 last:border-0 last:pb-0">
                   <div className="flex items-center gap-3">
-                    <img src={prod.image} alt={prod.name} className="w-10 h-10 rounded-lg object-cover border border-[#bfbc9b]/25" />
+                    <div className="w-10 h-10 rounded-lg bg-[#efeacb]/40 flex items-center justify-center border border-[#bfbc9b]/35">
+                      {getCategoryIcon(prod.category, 20)}
+                    </div>
                     <span className="text-sm font-extrabold text-[#0c3818]">{prod.name}</span>
                   </div>
                   <div className="text-right">

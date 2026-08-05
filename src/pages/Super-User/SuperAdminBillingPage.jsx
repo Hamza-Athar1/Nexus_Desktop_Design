@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { MoreHorizontal } from 'lucide-react';
+import { useOutletContext } from 'react-router-dom';
+import { MoreHorizontal, TrendingUp, Clock, AlertTriangle, Building2, DollarSign } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
 import BillingDetailsModal   from '../../components/Super-User/BillingDetailsModal';
 import InitiateInvoiceModal  from '../../components/Super-User/InitiateInvoiceModal';
@@ -19,6 +20,22 @@ function comma(n) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function SuperAdminBillingPage() {
+  const { setHeaderDetails } = useOutletContext() || {};
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: 'Billing',
+        subtitle: (
+          <>
+            <span>Revenue overview</span>
+            <span className="text-[#14391a]/30">•</span>
+            <span>{new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}</span>
+          </>
+        )
+      });
+    }
+  }, [setHeaderDetails]);
+
   const [invoices, setInvoices] = useState([]);
   const [stats, setStats] = useState({
     collectedThisMonth: 0,
@@ -109,7 +126,7 @@ export default function SuperAdminBillingPage() {
   return (
     <div className="flex-1 flex flex-col font-sans select-none text-[#14391a]">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 lg:hidden">
         <h1 className="text-4xl sm:text-[44px] font-extrabold tracking-tight text-[#14391a] mb-1 leading-none">
           Billing
         </h1>
@@ -121,38 +138,105 @@ export default function SuperAdminBillingPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
-        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-          <span className="text-[13px] font-semibold text-white/95">Collected this month</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-extrabold text-white">Rs</span>
-            <span className="text-2xl font-extrabold tracking-tight">{comma(stats.collectedThisMonth)}</span>
+        {/* Card 1: Collected this month */}
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
+              Collected this month
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-semibold text-white/70">Rs</span>
+              <h3 className="text-2xl font-black text-white tracking-tight leading-none">
+                {comma(stats.collectedThisMonth)}
+              </h3>
+            </div>
+            <span className="text-[10px] font-medium text-[#a2bc90]/50 mt-1">
+              Current cycle
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#a2bc90] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <TrendingUp size={20} className="stroke-[1.75]" />
           </div>
         </div>
-        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-          <span className="text-[13px] font-semibold text-white/95">Pending</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-extrabold text-[#d2a233]">Rs</span>
-            <span className="text-2xl font-extrabold tracking-tight text-[#d2a233]">{comma(stats.pendingSum)}</span>
+
+        {/* Card 2: Pending */}
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
+              Pending
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-semibold text-[#d2a233]/70">Rs</span>
+              <h3 className="text-2xl font-black text-[#d2a233] tracking-tight leading-none">
+                {comma(stats.pendingSum)}
+              </h3>
+            </div>
+            <span className="text-[10px] font-medium text-[#a2bc90]/50 mt-1">
+              Awaiting payment
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#d2a233] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <Clock size={20} className="stroke-[1.75]" />
           </div>
         </div>
-        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-          <span className="text-[13px] font-semibold text-white/95">Overdue</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-extrabold text-[#e5432d]">Rs</span>
-            <span className="text-2xl font-extrabold tracking-tight text-[#e5432d]">{comma(stats.overdueSum)}</span>
+
+        {/* Card 3: Overdue */}
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
+              Overdue
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-semibold text-[#e5432d]/70">Rs</span>
+              <h3 className="text-2xl font-black text-[#e5432d] tracking-tight leading-none">
+                {comma(stats.overdueSum)}
+              </h3>
+            </div>
+            <span className="text-[10px] font-medium text-[#e5432d]/80 mt-1 animate-pulse">
+              Action required
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#e5432d] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <AlertTriangle size={20} className="stroke-[1.75]" />
           </div>
         </div>
-        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-          <span className="text-[13px] font-semibold text-white/95">Total businesses</span>
-          <div>
-            <span className="text-2xl font-extrabold tracking-tight">{stats.totalInvoices}</span>
+
+        {/* Card 4: Total businesses */}
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
+              Total businesses
+            </span>
+            <h3 className="text-2xl font-black text-white tracking-tight leading-none">
+              {stats.totalInvoices}
+            </h3>
+            <span className="text-[10px] font-medium text-[#a2bc90]/50 mt-1">
+              Active merchants
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#a2bc90] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <Building2 size={20} className="stroke-[1.75]" />
           </div>
         </div>
-        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-          <span className="text-[13px] font-semibold text-white/95">Total Revenue</span>
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-sm font-extrabold text-white">Rs</span>
-            <span className="text-2xl font-extrabold tracking-tight">{comma(stats.totalRevenue)}</span>
+
+        {/* Card 5: Total Revenue */}
+        <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
+              Total Revenue
+            </span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-sm font-semibold text-white/70">Rs</span>
+              <h3 className="text-2xl font-black text-white tracking-tight leading-none">
+                {comma(stats.totalRevenue)}
+              </h3>
+            </div>
+            <span className="text-[10px] font-medium text-[#a2bc90]/50 mt-1">
+              Lifetime sales
+            </span>
+          </div>
+          <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#a2bc90] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+            <DollarSign size={20} className="stroke-[1.75]" />
           </div>
         </div>
       </div>

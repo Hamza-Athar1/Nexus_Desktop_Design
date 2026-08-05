@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
 
@@ -21,6 +22,7 @@ function subtractMonths(n) {
 }
 
 export default function SuperAdminPaymentPage() {
+  const { setHeaderDetails } = useOutletContext() || {};
   const [payments, setPayments]         = useState([]);
   const [moduleStats, setModuleStats]   = useState(null);
   const [loadingData, setLoadingData]   = useState(true);
@@ -38,6 +40,21 @@ export default function SuperAdminPaymentPage() {
 
   const startRef = useRef(null);
   const endRef   = useRef(null);
+
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: 'Payment',
+        subtitle: (
+          <>
+            <span>Payment overview</span>
+            <span className="text-[#14391a]/30">•</span>
+            <span>{timeFilter === 'all' ? 'All time' : timeFilter === '6months' ? 'Last 6 months' : 'Last 12 months'}</span>
+          </>
+        )
+      });
+    }
+  }, [timeFilter, setHeaderDetails]);
 
   const isOverview = selectedMod.code === '';
 
@@ -92,7 +109,7 @@ export default function SuperAdminPaymentPage() {
   return (
     <div className="flex-1 flex flex-col font-sans select-none text-[#14391a]">
       {/* Header */}
-      <div className="mb-6">
+      <div className="mb-6 lg:hidden">
         <h1 className="text-4xl sm:text-[44px] font-extrabold tracking-tight text-[#14391a] mb-1 leading-none">
           Payment
         </h1>

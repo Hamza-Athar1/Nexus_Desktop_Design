@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { ChevronDown, X } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
 
@@ -26,10 +27,20 @@ const STATUS_BADGE_CLASSES = {
 };
 
 export default function SuperAdminRequestsPage() {
-  // ── Server-backed state ────────────────────────────────────────────────
+  const { setHeaderDetails } = useOutletContext() || {};
   const [requests, setRequests] = useState([]);
   const [posModules, setPosModules] = useState([]); // [{ code, name, label }]
   const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: 'Requests',
+        subtitle: `${pendingCount} pending across all POS modules`
+      });
+    }
+  }, [pendingCount, setHeaderDetails]);
+
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [actionError, setActionError] = useState('');
@@ -132,7 +143,7 @@ export default function SuperAdminRequestsPage() {
   return (
     <div className="flex-1 flex flex-col">
       {/* Requests Header */}
-      <div className="mb-8">
+      <div className="mb-8 lg:hidden">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#152f16] font-serif mb-2">
           Requests
         </h1>

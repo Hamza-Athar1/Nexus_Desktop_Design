@@ -102,7 +102,7 @@ export default function LoginPage() {
     <div className="min-h-screen w-full flex flex-col md:flex-row select-none">
       
       {/* Left Panel */}
-      <div className="w-full md:w-1/2 flex-1 bg-[#e5dcba] flex flex-col justify-center items-center text-center px-6 py-12 sm:px-12 md:py-24 md:px-20 lg:px-28 xl:px-36 text-[#14391a] space-y-8 lg:space-y-12 xl:space-y-16">
+      <div className="w-full md:w-1/2 md:flex-none bg-[#e5dcba] flex flex-col justify-center items-center text-center px-6 py-12 sm:px-12 md:py-24 md:px-20 lg:px-28 xl:px-36 text-[#14391a] space-y-8 lg:space-y-12 xl:space-y-16 border-b-2 md:border-b-0 md:border-r-2 border-[#14391a]/25">
         <div className="flex flex-col items-center space-y-6 lg:space-y-8 xl:space-y-10">
           <img 
             src="/Nexus.png" 
@@ -137,18 +137,20 @@ export default function LoginPage() {
       </div>
 
       {/* Right Panel */}
-      <div className="w-full md:w-1/2 flex-1 bg-[#f4f2d3] flex flex-col justify-center px-6 py-12 sm:px-12 sm:py-16 md:py-24 md:px-20 lg:px-28 xl:px-36">
+      <div className="w-full md:w-1/2 md:flex-none bg-[#f4f2d3] flex flex-col justify-center px-6 py-12 sm:px-12 sm:py-16 md:py-24 md:px-20 lg:px-28 xl:px-36">
         <div className="max-w-md lg:max-w-lg xl:max-w-xl w-full mx-auto space-y-8 lg:space-y-12 xl:space-y-14">
           
           {/* Header */}
-          <div className="space-y-2">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#14391a]">
-              Welcome Back
-            </h2>
-            <p className="text-sm lg:text-base xl:text-lg text-[#14391a]/60">
-              Sign in to continue managing your business
-            </p>
-          </div>
+          {!isSuccess && (
+            <div className="space-y-2 text-center">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#14391a]">
+                Welcome Back
+              </h2>
+              <p className="text-sm lg:text-base xl:text-lg text-[#14391a]/60">
+                Sign in to continue managing your business
+              </p>
+            </div>
+          )}
 
           {isSuccess ? (
             <div className="flex flex-col items-center gap-3 text-center py-8">
@@ -167,7 +169,7 @@ export default function LoginPage() {
               <p className="text-[13px] lg:text-[16px] text-[#14391a]/60">Redirecting to Dashboard</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8">
+            <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8 border-2 border-[#14391a]/20 p-6 sm:p-8 rounded-2xl shadow-sm">
               
               {/* Error Banner */}
               {isError && (

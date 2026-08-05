@@ -8,9 +8,10 @@ export default function AdminLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
-  
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [time, setTime] = useState(new Date());
+  const [headerDetails, setHeaderDetails] = useState({ title: '', subtitle: null });
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -47,7 +48,7 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#efeacb] text-[#0c3818] font-sans">
+    <div className="flex flex-col min-h-screen bg-[#efeacb] text-[#0c3818] font-sans">
       {/* Mobile Drawer Overlay */}
       {isSidebarOpen && (
         <div
@@ -56,58 +57,82 @@ export default function AdminLayout() {
         />
       )}
 
-      {/* Left Sidebar */}
-      <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
-      {/* Right Main Content Column */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
-        
-        {/* Top Header */}
-        <header className="bg-[#efeacb] border-b border-[#0c3818]/20 px-4 sm:px-8 py-4 flex items-center justify-between shrink-0 min-h-[72px] lg:min-h-[96px]">
-          {/* Mobile Menu Button */}
+      {/* 1: Unified Top Header/Navbar (Full Width) */}
+      <header className="bg-transparent px-6 lg:px-0 lg:pr-1 py-6 lg:py-8 flex items-center justify-between shrink-0 min-h-[72px] lg:min-h-[96px] w-full z-30">
+        {/* Left Side: Hamburger on mobile, Logo on desktop */}
+        <div className="flex items-center lg:w-72 lg:shrink-0">
+          {/* Mobile Menu Button (Hamburger) */}
           <button
             type="button"
             onClick={() => setIsSidebarOpen(true)}
-            className="lg:hidden p-2 rounded-lg border border-[#0c3818]/20 text-[#0c3818] hover:bg-[#0c3818]/10 cursor-pointer shrink-0 mr-2 sm:mr-4"
+            className="lg:hidden p-2 rounded-lg border border-[#0c3818]/20 text-[#0c3818] hover:bg-[#0c3818]/10 cursor-pointer shrink-0 mr-4"
           >
             <Menu size={24} />
           </button>
 
-          {/* Center: Business Name */}
-          <h1 className="text-xl sm:text-2xl lg:text-[40px] font-black tracking-tight text-[#0c3818] font-serif uppercase text-left flex-1 max-w-4xl px-2">
-            {user?.businessName || 'IMTIAZ SUPER MARKET'}
-          </h1>
-
-          {/* Right: Clock & Logout */}
-          <div className="flex items-center gap-4 lg:gap-8 select-none">
-            {/* Real-time Clock */}
-            <div className="hidden md:flex flex-col text-right text-[#0c3818]">
-              <span className="text-xl font-bold tracking-wide leading-none">
-                {formatTime(time)}
-              </span>
-              <span className="text-[10px] font-extrabold tracking-widest text-[#607455] mt-1">
-                {formatDay(time)}
-              </span>
-              <span className="text-xs font-bold text-[#607455] mt-0.5">
-                {formatDate(time)}
-              </span>
-            </div>
-
-            {/* Logout Button */}
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3.5 bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] hover:text-white text-xs lg:text-sm font-extrabold rounded-lg transition duration-200 shadow-sm cursor-pointer border border-[#efeacb]/10"
-            >
-              <LogOut size={16} />
-              <span className="hidden sm:inline">ADMIN LOGOUT</span>
-              <span className="sm:hidden">LOGOUT</span>
-            </button>
+          {/* Desktop Logo (exactly as wide as the sidebar) */}
+          <div className="hidden lg:flex items-center justify-center w-72 h-full py-1">
+            <img src="/Nexus_superadmin.png" alt="Nexus Logo" className="h-28 w-auto object-contain" />
           </div>
-        </header>
+
+          {/* Mobile Title */}
+          <span className="lg:hidden font-serif font-black text-[#0c3818] tracking-wider text-sm">
+            NEXUS DESKTOP
+          </span>
+        </div>
+
+        {/* Center: Dynamic Page Title & Subtitle (centered horizontally on desktop) */}
+        <div className="hidden lg:flex flex-col items-center justify-center text-center flex-1">
+          <h1 className="text-4xl lg:text-[44px] font-black tracking-tight text-[#0c3818] leading-none mb-1">
+            {headerDetails.title}
+          </h1>
+          {headerDetails.subtitle && (
+            <div className="text-xs sm:text-sm text-[#607455] font-semibold mt-2 flex items-center justify-center gap-2">
+              {headerDetails.subtitle}
+            </div>
+          )}
+        </div>
+
+        {/* Right Side: Clock & Logout (w-72 width to balance the left logo and keep center title centered) */}
+        <div className="flex items-center justify-end lg:w-72 lg:shrink-0 gap-4 lg:gap-6 select-none pr-6">
+          {/* Real-time Clock */}
+          <div className="hidden md:flex flex-col text-right text-[#0c3818]">
+            <span className="text-xl font-bold tracking-wide leading-none">
+              {formatTime(time)}
+            </span>
+            <span className="text-[10px] font-extrabold tracking-widest text-[#607455] mt-1">
+              {formatDay(time)}
+            </span>
+            <span className="text-xs font-bold text-[#607455] mt-0.5">
+              {formatDate(time)}
+            </span>
+          </div>
+
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3.5 bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] hover:text-white text-xs lg:text-sm font-extrabold rounded-lg transition duration-200 shadow-sm cursor-pointer border border-[#efeacb]/10 shrink-0"
+          >
+            <LogOut size={16} />
+            <span className="hidden sm:inline">ADMIN LOGOUT</span>
+            <span className="sm:hidden">LOGOUT</span>
+          </button>
+        </div>
+
+        {/* Mobile View Page Title Indicator */}
+        <div className="lg:hidden font-extrabold text-sm text-[#0c3818]/80 px-3 py-1 bg-[#efeacb]/50 rounded-lg border border-[#0c3818]/10">
+          {headerDetails.title}
+        </div>
+      </header>
+
+      {/* Bottom Container: Splits into Sidebar (2) and Main Content (3) */}
+      <div className="flex-1 flex min-h-0 relative">
+        {/* Left Sidebar */}
+        <AdminSidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
         {/* Child Router Content Wrapper */}
-        <main className="flex-1 p-6 lg:p-10 flex flex-col gap-8 overflow-y-auto">
-          <Outlet />
+        <main className="flex-1 px-6 flex flex-col gap-8 overflow-y-auto min-w-0">
+          <Outlet context={{ setHeaderDetails }} />
         </main>
       </div>
     </div>

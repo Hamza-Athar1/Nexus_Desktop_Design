@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
 import ShopDetailsModal from '../../components/Super-User/ShopDetailsModal';
@@ -21,8 +22,19 @@ function fmtDate(isoDate) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function SuperAdminUserManagementPage() {
+  const { setHeaderDetails } = useOutletContext() || {};
   const [shops,        setShops]        = useState([]);
   const [loading,      setLoading]      = useState(true);
+
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: 'User Management',
+        subtitle: loading ? '…' : `${shops.length} registered shops`
+      });
+    }
+  }, [loading, shops.length, setHeaderDetails]);
+
   const [loadError,    setLoadError]    = useState('');
   const [actionError,  setActionError]  = useState('');
   const [activeFilter, setActiveFilter] = useState('all');
@@ -147,7 +159,7 @@ export default function SuperAdminUserManagementPage() {
   return (
     <div className="flex-1 flex flex-col font-sans">
       {/* Header */}
-      <div className="mb-8">
+      <div className="mb-8 lg:hidden">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#152f16] font-serif mb-2">
           User Management
         </h1>

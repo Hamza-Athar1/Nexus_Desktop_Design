@@ -1,13 +1,31 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { Plus } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
 import AddPOSModal from '../../components/Super-User/AddPOSModal';
 import EditPOSModal from '../../components/Super-User/EditPOSModal';
 
 export default function SuperAdminPOSPage() {
+  const { setHeaderDetails } = useOutletContext() || {};
   const [modules,  setModules]  = useState([]);
   const [palettes, setPalettes] = useState([]);
   const [stats,    setStats]    = useState({ total: 0, active: 0, themed: 0 });
+
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: 'POS management',
+        subtitle: (
+          <>
+            <span>{stats.total} POS modules</span>
+            <span className="text-[#14391a]/30">•</span>
+            <span>themed with color palettes</span>
+          </>
+        )
+      });
+    }
+  }, [stats.total, setHeaderDetails]);
+
   const [loading,  setLoading]  = useState(true);
 
   // Modal state
@@ -59,7 +77,7 @@ export default function SuperAdminPOSPage() {
     <div className="flex-1 flex flex-col font-sans select-none text-[#14391a]">
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div>
+        <div className="lg:hidden">
           <h1 className="text-4xl sm:text-[44px] font-black text-[#14391a] leading-none mb-1">
             POS management
           </h1>
@@ -69,13 +87,15 @@ export default function SuperAdminPOSPage() {
             <span>themed with color palettes</span>
           </p>
         </div>
-        <button
-          onClick={() => setAddOpen(true)}
-          className="flex items-center gap-2 px-6 py-3.5 bg-[#113819] hover:bg-[#14391a] text-white text-[15px] font-extrabold rounded-[12px] transition cursor-pointer shadow-sm"
-        >
-          <Plus size={18} strokeWidth={2.5} />
-          <span>Add POS</span>
-        </button>
+        <div className="lg:ml-auto">
+          <button
+            onClick={() => setAddOpen(true)}
+            className="flex items-center gap-2 px-6 py-3.5 bg-[#113819] hover:bg-[#14391a] text-white text-[15px] font-extrabold rounded-[12px] transition cursor-pointer shadow-sm"
+          >
+            <Plus size={18} strokeWidth={2.5} />
+            <span>Add POS</span>
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

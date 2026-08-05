@@ -120,8 +120,8 @@ export default function SignUpPage() {
     <div className="min-h-screen w-full flex flex-col md:flex-row select-none">
 
       {/* Left Panel */}
-      <div className="w-full md:w-1/2 flex-1 bg-[#e5dcba] flex flex-col justify-center items-center text-center px-6 py-12 sm:px-12 md:py-24 md:px-20 lg:px-28 xl:px-36 text-[#14391a] space-y-8 lg:space-y-12 xl:space-y-16">
-        <div className="flex flex-col items-center space-y-6 lg:space-y-8 xl:space-y-10">
+      <div className="w-full md:w-1/2 md:flex-none bg-[#e5dcba] flex flex-col justify-center items-center text-center px-6 py-12 sm:px-12 md:py-20 md:px-20 lg:px-28 xl:px-36 text-[#14391a] space-y-2 lg:space-y-4 border-b-2 md:border-b-0 md:border-r-2 border-[#14391a]/25">
+        <div className="flex flex-col items-center space-y-4">
           <img
             src="/Nexus.png"
             alt="Nexus Logo"
@@ -132,7 +132,7 @@ export default function SignUpPage() {
           </h1>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-2">
           <h2 className="text-2xl md:text-3xl lg:text-4xl xl:text-5xl font-bold leading-tight">
             Register your business
           </h2>
@@ -143,18 +143,20 @@ export default function SignUpPage() {
       </div>
 
       {/* Right Panel */}
-      <div className="w-full md:w-1/2 flex-1 bg-[#f4f2d3] flex flex-col justify-center px-6 py-12 sm:px-12 sm:py-16 md:py-24 md:px-20 lg:px-28 xl:px-36">
+      <div className="w-full md:w-1/2 md:flex-none bg-[#f4f2d3] flex flex-col justify-center px-6 py-12 sm:px-12 sm:py-16 md:py-24 md:px-20 lg:px-28 xl:px-36">
         <div className="max-w-md lg:max-w-lg xl:max-w-xl w-full mx-auto space-y-6 lg:space-y-10">
 
           {/* Header & Steps Indicator */}
-          <div className="space-y-2 text-center md:text-left">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#14391a]">
-              Account Details
-            </h2>
-            <p className="text-sm lg:text-base xl:text-lg text-[#14391a]/60">
-              Get started in less than a minute
-            </p>
-          </div>
+          {status !== 'success' && (
+            <div className="space-y-2 text-center md:text-left">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#14391a]">
+                Account Details
+              </h2>
+              <p className="text-sm lg:text-base xl:text-lg text-[#14391a]/60">
+                Get started in less than a minute
+              </p>
+            </div>
+          )}
 
           {status === 'success' ? (
             <div className="flex flex-col items-center gap-3 text-center py-8">
@@ -173,7 +175,7 @@ export default function SignUpPage() {
               <p className="text-[13px] lg:text-[16px] text-[#14391a]/60">Redirecting to Login</p>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6 border-2 border-[#14391a]/20 p-6 sm:p-8 rounded-2xl shadow-sm">
 
               {/* Error Banner */}
               {isError && (
@@ -297,9 +299,9 @@ export default function SignUpPage() {
                 <div className="text-center text-[11px] lg:text-xs font-semibold text-[#14391a]/60">
                   or sign up with
                 </div>
-                <div className="flex flex-col lg:flex-row gap-4 items-center justify-center w-full">
+                <div className="flex flex-col gap-3 items-center justify-center w-full">
                   {/* Google Login Component */}
-                  <div className="w-full lg:w-1/2 flex justify-center">
+                  <div className="w-full flex justify-center">
                     <GoogleLogin
                       onSuccess={handleGoogleSuccess}
                       onError={handleGoogleError}
@@ -314,7 +316,7 @@ export default function SignUpPage() {
                   {/* Facebook Sign Up */}
                   <button
                     type="button"
-                    className="w-full lg:w-1/2 py-2.5 bg-white border border-gray-200 rounded-full flex items-center justify-center gap-2 text-xs lg:text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50 active:scale-[0.99] transition-all cursor-pointer h-[40px]"
+                    className="w-full py-2.5 bg-white border border-gray-200 rounded-full flex items-center justify-center gap-2 text-xs lg:text-sm font-bold text-gray-700 shadow-sm hover:bg-gray-50 active:scale-[0.99] transition-all cursor-pointer h-[40px]"
                   >
                     <svg className="w-4 h-4" fill="#1877F2" viewBox="0 0 24 24">
                       <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />

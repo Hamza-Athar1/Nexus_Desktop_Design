@@ -5,12 +5,12 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen w-full flex flex-col items-center justify-center px-6 py-12 nexus-bg select-none">
-      <div className="flex flex-col items-center max-w-lg w-full text-center space-y-8 animate-fade-in">
+      <div className="flex flex-col items-center max-w-lg w-full text-center space-y-4 animate-fade-in">
         {/* Logo */}
         <div className="transform hover:scale-105 transition-transform duration-300">
-          <img 
-            src="/Nexus.png" 
-            alt="Nexus Logo" 
+          <img
+            src="/Nexus.png"
+            alt="Nexus Logo"
             className="w-48 h-auto object-contain drop-shadow-md"
           />
         </div>
@@ -20,7 +20,7 @@ export default function LandingPage() {
           <p className="text-[11px] md:text-xs font-semibold tracking-[0.25em] text-[#14391a]/80 font-mono">
             -- SMART POS, REIMAGINED --
           </p>
-          
+
           <h1 className="text-4xl md:text-5xl font-bold font-serif text-[#14391a] tracking-wide leading-tight">
             NEXUS DESKTOP
           </h1>
@@ -40,7 +40,7 @@ export default function LandingPage() {
           >
             Sign Up
           </button>
-          
+
           <button
             onClick={() => navigate('/login')}
             className="w-full sm:w-40 py-3.5 bg-[#f0ecc5] hover:bg-[#e6e2b8] text-[#14391a] text-[13px] font-bold tracking-[0.08em] rounded-lg border border-[#14391a]/15 shadow-[0_10px_20px_rgba(0,0,0,0.05)] hover:shadow-[0_12px_24px_rgba(0,0,0,0.08)] transform hover:-translate-y-0.5 transition-all duration-200 cursor-pointer text-center uppercase"

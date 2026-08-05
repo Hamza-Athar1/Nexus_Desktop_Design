@@ -1,3 +1,5 @@
+import React, { useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import {
   Server,
   LayoutGrid,
@@ -99,10 +101,20 @@ const formatYAxisRevenue = (tick) => {
 };
 
 export default function SuperAdminDashboardPage() {
+  const { setHeaderDetails } = useOutletContext() || {};
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: 'Welcome, Aiesha',
+        subtitle: 'System analytics · 29 June 2026'
+      });
+    }
+  }, [setHeaderDetails]);
+
   return (
     <div className="flex-1 flex flex-col">
       {/* Dashboard Header */}
-      <div className="mb-8">
+      <div className="mb-8 lg:hidden">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#152f16] font-serif mb-2">
           Welcome, Aiesha
         </h1>
@@ -127,23 +139,28 @@ export default function SuperAdminDashboardPage() {
             return (
               <div
                 key={card.id}
-                className="bg-[#0c3818] rounded-[24px] border border-[#3f5a3b] p-6 flex flex-col justify-between shadow-sm hover:scale-[1.01] transition duration-200"
+                className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-[10px] tracking-[0.25em] font-black text-[#a2bc90]">
+                <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
                     {card.title}
                   </span>
-                  <div className="p-2 rounded-xl bg-[#082813] text-[#eae3c1] shrink-0 border border-[#3f5a3b] shadow-inner">
-                    <Icon size={16} />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="text-3xl font-black text-white tracking-tight mb-1">
+                  <h3 className="text-3xl font-black text-white tracking-tight leading-none">
                     {card.value}
                   </h3>
-                  <p className={`text-xs font-bold ${card.subColor || 'text-[#a2bc90]/80'}`}>
-                    {card.sub}
-                  </p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    {card.title.toLowerCase().includes('uptime') && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    )}
+                    <span className={`text-xs font-semibold ${card.subColor || 'text-[#a2bc90]/70'}`}>
+                      {card.sub}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 3D Inset Icon Badge */}
+                <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#a2bc90] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+                  <Icon size={22} className="stroke-[1.75]" />
                 </div>
               </div>
             );
@@ -221,7 +238,7 @@ export default function SuperAdminDashboardPage() {
         </div>
 
         {/* Card 3: POS Module Share Pie Chart */}
-        <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] p-6 shadow-sm flex flex-col justify-between min-h-[380px]">
+        <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] p-6 shadow-sm flex flex-col justify-between min-h-[380px] gap-2">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold uppercase tracking-wider text-[#152f16]">
               ACTIVE MODULES SHARE
@@ -336,7 +353,7 @@ export default function SuperAdminDashboardPage() {
             </div>
 
             {/* Revenue Table with custom progress bars */}
-            <div className="flex-1 w-full text-xs flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1">
+            <div className="flex-1 w-full text-xs flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-4">
               <div className="grid grid-cols-[1.5fr_1fr_0.5fr] text-[10px] font-bold text-[#607455] border-b border-[#c8c2a3]/40 pb-1">
                 <span>POS Module</span>
                 <span className="text-right">Revenue (PKR)</span>

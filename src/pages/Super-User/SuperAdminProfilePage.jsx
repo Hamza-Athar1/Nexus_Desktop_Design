@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { User, Shield, Monitor, Check, LogOut, Trash2, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetchJson } from '../../lib/api';
@@ -80,6 +81,7 @@ function Banner({ msg, type }) {
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 export default function SuperAdminProfilePage() {
+  const { setHeaderDetails } = useOutletContext() || {};
   const { logout: authLogout } = useAuth();
   const [activeTab, setActiveTab] = useState('profile');
 
@@ -238,11 +240,26 @@ export default function SuperAdminProfilePage() {
   const displayName = profile?.fullName || fullName || 'Super Admin';
   const displayEmail = profile?.email || email;
 
+  useEffect(() => {
+    if (setHeaderDetails) {
+      setHeaderDetails({
+        title: displayName,
+        subtitle: (
+          <>
+            <span>Super Admin</span>
+            <span className="text-[#14391a]/30">•</span>
+            <span>{displayEmail}</span>
+          </>
+        )
+      });
+    }
+  }, [displayName, displayEmail, setHeaderDetails]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="flex-1 flex flex-col font-sans select-none text-[#14391a]">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 lg:hidden">
         <div>
           <h1 className="text-4xl sm:text-[44px] font-black text-[#14391a] leading-none mb-1">
             {displayName}
