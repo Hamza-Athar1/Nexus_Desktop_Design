@@ -80,13 +80,31 @@ export default function SignUpPage() {
     }
   };
 
-  const handleGoogleSuccess = (credentialResponse) => {
+  const handleGoogleSuccess = async (credentialResponse) => {
     console.log('Google Sign Up Success:', credentialResponse);
     setStatus('loading');
-    setTimeout(() => {
+    try {
+      const { ok, data } = await apiFetchJson('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({
+          credential: credentialResponse.credential,
+        }),
+      });
+
+      if (!ok) {
+        setErrorMsg(data.message || 'Google sign up failed. Please try again.');
+        setStatus('error');
+        return;
+      }
+
+      if (data.user) login(data.user);
+
       setStatus('success');
-      setTimeout(() => navigate('/register-business'), 2000);
-    }, 1500);
+      window.setTimeout(() => navigate('/register-business'), 2000);
+    } catch {
+      setErrorMsg('Unable to reach the server. Please try again.');
+      setStatus('error');
+    }
   };
 
   const handleGoogleError = () => {

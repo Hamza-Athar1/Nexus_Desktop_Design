@@ -29,14 +29,16 @@ export async function findUserByIdentifier(identifier) {
   return rows[0] || null;
 }
 
-export async function findUserById(id) {
-  const [rows] = await pool.query(`SELECT ${SAFE_FIELDS} FROM users WHERE id = ? LIMIT 1`, [id]);
+export async function findUserById(id, connection = null) {
+  const executor = connection || pool;
+  const [rows] = await executor.query(`SELECT ${SAFE_FIELDS} FROM users WHERE id = ? LIMIT 1`, [id]);
   return rows[0] || null;
 }
 
 /**
  * @param {{username:string, email:string, phone?:string, cityRegion?:string,
- *           passwordHash:string, role?:'super_admin'|'admin'|'user', status?:string}} input
+ *           passwordHash?:string, role?:'super_admin'|'admin'|'user', status?:string, emailVerifiedAt?:Date|string}} input
+ * @param {import('mysql2/promise').PoolConnection} [connection]
  * @returns {Promise<object>} the newly created user, safe fields only
  */
 export async function createUser({
@@ -44,16 +46,18 @@ export async function createUser({
   email,
   phone = null,
   cityRegion = null,
-  passwordHash,
+  passwordHash = null,
   role = 'admin',
   status = 'active',
-}) {
-  const [result] = await pool.query(
-    `INSERT INTO users (username, email, phone, city_region, password_hash, role, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [username, email, phone, cityRegion, passwordHash, role, status]
+  emailVerifiedAt = null,
+}, connection = null) {
+  const executor = connection || pool;
+  const [result] = await executor.query(
+    `INSERT INTO users (username, email, phone, city_region, password_hash, role, status, email_verified_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [username, email, phone, cityRegion, passwordHash, role, status, emailVerifiedAt]
   );
-  return findUserById(result.insertId);
+  return findUserById(result.insertId, connection);
 }
 
 export async function updateLastLogin(userId) {

@@ -49,7 +49,7 @@ export default function ModuleSelectPage() {
       // pages can read it without an extra round-trip.
       localStorage.setItem('nexus_module', active);
 
-      setTimeout(() => navigate('/dashboard'), 900);
+      setTimeout(() => navigate('/pos'), 900);
     } catch {
       setLaunched(false);
       setLaunchError('Unable to reach the server. Please try again.');

@@ -21,6 +21,8 @@ import ReportsPage            from './pages/User/Shared/ReportsPage';
 import SettingsPage           from './pages/User/Shared/SettingsPage';
 import EditProfilePage        from './pages/User/Shared/EditProfilePage';
 import AdminDashboardPage     from './pages/Admin/AdminDashboardPage';
+import AdminLayout            from './components/Admin/AdminLayout';
+import AdminProductsPage      from './pages/Admin/AdminProductsPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 import SuperAdminLayout from './pages/Super-User/SuperAdminLayout';
 import SuperAdminRequestsPage from './pages/Super-User/SuperAdminRequestsPage';
@@ -66,18 +68,15 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route path="/register-business" element={<RegisterBusinessPage />} />
         <Route path="/modules"          element={<ModuleSelectPage />} />
-        <Route path="/dashboard"        element={<DashboardPage />} />
         <Route path="/pos"              element={<POSSystemPage />} />
-        <Route path="/inventory"        element={<InventoryRouter />} />
-        <Route path="/billing"          element={<BillingPage />} />
-        <Route path="/reports"          element={<ReportsPage />} />
-        <Route path="/settings"         element={<SettingsPage />} />
-        <Route path="/profile"          element={<EditProfilePage />} />
       </Route>
 
       {/* ── Requires admin (business owner) role ──────── */}
       <Route element={<RoleRoute allowedRoles={['admin', 'super_admin']} />}>
-        <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminDashboardPage />} />
+          <Route path="products" element={<AdminProductsPage />} />
+        </Route>
       </Route>
 
       {/* ── Requires super_admin role ─────── */}

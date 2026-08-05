@@ -6,7 +6,7 @@
  * 'super_admin' | 'admin' | 'user'.
  */
 export const ROLE_HOME = {
-  user: '/modules',
+  user: '/pos',
   admin: '/admin',
   super_admin: '/super-admin',
 };

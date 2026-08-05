@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { apiFetchJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { roleHome } from '../lib/roleRedirects';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -55,6 +56,43 @@ export default function LoginPage() {
       setStatus('error');
     }
   };
+  const handleGoogleSuccess = async (credentialResponse) => {
+    console.log('Google Login Success:', credentialResponse);
+    setStatus('loading');
+    try {
+      const { ok, data } = await apiFetchJson('/auth/google', {
+        method: 'POST',
+        body: JSON.stringify({
+          credential: credentialResponse.credential,
+        }),
+      });
+
+      if (!ok) {
+        setErrorMsg(data.message || 'Google sign in failed. Please try again.');
+        setStatus('error');
+        return;
+      }
+
+      if (data.user) login(data.user);
+
+      setStatus('success');
+      const destination =
+        data.user?.role === 'admin' && !data.user?.businessId
+          ? '/register-business'
+          : roleHome(data.user?.role);
+      window.setTimeout(() => navigate(destination), 1600);
+    } catch {
+      setErrorMsg('Unable to reach the server. Please try again.');
+      setStatus('error');
+    }
+  };
+
+  const handleGoogleError = () => {
+    console.log('Google Login Failed');
+    setErrorMsg('Google sign in failed. Please try again.');
+    setStatus('error');
+  };
+
 
   const isError = status === 'error';
   const isLoading = status === 'loading';
@@ -213,6 +251,24 @@ export default function LoginPage() {
                   'Login'
                 )}
               </button>
+
+              {/* Divider */}
+              <div className="flex items-center my-4">
+                <div className="flex-grow border-t border-[#14391a]/20"></div>
+                <span className="px-3 text-xs text-[#14391a]/60 font-semibold uppercase">Or sign in with</span>
+                <div className="flex-grow border-t border-[#14391a]/20"></div>
+              </div>
+
+              {/* Google Login Component */}
+              <div className="w-full flex justify-center mt-2">
+                <GoogleLogin
+                  onSuccess={handleGoogleSuccess}
+                  onError={handleGoogleError}
+                  theme="outline"
+                  size="large"
+                  width="100%"
+                />
+              </div>
 
               {/* Sign Up Link */}
               <div className="text-center pt-2 text-xs lg:text-sm xl:text-base font-semibold text-[#14391a]">

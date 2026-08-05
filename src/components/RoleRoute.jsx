@@ -49,5 +49,10 @@ export default function RoleRoute({ allowedRoles = [], children }) {
     return <Navigate to={roleHome(user.role)} replace />;
   }
 
+  // Force admin users who haven't completed registration to the wizard
+  if (user.role === 'admin' && !user.businessId) {
+    return <Navigate to="/register-business" replace />;
+  }
+
   return children ?? <Outlet />;
 }

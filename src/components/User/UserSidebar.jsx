@@ -1,10 +1,4 @@
 import {
-  LayoutDashboard,
-  Package,
-  ReceiptText,
-  BarChart3,
-  User,
-  Settings2,
   MonitorSmartphone,
   X,
 } from 'lucide-react';
@@ -13,16 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import NexusLogo from '../NexusLogo';
 
 const NAV_MAIN = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { id: 'pos', label: 'POS System', icon: MonitorSmartphone },
-  { id: 'inventory', label: 'Inventory', icon: Package },
-  { id: 'billing', label: 'Billing', icon: ReceiptText },
-  { id: 'reports', label: 'Reports', icon: BarChart3 },
-];
-
-const NAV_ACCOUNT = [
-  { id: 'profile', label: 'Edit Profile', icon: User },
-  { id: 'settings', label: 'Settings', icon: Settings2 },
 ];
 
 function NavItem({ icon: Icon, label, active, onClick }) {
@@ -47,23 +32,11 @@ export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange })
   const location = useLocation();
 
   const pathMap = {
-    dashboard: '/dashboard',
     pos: '/pos',
-    inventory: '/inventory',
-    billing: '/billing',
-    reports: '/reports',
-    profile: '/profile',
-    settings: '/settings',
   };
 
   const mapPathToId = (path) => {
-    if (path.startsWith('/dashboard')) return 'dashboard';
     if (path.startsWith('/pos')) return 'pos';
-    if (path.startsWith('/inventory')) return 'inventory';
-    if (path.startsWith('/billing')) return 'billing';
-    if (path.startsWith('/reports')) return 'reports';
-    if (path.startsWith('/profile')) return 'profile';
-    if (path.startsWith('/settings')) return 'settings';
     return null;
   };
 
@@ -105,19 +78,6 @@ export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange })
           Main
         </p>
         {NAV_MAIN.map((item) => (
-          <NavItem
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            active={activeKey === item.id}
-            onClick={() => handleNav(item.id)}
-          />
-        ))}
-
-        <p className="mb-2 mt-5 px-2 text-[9px] font-bold uppercase tracking-[0.18em] text-[#efe9c4]">
-          Account
-        </p>
-        {NAV_ACCOUNT.map((item) => (
           <NavItem
             key={item.id}
             icon={item.icon}

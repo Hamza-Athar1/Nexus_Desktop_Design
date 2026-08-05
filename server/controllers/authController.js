@@ -1,6 +1,9 @@
 import bcrypt from 'bcrypt';
 import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 import { ApiError } from '../utils/ApiError.js';
+import { withTransaction } from '../config/db.js';
+import { findOAuthAccount, createOAuthAccount } from '../models/oauthModel.js';
 import {
   findUserByEmail,
   findUserByUsername,
@@ -244,3 +247,106 @@ export async function resetPassword(req, res) {
 
   return res.status(200).json({ message: 'Password updated. Please log in again.' });
 }
+
+// ── POST /api/auth/google ──────────────────────────────────────────────────
+export async function googleLogin(req, res) {
+  const { credential } = req.body;
+  if (!credential) {
+    throw new ApiError(400, 'Credential token is required');
+  }
+
+  const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+  
+  let payload;
+  try {
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch (err) {
+    console.error('Google token verification failed:', err);
+    throw new ApiError(401, 'Invalid Google token');
+  }
+
+  const { sub: googleUserId, email, email_verified, name } = payload;
+  
+  if (!email) {
+    throw new ApiError(400, 'Email address not provided by Google account');
+  }
+
+  // 1. Check if OAuth account exists
+  let oauthAccount = await findOAuthAccount('google', googleUserId);
+  let user;
+
+  if (oauthAccount) {
+    // Retrieve associated user
+    user = await findUserById(oauthAccount.user_id);
+    if (!user) {
+      throw new ApiError(404, 'User associated with Google account not found');
+    }
+  } else {
+    // 2. Check if a user with that email already exists
+    user = await findUserByEmail(email);
+    
+    if (user) {
+      // Security check: Never automatically link Google OAuth to a super_admin account
+      if (user.role === 'super_admin') {
+        throw new ApiError(403, 'This account is a privileged administrator account. Please log in using your password.');
+      }
+
+      // User exists, but doesn't have this OAuth account linked. Let's link it.
+      await createOAuthAccount({
+        userId: user.id,
+        provider: 'google',
+        providerUid: googleUserId,
+        providerEmail: email
+      });
+    } else {
+      // 3. New sign up! Create a new user and link the OAuth account.
+      // Generate a unique username.
+      const baseUsername = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '').slice(0, 20);
+      let username = baseUsername;
+      let suffix = 1;
+      while (await findUserByUsername(username)) {
+        username = `${baseUsername}${suffix}`;
+        suffix++;
+      }
+
+      user = await withTransaction(async (conn) => {
+        const newUser = await createUser({
+          username,
+          email,
+          phone: null,
+          cityRegion: 'N/A',
+          passwordHash: null,
+          role: 'admin',
+          status: 'active',
+          emailVerifiedAt: email_verified ? new Date() : null,
+        }, conn);
+
+        await createOAuthAccount({
+          userId: newUser.id,
+          provider: 'google',
+          providerUid: googleUserId,
+          providerEmail: email
+        }, conn);
+
+        return newUser;
+      });
+    }
+  }
+
+  if (user.status === 'suspended' || user.status === 'blocked') {
+    throw new ApiError(403, 'This account has been suspended. Contact support for help.');
+  }
+
+  await updateLastLogin(user.id);
+  await issueSession(res, user, false);
+
+  return res.status(200).json({
+    message: 'Google login successful',
+    user: await toAuthUser(user),
+  });
+}
+
