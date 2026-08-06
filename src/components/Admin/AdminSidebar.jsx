@@ -7,12 +7,14 @@ import {
   UserCircle,
   ArrowLeft,
   Sliders,
-  X,
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AdminSidebar({ activeTab, isOpen, onClose }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   // Determine active tab dynamically if not provided as a prop
   let currentActiveTab = activeTab;
@@ -132,6 +134,18 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
             <span className="text-sm tracking-wide">User</span>
           </button>
         </nav>
+
+        {/* Logout */}
+        <div className="mt-auto pt-4 border-t border-[#efeacb]/10">
+          <button
+            type="button"
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-5 py-3.5 rounded-full text-left transition duration-200 text-[#f4a98a] hover:bg-[#5c1a1a]/40 hover:text-[#f9c4af] active:scale-[0.98] cursor-pointer"
+          >
+            <LogOut size={20} className="text-[#f4a98a]" />
+            <span className="text-sm tracking-wide">Logout</span>
+          </button>
+        </div>
       </div>
     </aside>
   );

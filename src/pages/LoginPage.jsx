@@ -100,13 +100,13 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen w-full flex flex-col md:flex-row select-none">
-      
+
       {/* Left Panel */}
-      <div className="w-full md:w-1/2 md:flex-none bg-[#e5dcba] flex flex-col justify-center items-center text-center px-6 py-12 sm:px-12 md:py-24 md:px-20 lg:px-28 xl:px-36 text-[#14391a] space-y-8 lg:space-y-12 xl:space-y-16 border-b-2 md:border-b-0 md:border-r-2 border-[#14391a]/25">
-        <div className="flex flex-col items-center space-y-6 lg:space-y-8 xl:space-y-10">
-          <img 
-            src="/Nexus.png" 
-            alt="Nexus Logo" 
+      <div className="w-full md:w-1/2 md:flex-none bg-[#e5dcba] flex flex-col justify-center items-center text-center px-6 py-12 sm:px-12 md:py-24 md:px-20 lg:px-28 xl:px-36 text-[#14391a] space-y-4 lg:space-y-6 xl:space-y-8 border-b-2 md:border-b-0 md:border-r-2 border-[#14391a]/25">
+        <div className="flex flex-col items-center space-y-4 lg:space-y-8 xl:space-y-10">
+          <img
+            src="/Nexus.png"
+            alt="Nexus Logo"
             className="w-36 md:w-48 lg:w-64 xl:w-80 h-auto object-contain drop-shadow-sm transition-all duration-300"
           />
           <h1 className="text-3xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold tracking-wide leading-none">
@@ -114,7 +114,7 @@ export default function LoginPage() {
           </h1>
         </div>
 
-        <div className="space-y-2 lg:space-y-4">
+        <div className="space-y-1 lg:space-y-3 xl:space-y-4">
           <h2 className="text-lg md:text-2xl lg:text-3xl xl:text-4xl font-semibold">
             Smart POS for every business
           </h2>
@@ -124,7 +124,7 @@ export default function LoginPage() {
         </div>
 
         {/* Stats */}
-        <div className="flex flex-row items-center justify-center gap-12 sm:gap-16 lg:gap-24 xl:gap-32 pt-6 lg:pt-10 w-full">
+        <div className="flex flex-row items-center justify-center gap-12 sm:gap-16 lg:gap-24 xl:gap-32 pt-2 lg:pt-4 w-full">
           <div>
             <span className="text-2xl md:text-4xl lg:text-5xl xl:text-6xl font-bold block">1.2k</span>
             <span className="text-xs md:text-sm lg:text-base xl:text-lg opacity-80 mt-1 block">orders today</span>
@@ -139,7 +139,7 @@ export default function LoginPage() {
       {/* Right Panel */}
       <div className="w-full md:w-1/2 md:flex-none bg-[#f4f2d3] flex flex-col justify-center px-6 py-12 sm:px-12 sm:py-16 md:py-24 md:px-20 lg:px-28 xl:px-36">
         <div className="max-w-md lg:max-w-lg xl:max-w-xl w-full mx-auto space-y-8 lg:space-y-12 xl:space-y-14">
-          
+
           {/* Header */}
           {!isSuccess && (
             <div className="space-y-2 text-center">
@@ -170,7 +170,7 @@ export default function LoginPage() {
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6 lg:space-y-8 border-2 border-[#14391a]/20 p-6 sm:p-8 rounded-2xl shadow-sm">
-              
+
               {/* Error Banner */}
               {isError && (
                 <div role="alert" className="px-4 py-2.5 rounded-lg bg-red-50 border border-red-200 text-xs lg:text-sm text-red-600 text-center font-medium">
@@ -288,7 +288,7 @@ export default function LoginPage() {
 
         </div>
       </div>
-      
+
     </div>
   );
 }

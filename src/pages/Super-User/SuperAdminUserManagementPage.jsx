@@ -137,11 +137,11 @@ export default function SuperAdminUserManagementPage() {
       method: 'POST',
       body: JSON.stringify({ subject, body }),
     });
-    if (ok) {
-      setMessagingShop(null);
-    } else {
+    if (!ok) {
       setActionError(data?.message || 'Failed to send message.');
     }
+    // Modal stays open so it can show its own success confirmation view.
+    // The modal's "Done" button calls onClose to dismiss it.
   };
 
   const handleDeleteShop = async (id) => {

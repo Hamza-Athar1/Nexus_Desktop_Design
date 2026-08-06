@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { User, Shield, Monitor, Check, LogOut, Trash2, X } from 'lucide-react';
+import { User, Shield, Check, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetchJson } from '../../lib/api';
 
@@ -17,56 +17,6 @@ function Toggle({ checked, onChange }) {
   );
 }
 
-// ── Sessions Modal ────────────────────────────────────────────────────────────
-function SessionsModal({ onClose }) {
-  const [sessions, setSessions] = useState([]);
-  const [loading, setLoading]   = useState(true);
-
-  useEffect(() => {
-    apiFetchJson('/profile/sessions').then(({ ok, data }) => {
-      if (ok) setSessions(data.sessions);
-      setLoading(false);
-    });
-  }, []);
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none">
-      <div className="fixed inset-0 bg-black/40 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-[#ece5c8] rounded-[24px] border border-[#14391a]/15 p-7 w-full max-w-[500px] shadow-2xl text-[#14391a]">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-2xl font-black">Active Sessions</h3>
-          <button type="button" onClick={onClose} className="p-1.5 rounded-lg hover:bg-[#14391a]/10 cursor-pointer">
-            <X size={20} />
-          </button>
-        </div>
-        {loading && <p className="text-sm text-[#14391a]/60 font-medium py-4 text-center">Loading…</p>}
-        {!loading && sessions.length === 0 && (
-          <p className="text-sm text-[#14391a]/60 font-medium py-4 text-center">No active sessions found.</p>
-        )}
-        {!loading && sessions.length > 0 && (
-          <div className="space-y-3">
-            {sessions.map(s => (
-              <div key={s.id} className="flex items-start gap-3 p-4 bg-white/60 rounded-xl border border-[#14391a]/10">
-                <Monitor size={18} className="mt-0.5 shrink-0 text-[#14391a]/70" />
-                <div>
-                  <p className="text-sm font-extrabold text-[#14391a] leading-tight">{s.device}</p>
-                  <p className="text-xs text-[#14391a]/60 font-semibold mt-0.5">
-                    Started {s.createdAt} · expires {s.expiresAt}
-                    {s.rememberMe ? ' · remembered' : ''}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-        <button type="button" onClick={onClose}
-          className="mt-6 w-full py-3 bg-[#14391a] hover:bg-[#0f2a13] text-white font-extrabold rounded-xl transition cursor-pointer">
-          Close
-        </button>
-      </div>
-    </div>
-  );
-}
 
 // ── Feedback banner ───────────────────────────────────────────────────────────
 function Banner({ msg, type }) {
@@ -100,20 +50,15 @@ export default function SuperAdminProfilePage() {
   const [pwMsg, setPwMsg]           = useState({ text: '', type: '' });
 
   // ── Security state ────────────────────────────────────────────────────────
-  const [twofaEnabled, setTwofaEnabled]       = useState(false);
+  const [twofaEnabled, setTwofaEnabled]         = useState(false);
+  const [authenticatorEnabled, setAuthenticatorEnabled] = useState(true);
   const [prefSecurity, setPrefSecurity]       = useState(true);
   const [prefLogins, setPrefLogins]           = useState(true);
   const [prefBilling, setPrefBilling]         = useState(true);
   const [prefAnnouncements, setPrefAnnounce]  = useState(true);
   const [prefMsg, setPrefMsg]                 = useState({ text: '', type: '' });
 
-  // ── Sessions modal ────────────────────────────────────────────────────────
-  const [showSessions, setShowSessions] = useState(false);
 
-  // ── Delete / logout state ─────────────────────────────────────────────────
-  const [deletePassword, setDeletePassword] = useState('');
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [actionMsg, setActionMsg] = useState({ text: '', type: '' });
 
   // ── Load profile ──────────────────────────────────────────────────────────
   const loadProfile = useCallback(async () => {
@@ -210,26 +155,7 @@ export default function SuperAdminProfilePage() {
     setTimeout(() => setPrefMsg({ text: '', type: '' }), 3000);
   };
 
-  const handleLogoutAll = async () => {
-    if (!confirm('Sign out from all devices?')) return;
-    await apiFetchJson('/profile/sessions', { method: 'DELETE' });
-    authLogout?.();
-  };
 
-  const handleDeleteAccount = async () => {
-    if (!deletePassword) { setActionMsg({ text: 'Enter your password to confirm.', type: 'error' }); return; }
-    const { ok, data } = await apiFetchJson('/profile/account', {
-      method: 'DELETE',
-      body: JSON.stringify({ password: deletePassword }),
-    });
-    if (ok) {
-      setActionMsg({ text: 'Account deleted. Redirecting…', type: 'success' });
-      setTimeout(() => authLogout?.(), 1500);
-    } else {
-      setActionMsg({ text: data?.message || 'Deletion failed.', type: 'error' });
-    }
-    setTimeout(() => setActionMsg({ text: '', type: '' }), 4000);
-  };
 
   // ── Tab styling ───────────────────────────────────────────────────────────
   const tabCls = (key) =>
@@ -283,9 +209,7 @@ export default function SuperAdminProfilePage() {
         <button onClick={() => setActiveTab('security')} className={tabCls('security')}>
           <Shield size={18} /><span>Security</span>
         </button>
-        <button onClick={() => setActiveTab('actions')}  className={tabCls('actions')}>
-          <Monitor size={18} /><span>Account Actions</span>
-        </button>
+
       </div>
 
       {/* ── Profile Tab ──────────────────────────────────────────────────── */}
@@ -319,6 +243,7 @@ export default function SuperAdminProfilePage() {
               <div>
                 <label className="block text-sm font-extrabold text-[#14391a] mb-1.5">Phone number</label>
                 <input type="text" value={phone} onChange={e => setPhone(e.target.value)}
+                  maxLength={11}
                   className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50" />
               </div>
               <button type="submit"
@@ -413,22 +338,7 @@ export default function SuperAdminProfilePage() {
                   <h3 className="text-sm font-extrabold text-[#14391a] leading-tight">Authenticator App</h3>
                   <p className="text-xs text-[#14391a]/70 font-semibold mt-0.5">You are using Google Authenticator</p>
                 </div>
-                <button type="button" onClick={() => alert('Reconfigure flow coming soon.')}
-                  className="px-4 py-2 bg-[#cbebc7]/45 border border-[#14391a]/30 hover:bg-[#cbebc7] text-[#14391a] text-xs font-extrabold rounded-[10px] transition cursor-pointer">
-                  Reconfigure
-                </button>
-              </div>
-
-              {/* Disable 2FA row */}
-              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#f7d6d3]/30 border border-[#99221b]/45 rounded-[12px]">
-                <div>
-                  <h3 className="text-sm font-extrabold text-[#99221b] leading-tight">Disable 2FA</h3>
-                  <p className="text-xs text-[#99221b]/80 font-semibold mt-0.5">Disabling 2FA will reduce your account security.</p>
-                </div>
-                <button type="button" onClick={() => { if (confirm('Disable 2FA?')) handleToggle2fa(false); }}
-                  className="px-4 py-2 bg-[#f7d6d3] border border-[#d65f57] hover:bg-[#fadfcb] text-[#99221b] text-xs font-extrabold rounded-[10px] transition cursor-pointer">
-                  Disable
-                </button>
+                <Toggle checked={authenticatorEnabled} onChange={setAuthenticatorEnabled} />
               </div>
             </div>
           </div>
@@ -464,93 +374,7 @@ export default function SuperAdminProfilePage() {
         </div>
       )}
 
-      {/* ── Account Actions Tab ───────────────────────────────────────────── */}
-      {activeTab === 'actions' && (
-        <div className="bg-[#fcfbfa] border border-[#14391a]/15 rounded-[20px] p-6.5 flex flex-col gap-6">
-          <div>
-            <h2 className="text-[20px] font-black text-[#14391a] leading-none mb-1">Account Actions</h2>
-            <p className="text-sm text-[#14391a]/70 font-semibold mt-1.5">Manage your account and session.</p>
-          </div>
-          <Banner msg={actionMsg.text} type={actionMsg.type} />
 
-          <div className="flex flex-col gap-6">
-            {/* Sessions + Logout row */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-6 border-b border-[#14391a]/10">
-              {/* Active sessions */}
-              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#fcfbfa] rounded-[12px] border border-gray-100 hover:border-[#14391a]/20 transition">
-                <div className="flex items-center gap-3">
-                  <div className="p-3.5 border border-[#14391a]/25 text-[#14391a] rounded-[12px]"><Monitor size={22} strokeWidth={2.5} /></div>
-                  <div>
-                    <h3 className="text-[15px] font-black text-[#14391a] leading-tight">Active sessions</h3>
-                    <p className="text-xs text-[#14391a]/70 font-bold mt-1">View and manage your active sessions.</p>
-                  </div>
-                </div>
-                <button type="button" onClick={() => setShowSessions(true)}
-                  className="px-4 py-2.5 bg-[#cbebc7]/45 border border-[#14391a]/30 hover:bg-[#cbebc7] text-[#14391a] text-xs font-extrabold rounded-[10px] transition cursor-pointer shrink-0">
-                  View sessions
-                </button>
-              </div>
-
-              {/* Log out all */}
-              <div className="flex items-center justify-between gap-4 p-4.5 bg-[#fcfbfa] rounded-[12px] border border-gray-100 hover:border-[#99221b]/20 transition">
-                <div className="flex items-center gap-3">
-                  <div className="p-3.5 border border-[#99221b]/35 text-[#99221b] rounded-[12px]"><LogOut size={22} strokeWidth={2.5} /></div>
-                  <div>
-                    <h3 className="text-[15px] font-black text-[#99221b] leading-tight">Log out</h3>
-                    <p className="text-xs text-[#99221b]/70 font-bold mt-1">Sign out from all devices</p>
-                  </div>
-                </div>
-                <button type="button" onClick={handleLogoutAll}
-                  className="px-4 py-2.5 bg-[#f7d6d3] border border-[#d65f57] hover:bg-[#fadfcb] text-[#99221b] text-xs font-extrabold rounded-[10px] transition cursor-pointer shrink-0">
-                  Log out all
-                </button>
-              </div>
-            </div>
-
-            {/* Delete account row */}
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-4.5 bg-[#fcfbfa] rounded-[12px] border border-gray-100 hover:border-[#99221b]/20 transition">
-              <div className="flex items-center gap-3">
-                <div className="p-3.5 border border-[#99221b]/35 text-[#99221b] rounded-[12px]"><Trash2 size={22} strokeWidth={2.5} /></div>
-                <div>
-                  <h3 className="text-[15px] font-black text-[#99221b] leading-tight">Delete account</h3>
-                  <p className="text-xs text-[#99221b]/70 font-bold mt-1">Permanently delete your account and all your data.</p>
-                </div>
-              </div>
-              <button type="button" onClick={() => setShowDeleteConfirm(v => !v)}
-                className="px-5 py-2.5 bg-[#f7d6d3] border border-[#d65f57] hover:bg-[#fadfcb] text-[#99221b] text-xs font-extrabold rounded-[10px] transition cursor-pointer self-start lg:self-center shrink-0">
-                Delete account!
-              </button>
-            </div>
-
-            {/* Inline delete confirmation */}
-            {showDeleteConfirm && (
-              <div className="flex flex-col gap-3 p-5 bg-[#fdf4f4] border border-[#d65f57]/40 rounded-[14px]">
-                <p className="text-sm font-extrabold text-[#99221b]">Enter your password to permanently delete this account:</p>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    placeholder="Your password"
-                    value={deletePassword}
-                    onChange={e => setDeletePassword(e.target.value)}
-                    className="flex-1 bg-white border border-[#d65f57]/40 text-[#14391a] px-4 py-2.5 text-sm font-semibold rounded-[10px] focus:outline-none"
-                  />
-                  <button type="button" onClick={handleDeleteAccount}
-                    className="px-5 py-2.5 bg-[#99221b] hover:bg-[#7a1a15] text-white text-xs font-extrabold rounded-[10px] transition cursor-pointer">
-                    Confirm
-                  </button>
-                  <button type="button" onClick={() => { setShowDeleteConfirm(false); setDeletePassword(''); }}
-                    className="px-4 py-2.5 bg-white border border-[#14391a]/30 text-[#14391a] text-xs font-extrabold rounded-[10px] transition cursor-pointer">
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Sessions Modal */}
-      {showSessions && <SessionsModal onClose={() => setShowSessions(false)} />}
     </div>
   );
 }

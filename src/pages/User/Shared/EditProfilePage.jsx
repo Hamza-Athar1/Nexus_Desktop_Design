@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Menu, User, Building2, Phone, Mail, FileText, CreditCard, Calendar, ChevronDown, Save, X } from 'lucide-react';
 import UserSidebar from '../../../components/User/UserSidebar';
 
-function Input({ label, value, onChange, placeholder, icon: Icon, variant = 'light' }) {
+function Input({ label, value, onChange, placeholder, icon: Icon, variant = 'light', maxLength }) {
   const isDark = variant === 'dark';
   return (
     <div>
@@ -17,6 +17,7 @@ function Input({ label, value, onChange, placeholder, icon: Icon, variant = 'lig
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          maxLength={maxLength}
           className={`w-full ${Icon ? 'pl-9' : 'pl-4'} pr-4 py-2.5 text-sm outline-none bg-transparent ${isDark ? 'text-[#e8f0d0] placeholder:text-[#6a8f4b]/60' : 'text-[#163d15] placeholder:text-[#6a8f4b]'}`}
         />
       </div>
@@ -152,6 +153,7 @@ export default function EditProfilePage() {
                     onChange={setPhone} 
                     placeholder="03XX-XXXXXXX" 
                     icon={Phone}
+                    maxLength={11}
                     variant="dark" 
                   />
                   <Input 

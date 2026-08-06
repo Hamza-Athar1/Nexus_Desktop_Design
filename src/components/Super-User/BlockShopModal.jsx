@@ -3,12 +3,16 @@ import { Ban, ChevronDown } from 'lucide-react';
 
 export default function BlockShopModal({ shop, onClose, onBlock }) {
   const [reason, setReason] = useState('Policy violation');
+  const [otherReason, setOtherReason] = useState('');
 
   if (!shop) return null;
 
+  const isOther = reason === 'Other';
+  const finalReason = isOther ? otherReason.trim() : reason;
+
   const handleConfirm = () => {
     if (onBlock) {
-      onBlock(shop.id, reason);
+      onBlock(shop.id, finalReason);
     }
   };
 
@@ -53,6 +57,15 @@ export default function BlockShopModal({ shop, onClose, onBlock }) {
               <ChevronDown size={18} strokeWidth={3} />
             </div>
           </div>
+          {isOther && (
+            <textarea
+              value={otherReason}
+              onChange={(e) => setOtherReason(e.target.value)}
+              placeholder="Please describe the reason..."
+              rows={3}
+              className="w-full bg-[#fdfce8]/90 border border-[#14391a]/20 rounded-xl px-4 py-3 text-sm text-[#14391a] font-semibold outline-none resize-none focus:ring-1 focus:ring-[#14391a]/30 placeholder:text-[#14391a]/40 mt-2"
+            />
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -67,7 +80,8 @@ export default function BlockShopModal({ shop, onClose, onBlock }) {
           <button
             type="button"
             onClick={handleConfirm}
-            className="w-full py-3.5 bg-[#f5cbaf] border border-[#cf9b7f] text-[#99221b] text-base font-extrabold rounded-xl hover:bg-[#fadfcb] active:scale-[0.98] transition-all cursor-pointer text-center leading-none"
+            disabled={isOther && !otherReason.trim()}
+            className="w-full py-3.5 bg-[#f5cbaf] border border-[#cf9b7f] text-[#99221b] text-base font-extrabold rounded-xl hover:bg-[#fadfcb] active:scale-[0.98] transition-all cursor-pointer text-center leading-none disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Block Account
           </button>

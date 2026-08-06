@@ -23,11 +23,7 @@ export default function SignUpPage() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const set = (field) => (e) => {
-    let val = e.target.value;
-    if (field === 'phoneNumber') {
-      val = val.replace(/\D/g, '').slice(0, 11);
-    }
-    setForm((prev) => ({ ...prev, [field]: val }));
+    setForm((prev) => ({ ...prev, [field]: e.target.value }));
     if (status === 'error') {
       setStatus('idle');
       setErrorMsg('');
@@ -37,8 +33,8 @@ export default function SignUpPage() {
   const validate = () => {
     if (!form.username.trim()) return 'Username is required';
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) return 'A valid email is required';
+
     if (!form.phoneNumber.trim()) return 'Phone number is required';
-    if (form.phoneNumber.replace(/\D/g, '').length !== 11) return 'Phone number must be exactly 11 digits';
     if (!form.city.trim()) return 'City/region is required';
     return null;
   };
@@ -152,7 +148,7 @@ export default function SignUpPage() {
 
           {/* Header & Steps Indicator */}
           {status !== 'success' && (
-            <div className="space-y-2 text-center md:text-left">
+            <div className="space-y-2 text-center">
               <h2 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-[#14391a]">
                 Account Details
               </h2>
@@ -260,6 +256,7 @@ export default function SignUpPage() {
                   value={form.phoneNumber}
                   onChange={set('phoneNumber')}
                   disabled={isLoading}
+                  maxLength={11}
                   className="w-full px-4 py-2.5 lg:py-3.5 rounded-lg bg-[#aab79d] text-[#14391a] placeholder-[#14391a]/50 lg:text-base xl:text-lg font-medium outline-none transition-all focus:ring-2 focus:ring-[#14391a]/30 border-none"
                 />
               </div>

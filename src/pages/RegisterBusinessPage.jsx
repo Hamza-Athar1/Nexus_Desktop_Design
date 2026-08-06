@@ -427,6 +427,7 @@ export default function RegisterBusinessPage() {
                       value={businessForm.nicNumber}
                       onChange={(e) => handleBusinessChange('nicNumber', e.target.value)}
                       disabled={!businessForm.isRegistered}
+                      maxLength={13}
                       className={`w-full px-4 py-2.5 rounded-lg border text-xs md:text-sm outline-none transition-all ${businessForm.isRegistered
                         ? 'border-gray-200 focus:border-[#14391a] focus:ring-1 focus:ring-[#14391a] bg-white text-black'
                         : 'border-gray-100 bg-gray-50 text-gray-400 cursor-not-allowed'

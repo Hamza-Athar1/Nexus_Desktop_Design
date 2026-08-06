@@ -1,9 +1,9 @@
 import {
   MonitorSmartphone,
-  X,
+  LogOut,
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-
+import { useAuth } from '../../context/AuthContext';
 import NexusLogo from '../NexusLogo';
 
 const NAV_MAIN = [
@@ -30,6 +30,7 @@ function NavItem({ icon: Icon, label, active, onClick }) {
 export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const pathMap = {
     pos: '/pos',
@@ -88,6 +89,16 @@ export default function UserSidebar({ isOpen, onClose, activeNav, onNavChange })
         ))}
 
         <div className="flex-1" />
+
+        {/* Logout */}
+        <button
+          type="button"
+          onClick={logout}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-full text-[13px] font-semibold text-left transition-all duration-200 text-[#f4a98a] hover:bg-[#5c1a1a]/50 hover:text-[#f9c4af] active:scale-[0.98] mb-3"
+        >
+          <LogOut size={16} className="shrink-0 text-[#f4a98a]" />
+          Logout
+        </button>
 
         <div className="mb-4 rounded-2xl border border-emerald-500/20 bg-[#163d15]/90 p-3.5">
           <p className="mb-0.5 text-[9px] font-bold uppercase tracking-[0.18em] text-emerald-300/70">
