@@ -30,11 +30,19 @@ export default function SignUpPage() {
     }
   };
 
+  // Phone number: digits only, max 11
+  const setPhone = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
+    setForm((prev) => ({ ...prev, phoneNumber: digits }));
+    if (status === 'error') { setStatus('idle'); setErrorMsg(''); }
+  };
+
   const validate = () => {
     if (!form.username.trim()) return 'Username is required';
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) return 'A valid email is required';
 
     if (!form.phoneNumber.trim()) return 'Phone number is required';
+    if (form.phoneNumber.length !== 11) return 'Phone number must be exactly 11 digits';
     if (!form.city.trim()) return 'City/region is required';
     return null;
   };
@@ -252,9 +260,10 @@ export default function SignUpPage() {
                 <input
                   id="su-phone"
                   type="tel"
-                  placeholder="03XX-XXXXXXX"
+                  inputMode="numeric"
+                  placeholder="03XXXXXXXXX"
                   value={form.phoneNumber}
-                  onChange={set('phoneNumber')}
+                  onChange={setPhone}
                   disabled={isLoading}
                   maxLength={11}
                   className="w-full px-4 py-2.5 lg:py-3.5 rounded-lg bg-[#aab79d] text-[#14391a] placeholder-[#14391a]/50 lg:text-base xl:text-lg font-medium outline-none transition-all focus:ring-2 focus:ring-[#14391a]/30 border-none"

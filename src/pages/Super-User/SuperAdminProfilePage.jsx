@@ -242,8 +242,12 @@ export default function SuperAdminProfilePage() {
               </div>
               <div>
                 <label className="block text-sm font-extrabold text-[#14391a] mb-1.5">Phone number</label>
-                <input type="text" value={phone} onChange={e => setPhone(e.target.value)}
+                <input
+                  type="tel"
+                  inputMode="numeric"
                   maxLength={11}
+                  value={phone}
+                  onChange={e => setPhone(e.target.value.replace(/\D/g, '').slice(0, 11))}
                   className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50" />
               </div>
               <button type="submit"
