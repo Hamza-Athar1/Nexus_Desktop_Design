@@ -59,16 +59,16 @@ export default function AdminLayout() {
         )}
 
         {/* 1: Unified Top Header/Navbar (Full Width) */}
-        <header className="bg-transparent px-6 lg:pr-2 lg:px-0 py-6 lg:py-8 flex items-center justify-between shrink-0 min-h-[72px] lg:min-h-[96px] w-full z-30">
+        <header className="bg-transparent px-3 sm:px-6 lg:pr-2 lg:px-0 py-4 sm:py-6 lg:py-8 flex items-center justify-between shrink-0 min-h-[64px] lg:min-h-[96px] w-full z-30 max-w-full overflow-hidden">
           {/* Left Side: Hamburger on mobile, Logo on desktop */}
-          <div className="flex items-center lg:w-72 2xl:w-80 lg:shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 lg:w-72 2xl:w-80 lg:shrink-0 min-w-0">
             {/* Mobile Menu Button (Hamburger) */}
             <button
               type="button"
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg border border-[#0c3818]/20 text-[#0c3818] hover:bg-[#0c3818]/10 cursor-pointer shrink-0 mr-4"
+              className="lg:hidden p-2 rounded-lg border border-[#0c3818]/20 text-[#0c3818] hover:bg-[#0c3818]/10 cursor-pointer shrink-0"
             >
-              <Menu size={24} />
+              <Menu size={22} />
             </button>
 
             {/* Desktop Logo (exactly as wide as the sidebar) */}
@@ -77,7 +77,7 @@ export default function AdminLayout() {
             </div>
 
             {/* Mobile Title */}
-            <span className="lg:hidden font-serif font-black text-[#0c3818] tracking-wider text-sm">
+            <span className="lg:hidden font-serif font-black text-[#0c3818] tracking-tight text-xs sm:text-sm truncate">
               NEXUS DESKTOP
             </span>
           </div>
@@ -95,7 +95,7 @@ export default function AdminLayout() {
           </div>
 
           {/* Right Side: Clock & Logout */}
-          <div className="flex items-center justify-end lg:w-72 2xl:w-80 lg:shrink-0 gap-4 lg:gap-6 select-none pr-2 lg:pr-6">
+          <div className="flex items-center justify-end gap-2 sm:gap-3 lg:w-72 2xl:w-80 lg:shrink-0 select-none pr-1 sm:pr-2 lg:pr-6 shrink-0">
             {/* Real-time Clock */}
             <div className="hidden md:flex flex-col text-right text-[#0c3818]">
               <span className="text-xl 2xl:text-2xl font-bold tracking-wide leading-none">
@@ -109,20 +109,23 @@ export default function AdminLayout() {
               </span>
             </div>
 
+            {/* Mobile Store Title Badge (shown on tablets/wider mobile) */}
+            {headerDetails.title && (
+              <div className="hidden sm:block lg:hidden font-extrabold text-xs text-[#0c3818]/90 px-2.5 py-1 bg-[#efeacb] rounded-lg border border-[#0c3818]/20 truncate max-w-[140px]">
+                {headerDetails.title}
+              </div>
+            )}
+
             {/* Logout Button */}
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 lg:px-6 lg:py-3.5 2xl:px-8 2xl:py-4 bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] hover:text-white text-xs lg:text-sm 2xl:text-base font-extrabold rounded-lg transition duration-200 shadow-sm cursor-pointer border border-[#efeacb]/10 shrink-0"
+              className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 lg:px-6 lg:py-3.5 bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] hover:text-white text-xs lg:text-sm font-extrabold rounded-lg transition duration-200 shadow-sm cursor-pointer border border-[#efeacb]/10 shrink-0"
+              title="Admin Logout"
             >
-              <LogOut size={16} />
+              <LogOut size={15} />
               <span className="hidden sm:inline">ADMIN LOGOUT</span>
-              <span className="sm:hidden">LOGOUT</span>
+              <span className="sm:hidden text-[11px]">LOGOUT</span>
             </button>
-          </div>
-
-          {/* Mobile View Page Title Indicator */}
-          <div className="lg:hidden font-extrabold text-sm text-[#0c3818]/80 px-3 py-1 bg-[#efeacb]/50 rounded-lg border border-[#0c3818]/10">
-            {headerDetails.title}
           </div>
         </header>
 

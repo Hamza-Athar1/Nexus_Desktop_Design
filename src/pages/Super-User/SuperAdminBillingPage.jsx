@@ -238,24 +238,91 @@ export default function SuperAdminBillingPage() {
         </div>
       </div>
 
-      {/* Filter Tabs */}
-      <div className="flex flex-wrap items-center gap-3.5 mb-7">
+      {/* Filter Tabs (Scrollable on mobile) */}
+      <div className="flex items-center gap-2 sm:gap-3 mb-6 overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
         <button type="button" onClick={() => setActiveFilter('all')} className={tabCls('all')}>
-          All {totalCount}
+          All Invoices ({totalCount})
         </button>
         <button type="button" onClick={() => setActiveFilter('paid')} className={tabCls('paid')}>
-          Paid {paidCount}
+          Paid ({paidCount})
         </button>
         <button type="button" onClick={() => setActiveFilter('due')} className={tabCls('due')}>
-          Due {dueCount}
+          Due ({dueCount})
         </button>
         <button type="button" onClick={() => setActiveFilter('defaulter')} className={tabCls('defaulter')}>
-          Defaulter {defaulterCount}
+          Defaulters ({defaulterCount})
         </button>
       </div>
 
-      {/* Table */}
-      <div className="bg-[#ede7cd] rounded-[18px] border border-[#14391a]/20 shadow-xs">
+      {/* Mobile View: Touch-Friendly Invoice Cards (block md:hidden) */}
+      <div className="block md:hidden space-y-3 mb-8">
+        {loading && <div className="p-6 text-center text-xs font-semibold text-[#14391a]/60 bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">Loading billing data...</div>}
+        {error && !loading && (
+          <div className="p-6 text-center text-xs font-semibold text-[#99221b] bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">
+            {error}{' '}
+            <button type="button" onClick={() => { loadInvoices(); loadStats(); }} className="underline cursor-pointer">Retry</button>
+          </div>
+        )}
+        {!loading && !error && filteredInvoices.map((row) => (
+          <div key={row.id} className="bg-[#efeacb] border border-[#bfbc9b] rounded-2xl p-4 shadow-xs flex flex-col gap-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase text-[#14391a]/60 tracking-wider block">{row.invoiceNumber}</span>
+                <h4 className="font-extrabold text-sm text-[#14391a]">{row.businessName}</h4>
+                <p className="text-[11px] font-semibold text-[#55694a]">{row.moduleName}</p>
+              </div>
+
+              {row.status === 'paid' ? (
+                <span className="px-3 py-1 bg-[#cbebc7] border border-[#14391a]/30 rounded-lg text-xs font-extrabold text-[#14391a]">
+                  Paid Rs {row.amount}
+                </span>
+              ) : row.status === 'overdue' ? (
+                <span className="px-3 py-1 bg-[#f7d6d3] border border-[#d65f57] rounded-lg text-xs font-extrabold text-[#99221b]">
+                  Overdue Rs {row.amount}
+                </span>
+              ) : (
+                <span className="px-3 py-1 bg-[#f6edc1] border border-[#cca839] rounded-lg text-xs font-extrabold text-[#78590d]">
+                  Pending Rs {row.amount}
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between text-xs font-bold pt-2 border-t border-[#14391a]/15">
+              <div>
+                <span className="text-[#14391a]/60 font-semibold block text-[10px] uppercase">Due Date</span>
+                <span className="font-extrabold text-[#14391a]">{fmtDate(row.dueDate)}</span>
+              </div>
+              <div>
+                <span className="text-[#14391a]/60 font-semibold block text-[10px] uppercase text-right">Method</span>
+                <span className="font-extrabold text-[#14391a] text-right block">{row.method}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setSelectedInvoiceId(row.id)}
+                className="flex-1 py-2 bg-white text-[#14391a] border border-[#14391a]/40 text-xs font-extrabold rounded-xl text-center shadow-2xs hover:bg-neutral-50"
+              >
+                View details
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRevokeAccount(row.businessId)}
+                className="py-2 px-3 bg-[#14391a] text-[#efeacb] border border-[#14391a] text-xs font-extrabold rounded-xl text-center shadow-2xs"
+              >
+                Preferences
+              </button>
+            </div>
+          </div>
+        ))}
+        {!loading && !error && filteredInvoices.length === 0 && (
+          <div className="p-6 text-center text-xs font-semibold text-[#14391a]/60 bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">No billing records found.</div>
+        )}
+      </div>
+
+      {/* Desktop Table Container (hidden md:block) */}
+      <div className="hidden md:block bg-[#ede7cd] rounded-[18px] border border-[#14391a]/20 shadow-xs overflow-hidden mb-8">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="bg-[#e4dcbc] border-b border-[#14391a]/15 text-[13px] font-extrabold uppercase tracking-wider text-[#14391a]">

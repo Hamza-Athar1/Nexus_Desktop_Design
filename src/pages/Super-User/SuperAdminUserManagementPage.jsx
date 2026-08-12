@@ -177,19 +177,19 @@ export default function SuperAdminUserManagementPage() {
         </div>
       )}
 
-      {/* Filter Pills */}
-      <div className="flex flex-wrap items-center gap-3 mb-8">
+      {/* Filter Pills Bar (Scrollable on mobile) */}
+      <div className="flex items-center gap-2 sm:gap-3 mb-6 overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
         {[
-          { key: 'all',       label: `All ${totalCount}` },
-          { key: 'active',    label: `Active ${activeCount}` },
-          { key: 'suspended', label: `Suspended ${suspendedCount}` },
-          { key: 'blocked',   label: `Blocked ${blockedCount}` },
+          { key: 'all',       label: `All (${totalCount})` },
+          { key: 'active',    label: `Active (${activeCount})` },
+          { key: 'suspended', label: `Suspended (${suspendedCount})` },
+          { key: 'blocked',   label: `Blocked (${blockedCount})` },
         ].map(({ key, label }) => (
           <button
             key={key}
             type="button"
             onClick={() => setActiveFilter(key)}
-            className={`px-5 py-2.5 rounded-xl font-bold text-sm border transition duration-200 cursor-pointer ${
+            className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-extrabold text-xs sm:text-sm border transition duration-200 cursor-pointer shrink-0 ${
               activeFilter === key
                 ? 'bg-[#0c3818] text-white border-[#0c3818] shadow-sm'
                 : 'bg-white text-[#152f16] border-[#bfbc9b] hover:bg-[#efeacb]/30'

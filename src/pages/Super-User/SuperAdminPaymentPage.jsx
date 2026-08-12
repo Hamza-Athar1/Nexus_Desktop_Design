@@ -113,56 +113,53 @@ export default function SuperAdminPaymentPage() {
         <h1 className="text-4xl sm:text-[44px] font-extrabold tracking-tight text-[#14391a] mb-1 leading-none">
           Payment
         </h1>
-        <p className="text-sm sm:text-base text-[#14391a]/70 font-semibold flex items-center gap-2 mt-2">
-          <span>Payment overview</span>
-          <span className="text-[#14391a]/30">•</span>
-          <span>{timeFilter === 'all' ? 'All time' : timeFilter === '6months' ? 'Last 6 months' : 'Last 12 months'}</span>
-        </p>
       </div>
 
-      {/* Filter toolbar */}
-      <div className="flex flex-wrap items-center gap-3.5 mb-7 relative z-30">
-        {/* POS module dropdown */}
+      {/* Filters (Module Selector + Time + Dates) */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        {/* Module dropdown selector */}
         <div className="relative">
           <button
             type="button"
             onClick={() => setShowModDrop(!showModDrop)}
-            className="bg-[#fdfce8]/90 border border-[#14391a]/20 text-[#14391a] text-sm font-extrabold rounded-[10px] pl-4 pr-10 py-2.5 outline-none cursor-pointer focus:ring-1 focus:ring-[#14391a]/30 min-w-[210px] text-left flex items-center justify-between"
+            className="px-4 py-2.5 bg-[#113819] text-white text-xs sm:text-sm font-extrabold rounded-[10px] shadow-2xs hover:bg-[#14391a] transition cursor-pointer flex items-center justify-between min-w-[200px]"
           >
             <span>{selectedMod.label}</span>
-            <span className="text-xs font-bold ml-2">▼</span>
+            <span className="ml-2">▼</span>
           </button>
           {showModDrop && (
             <>
               <div className="fixed inset-0 z-40" onClick={() => setShowModDrop(false)} />
-              <div className="absolute left-0 top-full mt-1 w-[240px] bg-[#fbf9f0] border border-[#14391a]/15 rounded-xl shadow-xl z-50 p-2.5 flex flex-col gap-1.5">
-                {MODULE_OPTIONS.map(opt => {
-                  const isSel = selectedMod.code === opt.code;
-                  return (
-                    <button
-                      key={opt.code}
-                      type="button"
-                      onClick={() => { setSelectedMod(opt); setShowModDrop(false); }}
-                      className={`w-full text-left px-3 py-2 text-[13.5px] font-bold rounded-lg transition cursor-pointer flex items-center gap-3 ${
-                        isSel ? 'bg-[#e4dcbc] text-[#14391a]' : 'text-[#14391a] hover:bg-gray-100'
-                      }`}
-                    >
-                      <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${isSel ? 'border-[#14391a]' : 'border-[#14391a]/40'}`}>
-                        {isSel && <span className="w-1.5 h-1.5 rounded-full bg-[#14391a]" />}
-                      </span>
-                      {opt.label}
-                    </button>
-                  );
-                })}
+              <div className="absolute left-0 top-full mt-1 w-60 bg-white border border-[#14391a]/20 rounded-xl shadow-xl z-50 p-1.5 flex flex-col gap-0.5">
+                {MODULE_OPTIONS.map((m) => (
+                  <button
+                    key={m.code}
+                    type="button"
+                    onClick={() => { setSelectedMod(m); setShowModDrop(false); }}
+                    className={`w-full text-left px-3 py-2 text-xs font-bold rounded-lg transition ${
+                      selectedMod.code === m.code ? 'bg-[#113819] text-white' : 'text-[#14391a] hover:bg-[#efeacb]/40'
+                    }`}
+                  >
+                    {m.label}
+                  </button>
+                ))}
               </div>
             </>
           )}
         </div>
 
-        {/* Time filter buttons */}
-        <button type="button" onClick={() => { setTimeFilter('all'); setAppliedStart(''); setAppliedEnd(''); }} className={timeCls('all')}>All</button>
-        <button type="button" onClick={() => { setTimeFilter('6months'); setAppliedStart(''); setAppliedEnd(''); }} className={timeCls('6months')}>6 months</button>
-        <button type="button" onClick={() => { setTimeFilter('12months'); setAppliedStart(''); setAppliedEnd(''); }} className={timeCls('12months')}>12 months</button>
+        {/* Time Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none flex-nowrap sm:flex-wrap">
+          <button type="button" onClick={() => { setTimeFilter('all'); setAppliedStart(''); setAppliedEnd(''); }} className={timeCls('all')}>
+            All time
+          </button>
+          <button type="button" onClick={() => { setTimeFilter('6months'); setAppliedStart(''); setAppliedEnd(''); }} className={timeCls('6months')}>
+            6 months
+          </button>
+          <button type="button" onClick={() => { setTimeFilter('12months'); setAppliedStart(''); setAppliedEnd(''); }} className={timeCls('12months')}>
+            12 months
+          </button>
+        </div>
 
         {/* Start date */}
         <div className="relative flex items-center">
@@ -174,11 +171,11 @@ export default function SuperAdminPaymentPage() {
             placeholder="Start Date"
             value={startDate}
             onChange={e => setStartDate(e.target.value)}
-            className="px-4 py-2.5 pr-9 bg-[#faf8ed] text-[#14391a] text-sm font-extrabold border border-[#14391a]/30 rounded-[10px] focus:outline-none placeholder:text-[#14391a]/70 w-[170px] cursor-pointer"
+            className="px-3.5 py-2 pr-9 bg-[#faf8ed] text-[#14391a] text-xs font-extrabold border border-[#14391a]/30 rounded-[10px] focus:outline-none placeholder:text-[#14391a]/70 w-[140px] sm:w-[160px] cursor-pointer"
           />
           <button type="button" onClick={() => { setStartFocus(true); setTimeout(() => { startRef.current?.focus(); startRef.current?.showPicker?.(); }, 0); }}
             className="absolute right-3 text-[#14391a]/70 hover:text-[#14391a] cursor-pointer flex items-center justify-center p-0.5">
-            <Calendar size={16} />
+            <Calendar size={15} />
           </button>
         </div>
 
@@ -192,18 +189,18 @@ export default function SuperAdminPaymentPage() {
             placeholder="End Date"
             value={endDate}
             onChange={e => setEndDate(e.target.value)}
-            className="px-4 py-2.5 pr-9 bg-[#faf8ed] text-[#14391a] text-sm font-extrabold border border-[#14391a]/30 rounded-[10px] focus:outline-none placeholder:text-[#14391a]/70 w-[170px] cursor-pointer"
+            className="px-3.5 py-2 pr-9 bg-[#faf8ed] text-[#14391a] text-xs font-extrabold border border-[#14391a]/30 rounded-[10px] focus:outline-none placeholder:text-[#14391a]/70 w-[140px] sm:w-[160px] cursor-pointer"
           />
           <button type="button" onClick={() => { setEndFocus(true); setTimeout(() => { endRef.current?.focus(); endRef.current?.showPicker?.(); }, 0); }}
             className="absolute right-3 text-[#14391a]/70 hover:text-[#14391a] cursor-pointer flex items-center justify-center p-0.5">
-            <Calendar size={16} />
+            <Calendar size={15} />
           </button>
         </div>
 
         <button
           type="button"
           onClick={handleApply}
-          className="px-5 py-2.5 bg-[#a3c9df] hover:bg-[#b5daef] active:scale-95 text-[#14391a] border border-[#14391a]/30 text-sm font-extrabold rounded-[10px] transition cursor-pointer"
+          className="px-4 py-2 bg-[#a3c9df] hover:bg-[#b5daef] text-[#14391a] border border-[#14391a]/30 text-xs font-black rounded-[10px] transition cursor-pointer"
         >
           Apply
         </button>
@@ -211,30 +208,30 @@ export default function SuperAdminPaymentPage() {
 
       {/* KPI Cards — only when a specific module is selected */}
       {!isOverview && moduleStats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-            <span className="text-[13px] font-semibold text-white/95">POS since</span>
-            <span className="text-[22px] font-extrabold tracking-tight block leading-tight">
+            <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">POS since</span>
+            <span className="text-xl font-extrabold tracking-tight block leading-tight">
               {moduleStats.posSince ?? '--'}
             </span>
           </div>
           <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-            <span className="text-[13px] font-semibold text-white/95">Time using POS</span>
-            <span className="text-[22px] font-extrabold tracking-tight text-[#d2a233] block leading-tight">
+            <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">Time using POS</span>
+            <span className="text-xl font-extrabold tracking-tight text-[#d2a233] block leading-tight">
               {moduleStats.timeUsingPOS ?? '--'}
             </span>
           </div>
           <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-            <span className="text-[13px] font-semibold text-white/95">Payments made</span>
-            <span className="text-[22px] font-extrabold tracking-tight block leading-tight">
+            <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">Payments made</span>
+            <span className="text-xl font-extrabold tracking-tight block leading-tight">
               {moduleStats.paymentsMade}
             </span>
           </div>
           <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-            <span className="text-[13px] font-semibold text-white/95">Total paid</span>
+            <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">Total paid</span>
             <div className="flex items-baseline gap-1.5">
-              <span className="text-sm font-extrabold text-[#d2a233]">Rs</span>
-              <span className="text-2xl font-extrabold tracking-tight text-[#d2a233]">
+              <span className="text-xs font-extrabold text-[#d2a233]">Rs</span>
+              <span className="text-xl font-extrabold tracking-tight text-[#d2a233]">
                 {Number(moduleStats.totalPaid).toLocaleString('en-PK', { maximumFractionDigits: 0 })}
               </span>
             </div>

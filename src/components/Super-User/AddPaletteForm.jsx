@@ -210,7 +210,7 @@ export default function AddPaletteForm({ onCancel, onAdd }) {
         </div>
 
         {/* Color Blocks Row */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* Primary Color Block */}
           <div className="flex flex-col items-center gap-1.5 flex-1">
             <button
@@ -283,9 +283,9 @@ export default function AddPaletteForm({ onCancel, onAdd }) {
         </div>
       </div>
 
-      {/* Self-Contained Color Picker Popover (Side-by-Side to the Right) */}
+      {/* Self-Contained Color Picker Popover (Inline on mobile, side-by-side on desktop) */}
       {activeBlock && (
-        <div className="absolute left-full top-0 ml-4 z-50 bg-[#faf8ed] border border-[#14391a]/35 rounded-[18px] p-4 shadow-xl w-[260px] flex flex-col gap-3.5 select-none animate-in fade-in slide-in-from-left-2 duration-150">
+        <div className="relative lg:absolute lg:left-full lg:top-0 lg:ml-4 mt-3 lg:mt-0 z-50 bg-[#faf8ed] border border-[#14391a]/35 rounded-[18px] p-4 shadow-xl w-full lg:w-[260px] flex flex-col gap-3.5 select-none animate-in fade-in duration-150">
           
           {/* Header Title */}
           <div className="flex items-center justify-between border-b border-[#14391a]/10 pb-1.5">

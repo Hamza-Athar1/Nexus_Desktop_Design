@@ -514,7 +514,7 @@ export default function SuperAdminActivateAccountPage() {
               <label className="block text-xs font-bold uppercase tracking-wider text-[#0c3818]/80 mb-1.5">
                 Backup Schedule Frequency
               </label>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                 {[
                   { id: 'daily', label: 'Daily Backup (Standard)' },
                   { id: 'weekly', label: 'Weekly Backup (15% Off)' },

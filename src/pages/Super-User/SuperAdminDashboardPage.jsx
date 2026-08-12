@@ -238,14 +238,14 @@ export default function SuperAdminDashboardPage() {
         </div>
 
         {/* Card 3: POS Module Share Pie Chart */}
-        <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] p-6 shadow-sm flex flex-col justify-between min-h-[380px] gap-2">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-[#152f16]">
+        <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] p-5 sm:p-6 shadow-sm flex flex-col justify-between min-h-[380px] gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#152f16]">
               ACTIVE MODULES SHARE
             </h3>
-            <div className="flex items-center gap-1 border border-[#bfbc9b] rounded-lg px-3 py-1 bg-[#efeacb] text-xs font-bold text-[#152f16]">
-              <span>This Month</span>
-              <ChevronDown size={14} />
+            <div className="flex items-center gap-1 border border-[#bfbc9b] rounded-lg px-2.5 py-1 bg-[#efeacb] text-xs font-bold text-[#152f16] whitespace-nowrap shrink-0">
+              <span className="whitespace-nowrap">This Month</span>
+              <ChevronDown size={14} className="shrink-0" />
             </div>
           </div>
 
@@ -288,32 +288,32 @@ export default function SuperAdminDashboardPage() {
           </div>
 
           {/* Footer metadata */}
-          <div className="border-t border-[#c8c2a3]/40 mt-4 pt-3 flex flex-wrap gap-4 text-xs font-bold justify-between">
+          <div className="border-t border-[#c8c2a3]/40 mt-4 pt-3 flex flex-col sm:flex-row gap-2.5 sm:gap-4 text-xs font-bold justify-between">
             <div className="flex items-center gap-2 bg-[#eae3c1] px-3 py-1.5 rounded-lg border border-[#bfbc9b]">
-              <span className="w-1.5 h-3 bg-[#0d381c] rounded-full" />
-              <span className="text-[#607455] font-semibold">Most used modules</span>
+              <span className="w-1.5 h-3 bg-[#0d381c] rounded-full shrink-0" />
+              <span className="text-[#607455] font-semibold">Most used:</span>
               <span className="text-[#0d381c]">Pharmacy POS</span>
             </div>
             <div className="flex items-center gap-2 bg-[#eae3c1] px-3 py-1.5 rounded-lg border border-[#bfbc9b]">
-              <span className="w-1.5 h-3 bg-[#e1dc7f] rounded-full" />
-              <span className="text-[#607455] font-semibold">Least used modules</span>
+              <span className="w-1.5 h-3 bg-[#e1dc7f] rounded-full shrink-0" />
+              <span className="text-[#607455] font-semibold">Least used:</span>
               <span className="text-[#d9801c]">Clothing POS</span>
             </div>
           </div>
         </div>
 
         {/* Card 4: Revenue as per POS Donut Chart & Table */}
-        <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] p-6 shadow-sm flex flex-col justify-between min-h-[380px]">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-1.5">
-              <h3 className="text-sm font-bold uppercase tracking-wider text-[#152f16]">
+        <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] p-5 sm:p-6 shadow-sm flex flex-col justify-between min-h-[380px]">
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-[#152f16]">
                 REVENUE AS PER POS
               </h3>
-              <Info size={14} className="text-[#607455] cursor-pointer" />
+              <Info size={14} className="text-[#607455] cursor-pointer shrink-0" />
             </div>
-            <div className="flex items-center gap-1 border border-[#bfbc9b] rounded-lg px-3 py-1 bg-[#efeacb] text-xs font-bold text-[#152f16]">
-              <span>This Month</span>
-              <ChevronDown size={14} />
+            <div className="flex items-center gap-1 border border-[#bfbc9b] rounded-lg px-2.5 py-1 bg-[#efeacb] text-xs font-bold text-[#152f16] whitespace-nowrap shrink-0">
+              <span className="whitespace-nowrap">This Month</span>
+              <ChevronDown size={14} className="shrink-0" />
             </div>
           </div>
 

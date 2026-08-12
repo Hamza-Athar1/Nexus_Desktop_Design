@@ -76,21 +76,22 @@ export default function SuperAdminPOSPage() {
   return (
     <div className="flex-1 flex flex-col font-sans select-none text-[#14391a]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="lg:hidden">
-          <h1 className="text-4xl sm:text-[44px] font-black text-[#14391a] leading-none mb-1">
+          <h1 className="text-3xl sm:text-[44px] font-black text-[#14391a] leading-none mb-1">
             POS management
           </h1>
-          <p className="text-sm sm:text-base text-[#14391a]/70 font-semibold mt-2 flex items-center gap-2">
+          <p className="text-xs sm:text-base text-[#14391a]/70 font-semibold mt-2 flex items-center gap-2">
             <span>{stats.total} POS modules</span>
             <span className="text-[#14391a]/30">•</span>
             <span>themed with color palettes</span>
           </p>
         </div>
-        <div className="lg:ml-auto">
+        <div className="w-full sm:w-auto lg:ml-auto">
           <button
+            type="button"
             onClick={() => setAddOpen(true)}
-            className="flex items-center gap-2 px-6 py-3.5 bg-[#113819] hover:bg-[#14391a] text-white text-[15px] font-extrabold rounded-[12px] transition cursor-pointer shadow-sm"
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-[#113819] hover:bg-[#14391a] text-white text-sm font-extrabold rounded-xl transition cursor-pointer shadow-sm"
           >
             <Plus size={18} strokeWidth={2.5} />
             <span>Add POS</span>
@@ -99,21 +100,74 @@ export default function SuperAdminPOSPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
         {[
           { label: 'Total POS',       value: stats.total,  color: 'text-white'       },
           { label: 'Active',          value: stats.active, color: 'text-white'       },
           { label: 'Themes Assigned', value: stats.themed, color: 'text-[#deb887]'   },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-[#113819] text-white rounded-[20px] p-6.5 shadow-sm flex flex-col justify-between h-[115px]">
+          <div key={label} className="bg-[#113819] text-white rounded-[20px] p-6 shadow-sm flex flex-col justify-between h-[105px]">
             <span className="text-[12px] font-extrabold tracking-wider uppercase opacity-80">{label}</span>
-            <span className={`text-4xl font-black ${color}`}>{value}</span>
+            <span className={`text-3xl sm:text-4xl font-black ${color}`}>{value}</span>
           </div>
         ))}
       </div>
 
-      {/* Table */}
-      <div className="bg-[#ede7cd]/40 rounded-[20px] border border-[#14391a]/15 shadow-sm overflow-hidden">
+      {/* Mobile Touch Cards View (block md:hidden) */}
+      <div className="block md:hidden space-y-3 mb-8">
+        {loading && <div className="p-6 text-center text-xs font-semibold text-[#14391a]/60 bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">Loading POS modules...</div>}
+        {!loading && modules.length === 0 && (
+          <div className="p-6 text-center text-xs font-semibold text-[#14391a]/60 bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">No POS modules yet. Click "Add POS" to create one.</div>
+        )}
+        {modules.map((row) => (
+          <div key={row.id} className="bg-[#efeacb] border border-[#bfbc9b] rounded-2xl p-4 shadow-xs flex flex-col gap-3">
+            <div className="flex items-start justify-between">
+              <div>
+                <h4 className="font-black text-base text-[#14391a]">{row.name}</h4>
+                <p className="text-xs font-bold text-[#14391a]/70">{row.priceLabel}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-lg text-xs font-extrabold border ${
+                row.isActive ? 'bg-[#cbebc7] text-[#14391a] border-[#14391a]/30' : 'bg-[#e4dcbc] text-[#14391a]/60 border-[#14391a]/20'
+              }`}>
+                {row.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </div>
+
+            {row.palette ? (
+              <div className="flex items-center gap-2 bg-[#eae3c1]/60 p-2.5 rounded-xl border border-[#c8c2a3]/30">
+                <div className="flex -space-x-1.5 shrink-0">
+                  {row.palette.colors.map((c, i) => (
+                    <span key={i} className="w-4 h-4 rounded-full border border-white/60 shadow-xs" style={{ backgroundColor: c }} />
+                  ))}
+                </div>
+                <span className="text-xs font-extrabold text-[#14391a]">{row.palette.name}</span>
+              </div>
+            ) : (
+              <div className="text-xs text-[#14391a]/50 italic font-semibold">No theme assigned</div>
+            )}
+
+            <div className="flex items-center gap-2 pt-1 border-t border-[#14391a]/15">
+              <button
+                type="button"
+                onClick={() => setEditTarget(row)}
+                className="flex-1 py-2 bg-white text-[#14391a] border border-[#14391a]/40 text-xs font-extrabold rounded-xl text-center shadow-2xs hover:bg-neutral-50"
+              >
+                Edit Module
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(row)}
+                className="py-2 px-4 bg-red-50 text-[#8c1d1d] border border-red-200 text-xs font-extrabold rounded-xl text-center shadow-2xs hover:bg-red-100"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop View Table Container (hidden md:block) */}
+      <div className="hidden md:block bg-[#ede7cd]/40 rounded-[20px] border border-[#14391a]/15 shadow-sm overflow-hidden mb-8">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr className="bg-[#e4dcbc] border-b border-[#14391a]/15 text-[14px] font-extrabold text-[#14391a]">

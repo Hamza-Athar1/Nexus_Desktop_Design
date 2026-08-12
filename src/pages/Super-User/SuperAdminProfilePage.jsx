@@ -202,14 +202,13 @@ export default function SuperAdminProfilePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-[#14391a]/15 mb-7">
+      <div className="flex items-center gap-2 border-b border-[#14391a]/15 mb-6 overflow-x-auto scrollbar-none">
         <button onClick={() => setActiveTab('profile')}  className={tabCls('profile')}>
           <User size={18} /><span>Profile</span>
         </button>
         <button onClick={() => setActiveTab('security')} className={tabCls('security')}>
           <Shield size={18} /><span>Security</span>
         </button>
-
       </div>
 
       {/* ── Profile Tab ──────────────────────────────────────────────────── */}
@@ -217,25 +216,25 @@ export default function SuperAdminProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
 
           {/* Profile Information */}
-          <div className="bg-[#fcfbfa] border border-[#14391a]/15 rounded-[20px] p-6.5 flex flex-col gap-5">
+          <div className="bg-[#fcfbfa] border border-[#14391a]/15 rounded-[20px] p-5 sm:p-6.5 flex flex-col gap-5">
             <div>
-              <h2 className="text-[20px] font-black text-[#14391a] leading-none mb-1">Profile information</h2>
-              <p className="text-sm text-[#14391a]/70 font-semibold mt-1.5">Update personal and contact details.</p>
+              <h2 className="text-lg sm:text-[20px] font-black text-[#14391a] leading-none mb-1">Profile information</h2>
+              <p className="text-xs sm:text-sm text-[#14391a]/70 font-semibold mt-1.5">Update personal and contact details.</p>
             </div>
             <Banner msg={profileMsg.text} type={profileMsg.type} />
             <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
               <div>
-                <label className="block text-sm font-extrabold text-[#14391a] mb-1.5">Full name</label>
+                <label className="block text-xs sm:text-sm font-extrabold text-[#14391a] mb-1.5">Full name</label>
                 <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50" />
+                  className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50" />
               </div>
               <div>
-                <label className="block text-sm font-extrabold text-[#14391a] mb-1.5">Email address</label>
-                <div className="flex gap-2">
+                <label className="block text-xs sm:text-sm font-extrabold text-[#14391a] mb-1.5">Email address</label>
+                <div className="flex flex-col sm:flex-row gap-2">
                   <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
-                    className="flex-1 bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50" />
+                    className="flex-1 bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50" />
                   <button type="button" onClick={handleChangeEmail}
-                    className="px-5 bg-[#113819] hover:bg-[#14391a] text-white text-sm font-bold rounded-[12px] transition cursor-pointer shrink-0">
+                    className="px-5 py-2.5 sm:py-3 bg-[#113819] hover:bg-[#14391a] text-white text-xs sm:text-sm font-bold rounded-[12px] transition cursor-pointer shrink-0">
                     Change email
                   </button>
                 </div>

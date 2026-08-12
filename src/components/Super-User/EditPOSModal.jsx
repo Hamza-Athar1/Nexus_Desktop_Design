@@ -57,8 +57,8 @@ export default function EditPOSModal({ pos, isOpen, palettes, onCancel, onCreate
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 font-sans select-none text-[#14391a]">
-      <div className="bg-[#faf8ed] border border-[#14391a]/15 rounded-[24px] w-full max-w-4xl p-6.5 flex flex-col gap-5 shadow-2xl relative">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-3 sm:p-4 font-sans select-none text-[#14391a]">
+      <div className="bg-[#faf8ed] border border-[#14391a]/15 rounded-[24px] w-full max-w-4xl p-4 sm:p-6.5 flex flex-col gap-5 shadow-2xl relative max-h-[90vh] overflow-y-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-[#14391a]/10 pb-3">
