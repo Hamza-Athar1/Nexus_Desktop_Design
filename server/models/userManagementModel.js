@@ -116,17 +116,37 @@ export async function updateBusinessInfo(id, { name, shopAddress, cityRegion, mo
  * Update business status (active / suspended / blocked).
  * Also syncs the owner user's status so login is blocked when needed.
  */
-export async function updateBusinessStatus(id, { status, reason = null }) {
+export async function updateBusinessStatus(id, { status, reason = null, billDueDate = null, billAmount = null, posPurchased = null, posActive = null }) {
   // Map business status → user status
   const userStatus = status === 'active' ? 'active' : status; // 'suspended' | 'blocked'
 
   const [biz] = await pool.query(`SELECT owner_user_id FROM businesses WHERE id = ? LIMIT 1`, [id]);
   if (!biz[0]) return null;
 
-  await pool.query(
-    `UPDATE businesses SET status = ?, status_reason = ?, updated_at = NOW() WHERE id = ?`,
-    [status, reason, id]
-  );
+  let updateQuery = `UPDATE businesses SET status = ?, status_reason = ?`;
+  const params = [status, reason];
+
+  if (billDueDate !== null) {
+    updateQuery += `, bill_due_date = ?`;
+    params.push(billDueDate);
+  }
+  if (billAmount !== null) {
+    updateQuery += `, bill_amount = ?`;
+    params.push(billAmount);
+  }
+  if (posPurchased !== null) {
+    updateQuery += `, pos_purchased = ?`;
+    params.push(posPurchased);
+  }
+  if (posActive !== null) {
+    updateQuery += `, pos_active = ?`;
+    params.push(posActive);
+  }
+
+  updateQuery += `, updated_at = NOW() WHERE id = ?`;
+  params.push(id);
+
+  await pool.query(updateQuery, params);
   await pool.query(
     `UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?`,
     [userStatus, biz[0].owner_user_id]

@@ -45,11 +45,18 @@ export async function patchShopInfo(req, res) {
 /** PATCH /api/admin/shops/:id/status  — suspend / block / activate / unblock */
 export async function patchShopStatus(req, res) {
   const id = Number(req.params.id);
-  const { status, reason } = req.body;
+  const { status, reason, billDueDate, billAmount, posPurchased, posActive } = req.body;
   if (!VALID_STATUSES.includes(status)) {
     throw new ApiError(400, `status must be one of: ${VALID_STATUSES.join(', ')}`);
   }
-  const shop = await updateBusinessStatus(id, { status, reason: reason?.trim() ?? null });
+  const shop = await updateBusinessStatus(id, {
+    status,
+    reason: reason?.trim() ?? null,
+    billDueDate: billDueDate ?? null,
+    billAmount: billAmount !== undefined ? Number(billAmount) : null,
+    posPurchased: posPurchased !== undefined ? Number(posPurchased) : null,
+    posActive: posActive !== undefined ? Number(posActive) : null,
+  });
   if (!shop) throw new ApiError(404, 'Shop not found');
   res.json({ shop });
 }

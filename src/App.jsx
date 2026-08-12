@@ -32,9 +32,7 @@ import SuperAdminBillingPage from './pages/Super-User/SuperAdminBillingPage';
 import SuperAdminPaymentPage from './pages/Super-User/SuperAdminPaymentPage';
 import SuperAdminProfilePage from './pages/Super-User/SuperAdminProfilePage';
 import SuperAdminPOSPage from './pages/Super-User/SuperAdminPOSPage';
-
-
-
+import SuperAdminActivateAccountPage from './pages/Super-User/SuperAdminActivateAccountPage';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -85,6 +83,7 @@ export default function App() {
           <Route index element={<SuperAdminDashboardPage />} />
           <Route path="requests" element={<SuperAdminRequestsPage />} />
           <Route path="users" element={<SuperAdminUserManagementPage />} />
+          <Route path="activate/:shopId" element={<SuperAdminActivateAccountPage />} />
           <Route path="billing" element={<SuperAdminBillingPage />} />
           <Route path="payment" element={<SuperAdminPaymentPage />} />
           <Route path="profile" element={<SuperAdminProfilePage />} />

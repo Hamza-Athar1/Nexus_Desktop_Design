@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { MoreHorizontal } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
 import ShopDetailsModal from '../../components/Super-User/ShopDetailsModal';
@@ -22,6 +22,7 @@ function fmtDate(isoDate) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function SuperAdminUserManagementPage() {
+  const navigate = useNavigate();
   const { setHeaderDetails } = useOutletContext() || {};
   const [shops,        setShops]        = useState([]);
   const [loading,      setLoading]      = useState(true);
@@ -99,8 +100,9 @@ export default function SuperAdminUserManagementPage() {
     setBlockingShop(null);
   };
 
-  const handleActivate = async (id) => {
-    await apiPatchStatus(id, 'active', null);
+  const handleActivate = (id) => {
+    const targetShop = shops.find(s => s.id === id);
+    navigate(`/super-admin/activate/${id}`, { state: { shop: targetShop } });
   };
 
   const handleSaveChanges = async (id, fields) => {

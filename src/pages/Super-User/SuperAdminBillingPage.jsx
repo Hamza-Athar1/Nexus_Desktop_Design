@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useOutletContext } from 'react-router-dom';
+import { useOutletContext, useNavigate } from 'react-router-dom';
 import { MoreHorizontal, TrendingUp, Clock, AlertTriangle, Building2, DollarSign } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
 import BillingDetailsModal   from '../../components/Super-User/BillingDetailsModal';
@@ -20,6 +20,7 @@ function comma(n) {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function SuperAdminBillingPage() {
+  const navigate = useNavigate();
   const { setHeaderDetails } = useOutletContext() || {};
   useEffect(() => {
     if (setHeaderDetails) {
@@ -105,13 +106,9 @@ export default function SuperAdminBillingPage() {
     if (ok) { setSuspendingShop(null); loadInvoices(); loadStats(); }
   };
 
-  const handleRevokeAccount = async (businessId) => {
-    await apiFetchJson(`/admin/shops/${businessId}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'active', reason: 'Account reactivated by admin' }),
-    });
+  const handleRevokeAccount = (businessId) => {
     setActiveDropdownId(null);
-    loadInvoices();
+    navigate(`/super-admin/activate/${businessId}`);
   };
 
   // ── Tab pill helper ───────────────────────────────────────────────────────
