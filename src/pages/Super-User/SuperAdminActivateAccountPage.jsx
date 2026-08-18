@@ -125,6 +125,7 @@ export default function SuperAdminActivateAccountPage() {
       backupCost,
       grandTotal,
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [durationMetrics, posCount, selectedBackups, backupFrequency]);
 
   // Toggle backup module

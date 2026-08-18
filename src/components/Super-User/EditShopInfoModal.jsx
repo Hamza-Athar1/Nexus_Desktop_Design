@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { apiFetchJson } from '../../lib/api';
 
 const STATIC_MODULES = [
   { code: 'pharmacy',    label: 'Pharmacy POS' },

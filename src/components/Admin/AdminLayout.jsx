@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AdminSidebar from './AdminSidebar';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
-  const location = useLocation();
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [time, setTime] = useState(new Date());

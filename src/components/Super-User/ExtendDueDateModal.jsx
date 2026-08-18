@@ -1,10 +1,5 @@
 import { useState, useEffect } from 'react';
 
-function toInputDate(isoDate) {
-  if (!isoDate) return '';
-  return isoDate.slice(0, 10); // YYYY-MM-DD
-}
-
 function fmtDisplay(isoDate) {
   if (!isoDate) return '—';
   return new Date(isoDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });

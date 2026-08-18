@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { User, Shield, Check, X } from 'lucide-react';
+import { User, Shield, Check } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetchJson } from '../../lib/api';
 

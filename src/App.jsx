@@ -7,48 +7,25 @@ import RoleRoute               from './components/RoleRoute';
 // ── Pages ──────────────────────────────────────────────────────────────────────
 import LandingPage           from './pages/LandingPage';
 import LoginPage              from './pages/LoginPage';
+import AdminLoginPage         from './pages/AdminLoginPage';
 import SignUpPage             from './pages/SignUpPage';
 import RegisterBusinessPage   from './pages/RegisterBusinessPage';
 import ForgotPasswordPage     from './pages/ForgotPasswordPage';
 import ResetPasswordPage      from './pages/ResetPasswordPage';
 import ModuleSelectPage       from './pages/ModuleSelectPage';
-import DashboardPage          from './pages/User/Shared/DashboardPage';
-import POSSystemPage          from './pages/User/Grocery/POSSystemPage';
-import InventoryPage          from './pages/User/Grocery/InventoryPage';
-import ClothingInventoryPage  from './pages/User/Clothing/ClothingInventoryPage';
-import BillingPage            from './pages/User/Grocery/BillingPage';
-import ReportsPage            from './pages/User/Shared/ReportsPage';
-import SettingsPage           from './pages/User/Shared/SettingsPage';
-import EditProfilePage        from './pages/User/Shared/EditProfilePage';
+import POSSystemPage          from './pages/User/POSSystemPage';
 import AdminDashboardPage     from './pages/Admin/AdminDashboardPage';
 import AdminLayout            from './components/Admin/AdminLayout';
 import AdminProductsPage      from './pages/Admin/AdminProductsPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 import SuperAdminLayout from './pages/Super-User/SuperAdminLayout';
 import SuperAdminRequestsPage from './pages/Super-User/SuperAdminRequestsPage';
-import SuperAdminPlaceholderPage from './pages/Super-User/SuperAdminPlaceholderPage';
 import SuperAdminUserManagementPage from './pages/Super-User/SuperAdminUserManagementPage';
 import SuperAdminBillingPage from './pages/Super-User/SuperAdminBillingPage';
 import SuperAdminPaymentPage from './pages/Super-User/SuperAdminPaymentPage';
 import SuperAdminProfilePage from './pages/Super-User/SuperAdminProfilePage';
 import SuperAdminPOSPage from './pages/Super-User/SuperAdminPOSPage';
 import SuperAdminActivateAccountPage from './pages/Super-User/SuperAdminActivateAccountPage';
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Reads the module the user chose on the Module Select page. */
-function getModule() {
-  return localStorage.getItem('nexus_module') || '';
-}
-
-/**
- * Smart router for /inventory:
- *  - clothing module → ClothingInventoryPage
- *  - everything else → InventoryPage (Grocery / General default)
- */
-function InventoryRouter() {
-  return getModule() === 'clothing' ? <ClothingInventoryPage /> : <InventoryPage />;
-}
 
 // ─── App ──────────────────────────────────────────────────────────────────────
 
@@ -58,6 +35,7 @@ export default function App() {
       {/* ── Public routes ─────────────────── */}
       <Route path="/"                 element={<LandingPage />} />
       <Route path="/login"            element={<LoginPage />} />
+      <Route path="/admin-login"      element={<AdminLoginPage />} />
       <Route path="/signup"           element={<SignUpPage />} />
       <Route path="/forgot-password"  element={<ForgotPasswordPage />} />
       <Route path="/reset-password"   element={<ResetPasswordPage />} />

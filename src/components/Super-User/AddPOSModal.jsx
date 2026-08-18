@@ -11,7 +11,7 @@ import AddPaletteForm from './AddPaletteForm';
  *  onDeletePalette (id) => void
  *  onSave          ({name, priceCents, paletteId}) => void
  */
-export default function AddPOSModal({ isOpen, palettes, onCancel, onCreatePalette, onDeletePalette, onSave }) {
+export default function AddPOSModal({ isOpen, palettes, onCancel, onCreatePalette, _onDeletePalette, onSave }) {
   const [name,  setName]  = useState('');
   const [price, setPrice] = useState('');
   const [theme, setTheme] = useState(null);          // selected palette object

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, RotateCcw, Trash2, Printer, Save, Plus, Barcode, Layers } from 'lucide-react';
-import UserSidebar from '../../../components/User/UserSidebar';
+import { useNavigate } from 'react-router-dom';
+import { Search, RotateCcw, Trash2, Plus, Barcode } from 'lucide-react';
 
 
 // Mock product catalog for search and scanner simulation
@@ -18,9 +18,7 @@ const CATALOG = [
 ];
 
 export default function POSSystemPage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [activeNav, setActiveNav] = useState('pos');
-
+  const navigate = useNavigate();
   // Tabs: Customers
   const [customers, setCustomers] = useState(['Customer 1', 'Customer 2', 'Customer 3']);
   const [activeCustomerIndex, setActiveCustomerIndex] = useState(0);
@@ -70,7 +68,7 @@ export default function POSSystemPage() {
     return `${dateStr} ${timeStr}`;
   }, [currentTime]);
 
-  const currentCart = carts[activeCustomerIndex] || [];
+  const currentCart = useMemo(() => carts[activeCustomerIndex] || [], [carts, activeCustomerIndex]);
   const currentLabor = laborCharges[activeCustomerIndex] || 0;
   const currentPaid = paidAmounts[activeCustomerIndex] || '';
   const currentInvoice = invoiceNumbers[activeCustomerIndex] || 'INV-00029';
@@ -183,17 +181,6 @@ export default function POSSystemPage() {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#efe9c4] text-[#0f2e13] font-sans">
-      {/* Sidebar for navigation */}
-      <UserSidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        activeNav={activeNav}
-        onNavChange={(id) => {
-          setActiveNav(id);
-          setSidebarOpen(false);
-        }}
-      />
-
       <div className="flex flex-1 flex-col overflow-y-auto px-4 py-3 sm:px-6 sm:py-4">
         {/* Header Section */}
         <header className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
@@ -223,7 +210,10 @@ export default function POSSystemPage() {
             <div className="text-right hidden md:block">
               <p className="text-sm font-bold text-[#0d3410]/95 font-mono">{formattedDateTime}</p>
             </div>
-            <button className="bg-[#093311] hover:bg-[#06240c] text-[#efe9c4] text-xs font-extrabold px-4 py-2.5 rounded-full transition-all duration-200 tracking-wider">
+            <button
+              onClick={() => navigate('/admin-login')}
+              className="bg-[#093311] hover:bg-[#06240c] text-[#efe9c4] text-xs font-extrabold px-4 py-2.5 rounded-full transition-all duration-200 tracking-wider cursor-pointer active:scale-95"
+            >
               ADMIN LOGIN
             </button>
           </div>

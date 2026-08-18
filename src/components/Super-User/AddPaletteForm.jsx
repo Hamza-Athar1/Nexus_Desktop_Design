@@ -160,6 +160,7 @@ export default function AddPaletteForm({ onCancel, onAdd }) {
       window.removeEventListener('mousemove', handleGlobalMouseMove);
       window.removeEventListener('mouseup', handleGlobalMouseUp);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDraggingSpectrum, isDraggingHue]);
 
   const handleRgbChange = (channel, value) => {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Package, Upload } from 'lucide-react';
+import { X, Package } from 'lucide-react';
 
 export default function EditProductModal({ isOpen, onClose, product, categories = [], subcategories = [], onSave }) {
   const [name, setName] = useState('');

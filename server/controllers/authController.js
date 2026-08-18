@@ -269,7 +269,7 @@ export async function googleLogin(req, res) {
     throw new ApiError(401, 'Invalid Google token');
   }
 
-  const { sub: googleUserId, email, email_verified, name } = payload;
+  const { sub: googleUserId, email, email_verified } = payload;
   
   if (!email) {
     throw new ApiError(400, 'Email address not provided by Google account');
