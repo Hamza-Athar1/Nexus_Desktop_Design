@@ -33,7 +33,7 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
   };
 
   const navItemClass = (tabId) => {
-    const isActive = currentActiveTab === tabId;
+    const isActive = currentActiveTab === tabId || (tabId === 'sales' && location.pathname.startsWith('/admin/sales'));
     return `w-full flex items-center gap-3 px-5 py-3.5 rounded-full text-left transition duration-200 cursor-pointer ${
       isActive
         ? 'bg-[#efeacb] text-[#0c3818] font-bold shadow-sm'
@@ -42,7 +42,7 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
   };
 
   const iconClass = (tabId) => {
-    const isActive = currentActiveTab === tabId;
+    const isActive = currentActiveTab === tabId || (tabId === 'sales' && location.pathname.startsWith('/admin/sales'));
     return isActive ? 'text-[#0c3818]' : 'text-[#a2bc90]';
   };
 
@@ -108,22 +108,120 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
           </div>
 
           {/* Sales */}
-          <button
-            onClick={() => handleNav('sales', '/admin/sales')}
-            className={navItemClass('sales')}
-          >
-            <ShoppingCart size={20} className={iconClass('sales')} />
-            <span className="text-sm tracking-wide">Sales</span>
-          </button>
+          <div className="flex flex-col">
+            <button
+              onClick={() => handleNav('sales', '/admin/sales')}
+              className={navItemClass('sales')}
+            >
+              <ShoppingCart size={20} className={iconClass('sales')} />
+              <span className="text-sm tracking-wide">Sales</span>
+            </button>
+
+            {/* Submenu under Sales */}
+            {location.pathname.startsWith('/admin/sales') && (
+              <div className="flex flex-col gap-2 pl-9 mt-1.5 select-none">
+                <button
+                  onClick={() => handleNav('sales-history', '/admin/sales/history')}
+                  className={`w-full flex items-center gap-2.5 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
+                    location.pathname === '/admin/sales/history' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    location.pathname === '/admin/sales/history'
+                      ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : 'border border-[#a2bc90] bg-transparent'
+                  }`} />
+                  <span>Sales History</span>
+                </button>
+
+                <button
+                  onClick={() => handleNav('sales-returns', '/admin/sales/returns')}
+                  className={`w-full flex items-center gap-2.5 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
+                    location.pathname === '/admin/sales/returns' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    location.pathname === '/admin/sales/returns'
+                      ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : 'border border-[#a2bc90] bg-transparent'
+                  }`} />
+                  <span>Return/Refunds</span>
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* Reports */}
-          <button
-            onClick={() => handleNav('reports', '/admin/reports')}
-            className={navItemClass('reports')}
-          >
-            <FileText size={20} className={iconClass('reports')} />
-            <span className="text-sm tracking-wide">Reports</span>
-          </button>
+          <div className="flex flex-col">
+            <button
+              onClick={() => handleNav('reports', '/admin/reports')}
+              className={navItemClass('reports')}
+            >
+              <FileText size={20} className={iconClass('reports')} />
+              <span className="text-sm tracking-wide">Reports</span>
+            </button>
+
+            {/* Submenu under Reports */}
+            {location.pathname.startsWith('/admin/reports') && (
+              <div className="flex flex-col gap-2 pl-9 mt-1.5 select-none">
+                <button
+                  onClick={() => handleNav('reports-sales', '/admin/reports/sales')}
+                  className={`w-full flex items-center gap-2.5 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
+                    location.pathname === '/admin/reports/sales' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    location.pathname === '/admin/reports/sales'
+                      ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : 'border border-[#a2bc90] bg-transparent'
+                  }`} />
+                  <span>Sales Report</span>
+                </button>
+
+                <button
+                  onClick={() => handleNav('reports-product', '/admin/reports/product')}
+                  className={`w-full flex items-center gap-2.5 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
+                    location.pathname === '/admin/reports/product' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    location.pathname === '/admin/reports/product'
+                      ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : 'border border-[#a2bc90] bg-transparent'
+                  }`} />
+                  <span>Product Report</span>
+                </button>
+
+                <button
+                  onClick={() => handleNav('reports-profile', '/admin/reports/profile')}
+                  className={`w-full flex items-center gap-2.5 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
+                    location.pathname === '/admin/reports/profile' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    location.pathname === '/admin/reports/profile'
+                      ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : 'border border-[#a2bc90] bg-transparent'
+                  }`} />
+                  <span>Profile Report</span>
+                </button>
+
+                <button
+                  onClick={() => handleNav('reports-stock', '/admin/reports/stock')}
+                  className={`w-full flex items-center gap-2.5 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
+                    location.pathname === '/admin/reports/stock' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
+                  }`}
+                >
+                  <span className={`w-2.5 h-2.5 rounded-full transition-all ${
+                    location.pathname === '/admin/reports/stock'
+                      ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)]'
+                      : 'border border-[#a2bc90] bg-transparent'
+                  }`} />
+                  <span>Stock Report</span>
+                </button>
+              </div>
+            )}
+          </div>
 
           {/* User */}
           <button

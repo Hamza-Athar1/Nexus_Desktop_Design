@@ -2,6 +2,27 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, RotateCcw, Trash2, Plus, Barcode } from 'lucide-react';
 
+function POSClock() {
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const formattedDateTime = useMemo(() => {
+    const optionsDate = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
+    const optionsTime = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
+    const dateStr = currentTime.toLocaleDateString('en-US', optionsDate);
+    const timeStr = currentTime.toLocaleTimeString('en-US', optionsTime);
+    return `${dateStr} ${timeStr}`;
+  }, [currentTime]);
+
+  return <p className="text-sm font-bold text-[#0d3410]/95 font-mono">{formattedDateTime}</p>;
+}
+
 
 // Mock product catalog for search and scanner simulation
 const CATALOG = [
@@ -48,25 +69,6 @@ export default function POSSystemPage() {
   // Scan simulation state
   const [scanLaserActive, setScanLaserActive] = useState(false);
   const [lastScannedItem, setLastScannedItem] = useState(null);
-
-  // Real-time clock state
-  const [currentTime, setCurrentTime] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  // Format date: "Tue, 24 Jun 2026 10:28 PM"
-  const formattedDateTime = useMemo(() => {
-    const optionsDate = { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' };
-    const optionsTime = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
-    const dateStr = currentTime.toLocaleDateString('en-US', optionsDate);
-    const timeStr = currentTime.toLocaleTimeString('en-US', optionsTime);
-    return `${dateStr} ${timeStr}`;
-  }, [currentTime]);
 
   const currentCart = useMemo(() => carts[activeCustomerIndex] || [], [carts, activeCustomerIndex]);
   const currentLabor = laborCharges[activeCustomerIndex] || 0;
@@ -208,7 +210,7 @@ export default function POSSystemPage() {
           {/* Right Clock and Login */}
           <div className="flex items-center gap-4">
             <div className="text-right hidden md:block">
-              <p className="text-sm font-bold text-[#0d3410]/95 font-mono">{formattedDateTime}</p>
+              <POSClock />
             </div>
             <button
               onClick={() => navigate('/admin-login')}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Outlet } from 'react-router-dom';
 import SuperAdminSidebar from '../../components/Super-User/SuperAdminSidebar';
 import { Menu } from 'lucide-react';
@@ -6,6 +6,12 @@ import { Menu } from 'lucide-react';
 export default function SuperAdminLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [headerDetails, setHeaderDetails] = useState({ title: '', subtitle: null });
+
+  const updateHeaderDetails = useCallback((details) => {
+    setHeaderDetails(details);
+  }, []);
+
+  const outletContext = useMemo(() => ({ setHeaderDetails: updateHeaderDetails }), [updateHeaderDetails]);
 
   return (
     <div className="flex flex-col min-h-screen bg-[#eae3c1] text-[#152f16] font-sans">
@@ -76,7 +82,7 @@ export default function SuperAdminLayout() {
 
         {/* 3: Main Content Area */}
         <main className="flex-1 px-5 py-1 flex flex-col gap-8 overflow-y-auto min-w-0">
-          <Outlet context={{ setHeaderDetails }} />
+          <Outlet context={outletContext} />
         </main>
       </div>
     </div>

@@ -17,6 +17,10 @@ import POSSystemPage          from './pages/User/POSSystemPage';
 import AdminDashboardPage     from './pages/Admin/AdminDashboardPage';
 import AdminLayout            from './components/Admin/AdminLayout';
 import AdminProductsPage      from './pages/Admin/AdminProductsPage';
+import AdminSalesPage         from './pages/Admin/AdminSalesPage';
+import AdminSalesHistoryPage  from './pages/Admin/AdminSalesHistoryPage';
+import AdminSalesReturnsPage  from './pages/Admin/AdminSalesReturnsPage';
+import AdminReportsPage       from './pages/Admin/AdminReportsPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 import SuperAdminLayout from './pages/Super-User/SuperAdminLayout';
 import SuperAdminRequestsPage from './pages/Super-User/SuperAdminRequestsPage';
@@ -52,6 +56,14 @@ export default function App() {
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboardPage />} />
           <Route path="products" element={<AdminProductsPage />} />
+          <Route path="sales" element={<AdminSalesPage />} />
+          <Route path="sales/history" element={<AdminSalesHistoryPage />} />
+          <Route path="sales/returns" element={<AdminSalesReturnsPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="reports/sales" element={<AdminReportsPage />} />
+          <Route path="reports/product" element={<AdminReportsPage />} />
+          <Route path="reports/profile" element={<AdminReportsPage />} />
+          <Route path="reports/stock" element={<AdminReportsPage />} />
         </Route>
       </Route>
 

@@ -1,16 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Menu, LogOut } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AdminSidebar from './AdminSidebar';
 
-export default function AdminLayout() {
-  const navigate = useNavigate();
-  const { logout } = useAuth();
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+function AdminClock() {
   const [time, setTime] = useState(new Date());
-  const [headerDetails, setHeaderDetails] = useState({ title: '', subtitle: null });
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -36,6 +31,34 @@ export default function AdminLayout() {
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   };
+
+  return (
+    <div className="hidden md:flex flex-col text-right text-[#0c3818]">
+      <span className="text-xl 2xl:text-2xl font-bold tracking-wide leading-none">
+        {formatTime(time)}
+      </span>
+      <span className="text-[10px] 2xl:text-xs font-extrabold tracking-widest text-[#607455] mt-1">
+        {formatDay(time)}
+      </span>
+      <span className="text-xs 2xl:text-sm font-bold text-[#607455] mt-0.5">
+        {formatDate(time)}
+      </span>
+    </div>
+  );
+}
+
+export default function AdminLayout() {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [headerDetails, setHeaderDetails] = useState({ title: '', subtitle: null });
+
+  const updateHeaderDetails = useCallback((details) => {
+    setHeaderDetails(details);
+  }, []);
+
+  const outletContext = useMemo(() => ({ setHeaderDetails: updateHeaderDetails }), [updateHeaderDetails]);
 
   const handleLogout = async () => {
     try {
@@ -96,17 +119,7 @@ export default function AdminLayout() {
           {/* Right Side: Clock & Logout */}
           <div className="flex items-center justify-end gap-2 sm:gap-3 lg:w-72 2xl:w-80 lg:shrink-0 select-none pr-1 sm:pr-2 lg:pr-6 shrink-0">
             {/* Real-time Clock */}
-            <div className="hidden md:flex flex-col text-right text-[#0c3818]">
-              <span className="text-xl 2xl:text-2xl font-bold tracking-wide leading-none">
-                {formatTime(time)}
-              </span>
-              <span className="text-[10px] 2xl:text-xs font-extrabold tracking-widest text-[#607455] mt-1">
-                {formatDay(time)}
-              </span>
-              <span className="text-xs 2xl:text-sm font-bold text-[#607455] mt-0.5">
-                {formatDate(time)}
-              </span>
-            </div>
+            <AdminClock />
 
             {/* Mobile Store Title Badge (shown on tablets/wider mobile) */}
             {headerDetails.title && (
@@ -135,7 +148,7 @@ export default function AdminLayout() {
 
           {/* Child Router Content Wrapper */}
           <main className="flex-1 px-6 lg:px-10 2xl:px-16 flex flex-col gap-8 overflow-y-auto min-w-0">
-            <Outlet context={{ setHeaderDetails }} />
+            <Outlet context={outletContext} />
           </main>
         </div>
       </div>

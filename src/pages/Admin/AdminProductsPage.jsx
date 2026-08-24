@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   Search,
@@ -144,12 +144,14 @@ export default function AdminProductsPage() {
   const statuses = ['All Status', 'Active', 'Low Stock', 'Out of Stock'];
 
   // Filtered Products
-  const filteredProducts = products.filter((p) => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = selectedStatus === 'All Status' || p.status === selectedStatus;
-    const matchesCat = !selectedCategory || p.category === selectedCategory;
-    return matchesSearch && matchesStatus && matchesCat;
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter((p) => {
+      const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = selectedStatus === 'All Status' || p.status === selectedStatus;
+      const matchesCat = !selectedCategory || p.category === selectedCategory;
+      return matchesSearch && matchesStatus && matchesCat;
+    });
+  }, [products, searchQuery, selectedStatus, selectedCategory]);
 
   // ── Category Handlers ─────────────────────────────────────────────────────
   const handleAddCategory = (newCat) => {
