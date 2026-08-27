@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
 
         {/* Card 1: Total Sales */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Total Sales
             </span>
@@ -71,6 +71,7 @@ export default function AdminDashboardPage() {
               +5% <span className="opacity-60 font-normal">from yesterday</span>
             </span>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           {/* 3D Inset Icon Badge */}
           <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-pink-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <TrendingUp size={22} className="stroke-[1.75]" />
@@ -79,7 +80,7 @@ export default function AdminDashboardPage() {
 
         {/* Card 2: Total Orders */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Total Orders
             </span>
@@ -90,6 +91,7 @@ export default function AdminDashboardPage() {
               -2% <span className="opacity-60 font-normal">from yesterday</span>
             </span>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           {/* 3D Inset Icon Badge */}
           <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-amber-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <ShoppingCart size={22} className="stroke-[1.75]" />
@@ -98,7 +100,7 @@ export default function AdminDashboardPage() {
 
         {/* Card 3: Total Products */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Total Products
             </span>
@@ -109,6 +111,7 @@ export default function AdminDashboardPage() {
               View Products
             </button>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           {/* 3D Inset Icon Badge */}
           <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-teal-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <Package size={22} className="stroke-[1.75]" />
@@ -117,7 +120,7 @@ export default function AdminDashboardPage() {
 
         {/* Card 4: Low Stock Items */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Low Stock Items
             </span>
@@ -128,6 +131,7 @@ export default function AdminDashboardPage() {
               View Items
             </button>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           {/* 3D Inset Icon Badge */}
           <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-rose-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <ClipboardCheck size={22} className="stroke-[1.75]" />

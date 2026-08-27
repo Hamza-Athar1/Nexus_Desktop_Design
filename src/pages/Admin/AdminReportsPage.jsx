@@ -65,7 +65,7 @@ export default function AdminReportsPage() {
       icon: Activity,
       iconBg: 'bg-[#f5e8fd] text-[#7e22ce]',
       btnStyle: 'bg-[#f5e8fd] hover:bg-[#ebd0fb] text-[#7e22ce] border-[#d8b4fe]',
-      path: '/admin/reports/profile',
+      path: '/admin/reports/profit',
       description: 'Analyze net margin percentage, total profit breakdown, and store cost deductions.',
       stats: [
         { label: 'Net Profit Margin', value: '24.5%' },
@@ -79,7 +79,7 @@ export default function AdminReportsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-8 w-full max-w-7xl mx-auto pb-12">
+    <div className="flex flex-col gap-8 w-full pb-12">
       {/* ── Page Header Section ── */}
       <div className="flex flex-col gap-1.5">
         <h1 className="text-3xl lg:text-4xl font-black text-[#0c3818] tracking-tight uppercase">
@@ -101,10 +101,6 @@ export default function AdminReportsPage() {
             >
               {/* Top Decorative / Icon */}
               <div className="flex flex-col items-center gap-3 w-full">
-                <div className="flex justify-end w-full">
-                  <span className="text-[#7e22ce] text-xs font-bold font-mono">❖</span>
-                </div>
-
                 {/* Big Center Icon Square */}
                 <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl flex items-center justify-center shadow-xs transition-transform duration-200 hover:scale-105 ${card.iconBg}`}>
                   <IconComp className="w-10 h-10 sm:w-12 sm:h-12 stroke-[2.2]" />

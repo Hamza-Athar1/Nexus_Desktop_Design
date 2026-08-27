@@ -21,6 +21,10 @@ import AdminSalesPage         from './pages/Admin/AdminSalesPage';
 import AdminSalesHistoryPage  from './pages/Admin/AdminSalesHistoryPage';
 import AdminSalesReturnsPage  from './pages/Admin/AdminSalesReturnsPage';
 import AdminReportsPage       from './pages/Admin/AdminReportsPage';
+import AdminSalesReportPage   from './pages/Admin/AdminSalesReportPage';
+import AdminProductReportPage from './pages/Admin/AdminProductReportPage';
+import AdminProfitReportPage  from './pages/Admin/AdminProfitReportPage';
+import AdminStockReportPage   from './pages/Admin/AdminStockReportPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 import SuperAdminLayout from './pages/Super-User/SuperAdminLayout';
 import SuperAdminRequestsPage from './pages/Super-User/SuperAdminRequestsPage';
@@ -60,10 +64,11 @@ export default function App() {
           <Route path="sales/history" element={<AdminSalesHistoryPage />} />
           <Route path="sales/returns" element={<AdminSalesReturnsPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
-          <Route path="reports/sales" element={<AdminReportsPage />} />
-          <Route path="reports/product" element={<AdminReportsPage />} />
-          <Route path="reports/profile" element={<AdminReportsPage />} />
-          <Route path="reports/stock" element={<AdminReportsPage />} />
+          <Route path="reports/sales" element={<AdminSalesReportPage />} />
+          <Route path="reports/product" element={<AdminProductReportPage />} />
+          <Route path="reports/profit" element={<AdminProfitReportPage />} />
+          <Route path="reports/profile" element={<AdminProfitReportPage />} />
+          <Route path="reports/stock" element={<AdminStockReportPage />} />
         </Route>
       </Route>
 

@@ -94,12 +94,13 @@ export default function AdminSalesPage() {
           {/* Stat Cards Container */}
           <div className="w-full md:w-2/3 lg:w-3/4 grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
             {/* Total Sales Card */}
-            <div className="border-2 border-[#0c3818]/25 rounded-xl md:rounded-2xl p-4 sm:p-5 bg-white/90 flex items-center gap-4 sm:gap-5 shadow-xs hover:bg-white transition-all">
+            <div className="border-2 border-[#0c3818]/25 rounded-xl md:rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-white via-[#fcfbf4] to-white flex items-center justify-between gap-4 sm:gap-5 shadow-xs hover:border-[#0c3818]/45 hover:shadow-md transition-all relative overflow-hidden">
               <div className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${item.salesIconBg}`}>
                 <TrendingUp className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 stroke-[2.5]" />
               </div>
-              <div className="flex flex-col justify-center min-w-0">
-                <span className="text-[#0c3818] font-extrabold text-base sm:text-lg lg:text-xl tracking-tight">
+              <div className="flex-1 h-[2px] bg-gradient-to-r from-[#0c3818]/20 via-[#0c3818]/8 to-transparent rounded-full mx-2 hidden lg:block" />
+              <div className="flex flex-col justify-center text-right min-w-0">
+                <span className="text-[#607455] font-extrabold text-xs sm:text-sm lg:text-base uppercase tracking-wider">
                   Total Sales
                 </span>
                 <span className="text-[#0c3818] font-black text-2xl sm:text-3xl lg:text-4xl tracking-tight truncate mt-0.5">
@@ -109,12 +110,13 @@ export default function AdminSalesPage() {
             </div>
 
             {/* Total Invoices Card */}
-            <div className="border-2 border-[#0c3818]/25 rounded-xl md:rounded-2xl p-4 sm:p-5 bg-white/90 flex items-center gap-4 sm:gap-5 shadow-xs hover:bg-white transition-all">
-              <div className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center shrink-0 ${item.invoiceIconBg}`}>
+            <div className="border-2 border-[#0c3818]/25 rounded-xl md:rounded-2xl p-4 sm:p-5 bg-gradient-to-r from-white via-[#fcfbf4] to-white flex items-center justify-between gap-4 sm:gap-5 shadow-xs hover:border-[#0c3818]/45 hover:shadow-md transition-all relative overflow-hidden">
+              <div className={`w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-xl flex items-center justify-center shrink-0 shadow-xs ${item.invoiceIconBg}`}>
                 <ShoppingCart className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 stroke-[2.5]" />
               </div>
-              <div className="flex flex-col justify-center min-w-0">
-                <span className="text-[#0c3818] font-extrabold text-base sm:text-lg lg:text-xl tracking-tight">
+              <div className="flex-1 h-[2px] bg-gradient-to-r from-[#0c3818]/20 via-[#0c3818]/8 to-transparent rounded-full mx-2 hidden lg:block" />
+              <div className="flex flex-col justify-center text-right min-w-0">
+                <span className="text-[#607455] font-extrabold text-xs sm:text-sm lg:text-base uppercase tracking-wider">
                   Total Invoices
                 </span>
                 <span className="text-[#0c3818] font-black text-2xl sm:text-3xl lg:text-4xl tracking-tight truncate mt-0.5">

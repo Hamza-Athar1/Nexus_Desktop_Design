@@ -193,17 +193,17 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
                 </button>
 
                 <button
-                  onClick={() => handleNav('reports-profile', '/admin/reports/profile')}
+                  onClick={() => handleNav('reports-profit', '/admin/reports/profit')}
                   className={`w-full flex items-center gap-2.5 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
-                    location.pathname === '/admin/reports/profile' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
+                    location.pathname === '/admin/reports/profit' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
                   }`}
                 >
                   <span className={`w-2.5 h-2.5 rounded-full transition-all ${
-                    location.pathname === '/admin/reports/profile'
+                    location.pathname === '/admin/reports/profit'
                       ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)]'
                       : 'border border-[#a2bc90] bg-transparent'
                   }`} />
-                  <span>Profile Report</span>
+                  <span>Profit Report</span>
                 </button>
 
                 <button

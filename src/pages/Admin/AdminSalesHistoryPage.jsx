@@ -252,11 +252,11 @@ export default function AdminSalesHistoryPage() {
         {/* Summary Side Cards (Right 3 columns) */}
         <div className="lg:col-span-3 flex flex-col sm:flex-row lg:flex-col gap-6">
           {/* Card 1: Total Sales */}
-          <div className="flex-1 bg-white border border-[#0c3818]/20 rounded-2xl p-6 lg:p-8 flex flex-col items-center justify-center text-center shadow-xs hover:shadow-md transition">
-            <div className="w-14 h-14 bg-[#8b1e10] text-white rounded-xl flex items-center justify-center mb-3 shadow-xs">
+          <div className="flex-1 bg-gradient-to-r from-white via-[#fcfbf4] to-white border-2 border-[#0c3818]/25 rounded-2xl p-6 lg:p-8 flex flex-col items-center justify-center text-center shadow-xs hover:border-[#0c3818]/45 hover:shadow-md transition duration-200 relative overflow-hidden">
+            <div className="w-14 h-14 bg-[#8b1e10] text-white rounded-2xl flex items-center justify-center mb-3 shadow-xs">
               <TrendingUp size={28} className="stroke-[2.5]" />
             </div>
-            <span className="text-[#125d2b] font-extrabold text-base lg:text-lg tracking-tight">
+            <span className="text-[#607455] font-extrabold text-xs lg:text-sm uppercase tracking-wider">
               Total Sales
             </span>
             <span className="text-[#0c3818] font-black text-2xl lg:text-3xl tracking-tight mt-1">
@@ -265,11 +265,11 @@ export default function AdminSalesHistoryPage() {
           </div>
 
           {/* Card 2: Total Invoices */}
-          <div className="flex-1 bg-white border border-[#0c3818]/20 rounded-2xl p-6 lg:p-8 flex flex-col items-center justify-center text-center shadow-xs hover:shadow-md transition">
-            <div className="w-14 h-14 bg-[#fce8e4] text-[#8b1e10] rounded-xl flex items-center justify-center mb-3">
+          <div className="flex-1 bg-gradient-to-r from-white via-[#fcfbf4] to-white border-2 border-[#0c3818]/25 rounded-2xl p-6 lg:p-8 flex flex-col items-center justify-center text-center shadow-xs hover:border-[#0c3818]/45 hover:shadow-md transition duration-200 relative overflow-hidden">
+            <div className="w-14 h-14 bg-[#fce8e4] text-[#8b1e10] rounded-2xl flex items-center justify-center mb-3 shadow-xs">
               <ShoppingCart size={28} className="stroke-[2.5]" />
             </div>
-            <span className="text-[#125d2b] font-extrabold text-base lg:text-lg tracking-tight">
+            <span className="text-[#607455] font-extrabold text-xs lg:text-sm uppercase tracking-wider">
               Total Invoices
             </span>
             <span className="text-[#0c3818] font-black text-2xl lg:text-3xl tracking-tight mt-1">

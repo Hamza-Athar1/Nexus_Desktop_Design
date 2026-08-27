@@ -137,7 +137,7 @@ export default function SuperAdminBillingPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {/* Card 1: Collected this month */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Collected this month
             </span>
@@ -151,6 +151,7 @@ export default function SuperAdminBillingPage() {
               Current cycle
             </span>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#a2bc90] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <TrendingUp size={20} className="stroke-[1.75]" />
           </div>
@@ -158,7 +159,7 @@ export default function SuperAdminBillingPage() {
 
         {/* Card 2: Pending */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Pending
             </span>
@@ -172,6 +173,7 @@ export default function SuperAdminBillingPage() {
               Awaiting payment
             </span>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#d2a233] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <Clock size={20} className="stroke-[1.75]" />
           </div>
@@ -179,7 +181,7 @@ export default function SuperAdminBillingPage() {
 
         {/* Card 3: Overdue */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Overdue
             </span>
@@ -193,6 +195,7 @@ export default function SuperAdminBillingPage() {
               Action required
             </span>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#e5432d] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <AlertTriangle size={20} className="stroke-[1.75]" />
           </div>
@@ -200,7 +203,7 @@ export default function SuperAdminBillingPage() {
 
         {/* Card 4: Total businesses */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Total businesses
             </span>
@@ -211,6 +214,7 @@ export default function SuperAdminBillingPage() {
               Active merchants
             </span>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#a2bc90] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <Building2 size={20} className="stroke-[1.75]" />
           </div>
@@ -218,7 +222,7 @@ export default function SuperAdminBillingPage() {
 
         {/* Card 5: Total Revenue */}
         <div className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
-          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-0 pr-2">
             <span className="text-[11px] font-bold uppercase tracking-wider text-[#a2bc90]/80">
               Total Revenue
             </span>
@@ -232,6 +236,7 @@ export default function SuperAdminBillingPage() {
               Lifetime sales
             </span>
           </div>
+          <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           <div className="w-11 h-11 rounded-xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#a2bc90] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
             <DollarSign size={20} className="stroke-[1.75]" />
           </div>

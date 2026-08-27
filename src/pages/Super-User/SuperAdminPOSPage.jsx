@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Monitor, CheckCircle2, Palette } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
 import AddPOSModal from '../../components/Super-User/AddPOSModal';
 import EditPOSModal from '../../components/Super-User/EditPOSModal';
@@ -102,13 +102,19 @@ export default function SuperAdminPOSPage() {
       {/* Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
         {[
-          { label: 'Total POS',       value: stats.total,  color: 'text-white'       },
-          { label: 'Active',          value: stats.active, color: 'text-white'       },
-          { label: 'Themes Assigned', value: stats.themed, color: 'text-[#deb887]'   },
-        ].map(({ label, value, color }) => (
-          <div key={label} className="bg-[#113819] text-white rounded-[20px] p-6 shadow-sm flex flex-col justify-between h-[105px]">
-            <span className="text-[12px] font-extrabold tracking-wider uppercase opacity-80">{label}</span>
-            <span className={`text-3xl sm:text-4xl font-black ${color}`}>{value}</span>
+          { label: 'Total POS',       value: stats.total,  color: 'text-white', icon: Monitor },
+          { label: 'Active',          value: stats.active, color: 'text-white', icon: CheckCircle2 },
+          { label: 'Themes Assigned', value: stats.themed, color: 'text-[#deb887]', icon: Palette },
+        ].map(({ label, value, color, icon: IconComponent }) => (
+          <div key={label} className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
+            <div className="flex flex-col gap-1 flex-1 min-w-0 pr-2">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#a2bc90]/80">{label}</span>
+              <span className={`text-3xl sm:text-4xl font-black ${color}`}>{value}</span>
+            </div>
+            <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden sm:block" />
+            <div className="w-12 h-12 rounded-2xl bg-[#071c0d] border border-[#2e5c38]/40 flex items-center justify-center text-[#a2bc90] shadow-[inset_0_2px_4px_rgba(0,0,0,0.4)] shrink-0">
+              <IconComponent size={22} className="stroke-[1.75]" />
+            </div>
           </div>
         ))}
       </div>
