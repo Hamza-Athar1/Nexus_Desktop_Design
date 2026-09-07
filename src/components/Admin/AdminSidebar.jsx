@@ -5,6 +5,7 @@ import {
   ShoppingCart,
   FileText,
   UserCircle,
+  Receipt,
   ArrowLeft,
   Sliders,
   LogOut,
@@ -25,6 +26,7 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
     else if (location.pathname.includes('/admin/sales')) currentActiveTab = 'sales';
     else if (location.pathname.includes('/admin/reports')) currentActiveTab = 'reports';
     else if (location.pathname.includes('/admin/user')) currentActiveTab = 'user';
+    else if (location.pathname.includes('/admin/billing')) currentActiveTab = 'billing';
   }
 
   const handleNav = (tabId, path) => {
@@ -230,6 +232,15 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
           >
             <UserCircle size={20} className={iconClass('user')} />
             <span className="text-sm tracking-wide">User</span>
+          </button>
+
+          {/* Billing */}
+          <button
+            onClick={() => handleNav('billing', '/admin/billing')}
+            className={navItemClass('billing')}
+          >
+            <Receipt size={20} className={iconClass('billing')} />
+            <span className="text-sm tracking-wide">Billing</span>
           </button>
         </nav>
 
