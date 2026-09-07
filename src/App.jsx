@@ -25,6 +25,7 @@ import AdminSalesReportPage   from './pages/Admin/AdminSalesReportPage';
 import AdminProductReportPage from './pages/Admin/AdminProductReportPage';
 import AdminProfitReportPage  from './pages/Admin/AdminProfitReportPage';
 import AdminStockReportPage   from './pages/Admin/AdminStockReportPage';
+import AdminUserPage          from './pages/Admin/AdminUserPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 import SuperAdminLayout from './pages/Super-User/SuperAdminLayout';
 import SuperAdminRequestsPage from './pages/Super-User/SuperAdminRequestsPage';
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="reports/profit" element={<AdminProfitReportPage />} />
           <Route path="reports/profile" element={<AdminProfitReportPage />} />
           <Route path="reports/stock" element={<AdminStockReportPage />} />
+          <Route path="user" element={<AdminUserPage />} />
         </Route>
       </Route>
 
