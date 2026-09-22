@@ -24,6 +24,22 @@ export async function findBusinessWithModuleByOwner(ownerUserId) {
   return rows[0] || null;
 }
 
+/** Resolves business context for either owner (admin) or staff (user). */
+export async function findBusinessWithModuleByUser(userId) {
+  const [rows] = await pool.query(
+    `SELECT b.*, m.code AS module_code, m.name AS module_name
+     FROM users u
+     JOIN businesses b ON (
+       (u.role = 'admin' AND b.owner_user_id = u.id) OR
+       (u.role = 'user' AND b.id = u.business_id)
+     )
+     JOIN modules m ON m.id = b.module_id
+     WHERE u.id = ? LIMIT 1`,
+    [userId]
+  );
+  return rows[0] || null;
+}
+
 /**
  * Runs inside the caller's transaction (`conn`), not the shared pool —
  * this is always called alongside subscription creation, and both must

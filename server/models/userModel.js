@@ -2,7 +2,7 @@ import { pool } from '../config/db.js';
 
 /** Columns we're ever willing to send to the client. Never password_hash. */
 const SAFE_FIELDS = `
-  id, username, email, phone, role, status, city_region,
+  id, username, email, phone, role, status, city_region, business_id,
   email_verified_at, last_login_at, created_at
 `;
 
@@ -37,7 +37,8 @@ export async function findUserById(id, connection = null) {
 
 /**
  * @param {{username:string, email:string, phone?:string, cityRegion?:string,
- *           passwordHash?:string, role?:'super_admin'|'admin'|'user', status?:string, emailVerifiedAt?:Date|string}} input
+ *           passwordHash?:string, role?:'super_admin'|'admin'|'user', status?:string,
+ *           businessId?:number, emailVerifiedAt?:Date|string}} input
  * @param {import('mysql2/promise').PoolConnection} [connection]
  * @returns {Promise<object>} the newly created user, safe fields only
  */
@@ -49,13 +50,14 @@ export async function createUser({
   passwordHash = null,
   role = 'admin',
   status = 'active',
+  businessId = null,
   emailVerifiedAt = null,
 }, connection = null) {
   const executor = connection || pool;
   const [result] = await executor.query(
-    `INSERT INTO users (username, email, phone, city_region, password_hash, role, status, email_verified_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [username, email, phone, cityRegion, passwordHash, role, status, emailVerifiedAt]
+    `INSERT INTO users (username, email, phone, city_region, password_hash, role, status, business_id, email_verified_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [username, email, phone, cityRegion, passwordHash, role, status, businessId, emailVerifiedAt]
   );
   return findUserById(result.insertId, connection);
 }
@@ -69,14 +71,30 @@ export async function updatePasswordHash(userId, passwordHash) {
 }
 
 /**
- * A user owns at most one business (businesses.owner_user_id is UNIQUE).
- * Used by /auth/me so the frontend knows whether to route the owner into
- * the registration wizard or straight to their dashboard.
+ * Resolves businessId for either:
+ *  • admin (owner): businesses.owner_user_id = userId
+ *  • staff (user): users.business_id = businesses.id
  */
-export async function findBusinessIdForOwner(userId) {
-  const [rows] = await pool.query(
-    `SELECT id FROM businesses WHERE owner_user_id = ? LIMIT 1`,
-    [userId]
-  );
-  return rows[0]?.id ?? null;
+export async function findBusinessIdForUser(userId) {
+  const [userRows] = await pool.query(`SELECT role, business_id FROM users WHERE id = ? LIMIT 1`, [userId]);
+  const user = userRows[0];
+  if (!user) return null;
+
+  if (user.role === 'admin') {
+    const [bizRows] = await pool.query(
+      `SELECT id FROM businesses WHERE owner_user_id = ? LIMIT 1`,
+      [userId]
+    );
+    return bizRows[0]?.id ?? null;
+  }
+
+  if (user.role === 'user') {
+    return user.business_id ?? null;
+  }
+
+  return null;
 }
+
+/** Legacy alias for backwards compatibility */
+export const findBusinessIdForOwner = findBusinessIdForUser;
+

@@ -98,6 +98,7 @@ CREATE TABLE users (
   role                ENUM('super_admin','admin','user') NOT NULL DEFAULT 'admin',
   status              ENUM('pending','active','suspended','blocked') NOT NULL DEFAULT 'pending',
   city_region         VARCHAR(96)  NULL,     -- captured on the Account form
+  business_id         BIGINT UNSIGNED NULL,  -- null for admin/super_admin; set for role='user' staff
   email_verified_at   TIMESTAMP    NULL,
   last_login_at       TIMESTAMP    NULL,
   created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -237,6 +238,10 @@ CREATE TABLE businesses (
   CONSTRAINT chk_businesses_nic
     CHECK (is_registered = 0 OR nic_number IS NOT NULL)
 ) ENGINE=InnoDB;
+
+ALTER TABLE users
+  ADD CONSTRAINT fk_users_business FOREIGN KEY (business_id)
+    REFERENCES businesses(id) ON DELETE SET NULL;
 
 -- =====================================================================
 -- SECTION 4: SUBSCRIPTION / BACKUP & PLAN
