@@ -69,7 +69,6 @@ export const accessTokenCookieOptions = {
   secure: isProd,
   sameSite: 'lax',
   path: '/',
-  maxAge: MS.access,
 };
 
 /** @param {boolean} rememberMe */
@@ -79,7 +78,6 @@ export function refreshTokenCookieOptions(rememberMe = false) {
     secure: isProd,
     sameSite: 'lax',
     path: '/',
-    maxAge: rememberMe ? MS.refreshRemember : MS.refresh,
   };
 }
 

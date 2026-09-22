@@ -256,7 +256,7 @@ export async function googleLogin(req, res) {
   }
 
   const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-  
+
   let payload;
   try {
     const ticket = await client.verifyIdToken({
@@ -270,7 +270,7 @@ export async function googleLogin(req, res) {
   }
 
   const { sub: googleUserId, email, email_verified } = payload;
-  
+
   if (!email) {
     throw new ApiError(400, 'Email address not provided by Google account');
   }
@@ -288,7 +288,7 @@ export async function googleLogin(req, res) {
   } else {
     // 2. Check if a user with that email already exists
     user = await findUserByEmail(email);
-    
+
     if (user) {
       // Security check: Never automatically link Google OAuth to a super_admin account
       if (user.role === 'super_admin') {
