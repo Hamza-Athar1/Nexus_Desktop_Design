@@ -24,6 +24,7 @@ import {
 } from 'recharts';
 
 import { getSuperAdminDashboardAnalytics } from '../../lib/reportService.js';
+import { useAuth } from '../../context/AuthContext.jsx';
 
 // Custom formatting for Tooltip values
 const formatYAxisRevenue = (tick) => {
@@ -31,7 +32,10 @@ const formatYAxisRevenue = (tick) => {
 };
 
 export default function SuperAdminDashboardPage() {
+  const { user } = useAuth();
   const { setHeaderDetails } = useOutletContext() || {};
+
+  const userName = user?.fullName || user?.full_name || user?.username || 'Super Admin';
 
   const [summary, setSummary] = useState({
     uptime: '99.9%',
@@ -49,11 +53,11 @@ export default function SuperAdminDashboardPage() {
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: 'Welcome, Aiesha',
+        title: `Welcome, ${userName}`,
         subtitle: 'System analytics',
       });
     }
-  }, [setHeaderDetails]);
+  }, [setHeaderDetails, userName]);
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -132,7 +136,7 @@ export default function SuperAdminDashboardPage() {
       {/* Dashboard Header */}
       <div className="mb-8 lg:hidden">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#152f16] font-serif mb-2">
-          Welcome, Aiesha
+          Welcome, {userName}
         </h1>
         <p className="text-base sm:text-lg text-[#55694a] font-medium">
           System analytics

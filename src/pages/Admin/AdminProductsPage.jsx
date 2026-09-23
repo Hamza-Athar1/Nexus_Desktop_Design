@@ -54,6 +54,7 @@ const INITIAL_CATEGORIES = [
 const INITIAL_SUBCATEGORIES = [];
 
 
+import { apiFetchJson } from '../../lib/api';
 import {
   getInventoryItems,
   createInventoryItem,
@@ -106,7 +107,7 @@ export default function AdminProductsPage() {
             price: String(item.price ?? item.sale_price ?? 0),
             stock: stock,
             status,
-            category: item.category || 'Grocery & Dairy',
+            category: item.category || 'General',
             subcategory: 'General',
             image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&auto=format&fit=crop&q=60',
           };
@@ -122,9 +123,24 @@ export default function AdminProductsPage() {
     }
   }, []);
 
+  const fetchCategoriesList = useCallback(async () => {
+    try {
+      const { ok, data } = await apiFetchJson('/categories');
+      if (ok && Array.isArray(data?.categories) && data.categories.length > 0) {
+        setCategories(data.categories);
+        if (!selectedCategory || !data.categories.some(c => c.name === selectedCategory)) {
+          setSelectedCategory(data.categories[0].name);
+        }
+      }
+    } catch {
+      // Keep initial if network fails
+    }
+  }, [selectedCategory]);
+
   useEffect(() => {
     fetchProductsList();
-  }, [fetchProductsList]);
+    fetchCategoriesList();
+  }, [fetchProductsList, fetchCategoriesList]);
 
   // Category Edit/Delete Popover & Modal State
   const [catMenuOpenId, setCatMenuOpenId] = useState(null);

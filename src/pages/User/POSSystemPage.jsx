@@ -26,7 +26,6 @@ function POSClock() {
   return <p className="text-sm font-bold text-[#0d3410]/95 font-mono">{formattedDateTime}</p>;
 }
 
-// Fallback catalog if backend has no active products yet
 import { getCustomers } from '../../lib/customerService.js';
 
 export default function POSSystemPage() {
