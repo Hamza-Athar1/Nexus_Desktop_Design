@@ -19,3 +19,7 @@ export async function getProfitAnalysisReport() {
 export async function getStockDistributionReport() {
   return apiFetchJson('/reports/stock-distribution', { method: 'GET' });
 }
+
+export async function getSuperAdminDashboardAnalytics() {
+  return apiFetchJson('/admin/dashboard/stats', { method: 'GET' });
+}

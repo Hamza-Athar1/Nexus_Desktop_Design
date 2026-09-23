@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
   Server,
@@ -23,103 +23,119 @@ import {
   Cell,
 } from 'recharts';
 
-// ─── Data Definitions ─────────────────────────────────────────────────────────
-
-const SUMMARY_CARDS = [
-  {
-    id: 'uptime',
-    title: 'SERVER UPTIME',
-    value: '99.9%',
-    sub: 'All systems nominal',
-    icon: Server,
-  },
-  {
-    id: 'active',
-    title: 'ACTIVE MODULES',
-    value: '7',
-    sub: '1 update pending',
-    subColor: 'text-[#d4b248]', // highlight yellow
-    icon: LayoutGrid,
-  },
-  {
-    id: 'revenue',
-    title: 'PLATFORM REVENUE',
-    value: 'Rs 18.4M',
-    sub: '14% vs last month',
-    icon: DollarSign,
-  },
-  {
-    id: 'users',
-    title: 'TOTAL USERS',
-    value: '348',
-    sub: '+14% this month',
-    icon: Users,
-  },
-];
-
-const USER_GROWTH_DATA = [
-  { name: 'Jan', users: 300 },
-  { name: 'Feb', users: 380 },
-  { name: 'Mar', users: 600 },
-  { name: 'Apr', users: 750 },
-  { name: 'May', users: 1000 },
-  { name: 'Jun', users: 1248 },
-];
-
-const REVENUE_TREND_DATA = [
-  { name: 'Jan', value: 38 },
-  { name: 'Feb', value: 55 },
-  { name: 'March', value: 98 },
-  { name: 'April', value: 130 },
-  { name: 'May', value: 150 },
-  { name: 'June', value: 210 },
-];
-
-const USAGE_POS_DATA = [
-  { name: 'Pharmacy', value: 30, color: '#0d381c' },
-  { name: 'Grocery', value: 20, color: '#276834' },
-  { name: 'Electronics', value: 18, color: '#4eaf65' },
-  { name: 'Bakery', value: 12, color: '#e5b61b' },
-  { name: 'Restaurant', value: 10, color: '#d9801c' },
-  { name: 'General Store', value: 8, color: '#baa78c' },
-  { name: 'Clothing', value: 2, color: '#e1dc7f' },
-];
-
-const REVENUE_POS_DATA = [
-  { name: 'Pharmacy', value: 30, amount: 'PKR 73,500', color: '#0d381c', barColor: 'bg-[#0d381c]' },
-  { name: 'Grocery', value: 20, amount: 'PKR 49,000', color: '#276834', barColor: 'bg-[#276834]' },
-  { name: 'Restaurant', value: 18, amount: 'PKR 44,100', color: '#4eaf65', barColor: 'bg-[#4eaf65]' },
-  { name: 'Clothing', value: 14, amount: 'PKR 34,300', color: '#d9801c', barColor: 'bg-[#d9801c]' },
-  { name: 'Electronics', value: 10, amount: 'PKR 24,500', color: '#e5b61b', barColor: 'bg-[#e5b61b]' },
-  { name: 'Bakery', value: 7, amount: 'PKR 17,150', color: '#baa78c', barColor: 'bg-[#baa78c]' },
-  { name: 'General Store', value: 1, amount: 'PKR 2,450', color: '#e1dc7f', barColor: 'bg-[#e1dc7f]' },
-];
+import { getSuperAdminDashboardAnalytics } from '../../lib/reportService.js';
 
 // Custom formatting for Tooltip values
 const formatYAxisRevenue = (tick) => {
-  return `${tick}k`;
+  return `${tick}M`;
 };
 
 export default function SuperAdminDashboardPage() {
   const { setHeaderDetails } = useOutletContext() || {};
+
+  const [summary, setSummary] = useState({
+    uptime: '99.9%',
+    activeModules: 0,
+    totalRevenue: 0,
+    totalUsers: 0,
+  });
+  const [userGrowthData, setUserGrowthData] = useState([]);
+  const [revenueTrendData, setRevenueTrendData] = useState([]);
+  const [usagePosData, setUsagePosData] = useState([]);
+  const [revenuePosData, setRevenuePosData] = useState([]);
+  const [_isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
         title: 'Welcome, Aiesha',
-        subtitle: 'System analytics · 29 June 2026'
+        subtitle: 'System analytics',
       });
     }
   }, [setHeaderDetails]);
 
+  useEffect(() => {
+    async function loadDashboardData() {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const res = await getSuperAdminDashboardAnalytics();
+        if (res.ok && res.data) {
+          const { summary: sum, userGrowth, revenueTrend, usagePosData: uPos, revenuePosData: rPos } = res.data;
+          if (sum) setSummary(sum);
+          if (Array.isArray(userGrowth)) setUserGrowthData(userGrowth);
+          if (Array.isArray(revenueTrend)) setRevenueTrendData(revenueTrend);
+          if (Array.isArray(uPos)) setUsagePosData(uPos);
+          if (Array.isArray(rPos)) setRevenuePosData(rPos);
+        } else {
+          setError(res.data?.message || 'Failed to load dashboard analytics');
+        }
+      } catch (err) {
+        setError(err.message || 'Error connecting to analytics service');
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadDashboardData();
+  }, []);
+
+  const summaryCards = [
+    {
+      id: 'uptime',
+      title: 'SERVER UPTIME',
+      value: summary.uptime,
+      sub: 'All systems nominal',
+      icon: Server,
+    },
+    {
+      id: 'active',
+      title: 'ACTIVE MODULES',
+      value: String(summary.activeModules),
+      sub: 'Active platform modules',
+      subColor: 'text-[#d4b248]',
+      icon: LayoutGrid,
+    },
+    {
+      id: 'revenue',
+      title: 'PLATFORM REVENUE',
+      value: `Rs ${summary.totalRevenue.toLocaleString()}`,
+      sub: 'Subscription revenue',
+      icon: DollarSign,
+    },
+    {
+      id: 'users',
+      title: 'TOTAL USERS',
+      value: String(summary.totalUsers),
+      sub: 'Registered platform users',
+      icon: Users,
+    },
+  ];
+
+  const sortedUsage = [...usagePosData].sort((a, b) => (b.count || b.value || 0) - (a.count || a.value || 0));
+  const mostUsedModule = sortedUsage[0]?.name ? `${sortedUsage[0].name} POS` : 'N/A';
+  const leastUsedModule = sortedUsage[sortedUsage.length - 1]?.name ? `${sortedUsage[sortedUsage.length - 1].name} POS` : 'N/A';
+
+  const totalRevenuePOS = revenuePosData.reduce((sum, item) => sum + (item.rawAmount || 0), 0);
+
+  if (error) {
+    return (
+      <div className="flex-1 p-8 text-center bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">
+        <h2 className="text-xl font-bold text-red-700 mb-2">Analytics Error</h2>
+        <p className="text-sm font-semibold text-[#152f16]">{error}</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col font-sans">
       {/* Dashboard Header */}
       <div className="mb-8 lg:hidden">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-[#152f16] font-serif mb-2">
           Welcome, Aiesha
         </h1>
         <p className="text-base sm:text-lg text-[#55694a] font-medium">
-          System analytics · 29 June 2026
+          System analytics
         </p>
       </div>
 
@@ -134,7 +150,7 @@ export default function SuperAdminDashboardPage() {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
-          {SUMMARY_CARDS.map((card) => {
+          {summaryCards.map((card) => {
             const Icon = card.icon;
             return (
               <div
@@ -181,32 +197,36 @@ export default function SuperAdminDashboardPage() {
             </h3>
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#137333]">
               <TrendingUp size={16} />
-              <span>+24%</span>
+              <span>Real-time</span>
             </div>
           </div>
 
-          <div className="h-[240px] w-full text-xs">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={USER_GROWTH_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="userGrowthGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0d381c" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#0d381c" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
-                <XAxis dataKey="name" stroke="#607455" strokeWidth={1} fontSize={10} tickLine={false} />
-                <YAxis stroke="#607455" strokeWidth={1} fontSize={10} tickLine={false} />
-                <Tooltip />
-                <Area
-                  type="monotone"
-                  dataKey="users"
-                  stroke="#0d381c"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#userGrowthGrad)"
-                />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-[240px] w-full text-xs flex items-center justify-center">
+            {userGrowthData.length === 0 ? (
+              <span className="font-bold text-[#607455]">No user growth records found</span>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={userGrowthData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="userGrowthGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#0d381c" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#0d381c" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis dataKey="name" stroke="#607455" strokeWidth={1} fontSize={10} tickLine={false} />
+                  <YAxis stroke="#607455" strokeWidth={1} fontSize={10} tickLine={false} />
+                  <Tooltip />
+                  <Area
+                    type="monotone"
+                    dataKey="users"
+                    stroke="#0d381c"
+                    strokeWidth={2.5}
+                    fillOpacity={1}
+                    fill="url(#userGrowthGrad)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -218,25 +238,29 @@ export default function SuperAdminDashboardPage() {
             </h3>
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#137333]">
               <TrendingUp size={16} />
-              <span>+14.2%</span>
+              <span>Real-time</span>
             </div>
           </div>
 
-          <div className="h-[240px] w-full text-xs">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={REVENUE_TREND_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <XAxis dataKey="name" stroke="#607455" strokeWidth={1} fontSize={10} tickLine={false} />
-                <YAxis
-                  stroke="#607455"
-                  strokeWidth={1}
-                  fontSize={10}
-                  tickLine={false}
-                  tickFormatter={formatYAxisRevenue}
-                />
-                <Tooltip formatter={(value) => [`${value}M`, 'Revenue']} />
-                <Bar dataKey="value" fill="#0d381c" radius={[4, 4, 0, 0]} maxBarSize={32} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-[240px] w-full text-xs flex items-center justify-center">
+            {revenueTrendData.length === 0 ? (
+              <span className="font-bold text-[#607455]">No paid subscription invoices found</span>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueTrendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <XAxis dataKey="name" stroke="#607455" strokeWidth={1} fontSize={10} tickLine={false} />
+                  <YAxis
+                    stroke="#607455"
+                    strokeWidth={1}
+                    fontSize={10}
+                    tickLine={false}
+                    tickFormatter={formatYAxisRevenue}
+                  />
+                  <Tooltip formatter={(value) => [`${value}M`, 'Revenue']} />
+                  <Bar dataKey="value" fill="#0d381c" radius={[4, 4, 0, 0]} maxBarSize={32} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -247,7 +271,7 @@ export default function SuperAdminDashboardPage() {
               ACTIVE MODULES SHARE
             </h3>
             <div className="flex items-center gap-1 border border-[#bfbc9b] rounded-lg px-2.5 py-1 bg-[#efeacb] text-xs font-bold text-[#152f16] whitespace-nowrap shrink-0">
-              <span className="whitespace-nowrap">This Month</span>
+              <span className="whitespace-nowrap">Platform Total</span>
               <ChevronDown size={14} className="shrink-0" />
             </div>
           </div>
@@ -258,7 +282,7 @@ export default function SuperAdminDashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={USAGE_POS_DATA}
+                    data={usagePosData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -267,7 +291,7 @@ export default function SuperAdminDashboardPage() {
                     stroke="#efeacb"
                     strokeWidth={2.5}
                   >
-                    {USAGE_POS_DATA.map((entry, index) => (
+                    {usagePosData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -278,7 +302,7 @@ export default function SuperAdminDashboardPage() {
 
             {/* Legends list */}
             <div className="flex-1 w-full text-xs flex flex-col gap-2 max-h-[220px] overflow-y-auto pr-1">
-              {USAGE_POS_DATA.map((item) => (
+              {usagePosData.map((item) => (
                 <div key={item.name} className="flex items-center justify-between py-1 border-b border-[#c8c2a3]/20">
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
@@ -295,12 +319,12 @@ export default function SuperAdminDashboardPage() {
             <div className="flex items-center gap-2 bg-[#eae3c1] px-3 py-1.5 rounded-lg border border-[#bfbc9b]">
               <span className="w-1.5 h-3 bg-[#0d381c] rounded-full shrink-0" />
               <span className="text-[#607455] font-semibold">Most used:</span>
-              <span className="text-[#0d381c]">Pharmacy POS</span>
+              <span className="text-[#0d381c]">{mostUsedModule}</span>
             </div>
             <div className="flex items-center gap-2 bg-[#eae3c1] px-3 py-1.5 rounded-lg border border-[#bfbc9b]">
               <span className="w-1.5 h-3 bg-[#e1dc7f] rounded-full shrink-0" />
               <span className="text-[#607455] font-semibold">Least used:</span>
-              <span className="text-[#d9801c]">Clothing POS</span>
+              <span className="text-[#d9801c]">{leastUsedModule}</span>
             </div>
           </div>
         </div>
@@ -315,7 +339,7 @@ export default function SuperAdminDashboardPage() {
               <Info size={14} className="text-[#607455] cursor-pointer shrink-0" />
             </div>
             <div className="flex items-center gap-1 border border-[#bfbc9b] rounded-lg px-2.5 py-1 bg-[#efeacb] text-xs font-bold text-[#152f16] whitespace-nowrap shrink-0">
-              <span className="whitespace-nowrap">This Month</span>
+              <span className="whitespace-nowrap">Platform Total</span>
               <ChevronDown size={14} className="shrink-0" />
             </div>
           </div>
@@ -327,8 +351,8 @@ export default function SuperAdminDashboardPage() {
                 <span className="text-[9px] font-bold text-[#607455] tracking-widest uppercase">
                   TOTAL REVENUE
                 </span>
-                <span className="text-sm font-black text-[#0d381c] leading-tight">
-                  PKR 245,000
+                <span className="text-xs font-black text-[#0d381c] leading-tight px-1">
+                  PKR {totalRevenuePOS.toLocaleString()}
                 </span>
                 <span className="text-[10px] font-bold text-[#607455]">100%</span>
               </div>
@@ -336,7 +360,7 @@ export default function SuperAdminDashboardPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={REVENUE_POS_DATA}
+                    data={revenuePosData}
                     dataKey="value"
                     nameKey="name"
                     cx="50%"
@@ -346,7 +370,7 @@ export default function SuperAdminDashboardPage() {
                     stroke="#efeacb"
                     strokeWidth={2.5}
                   >
-                    {REVENUE_POS_DATA.map((entry, index) => (
+                    {revenuePosData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
@@ -362,7 +386,7 @@ export default function SuperAdminDashboardPage() {
                 <span className="text-right">Revenue (PKR)</span>
                 <span className="text-right">Share</span>
               </div>
-              {REVENUE_POS_DATA.map((item) => (
+              {revenuePosData.map((item) => (
                 <div
                   key={item.name}
                   className="grid grid-cols-[1.5fr_1fr_0.5fr] items-center py-0.5 border-b border-[#c8c2a3]/10"
@@ -371,8 +395,8 @@ export default function SuperAdminDashboardPage() {
                     <span className="font-semibold text-[#152f16]">{item.name}</span>
                     <div className="w-full bg-[#eae3c1] h-[3px] rounded-full mt-1 overflow-hidden">
                       <div
-                        className={`h-full ${item.barColor} rounded-full`}
-                        style={{ width: `${item.value}%` }}
+                        className="h-full rounded-full"
+                        style={{ width: `${item.value}%`, backgroundColor: item.color }}
                       />
                     </div>
                   </div>

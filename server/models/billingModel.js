@@ -207,3 +207,97 @@ export async function getPaymentModuleStats(moduleCode) {
     totalPaid: Number(totalPaid),
   };
 }
+
+// ── Super Admin Dashboard Analytics ─────────────────────────────────────────
+
+export async function getDashboardAnalytics() {
+  const [[{ totalUsers }]] = await pool.query(`SELECT COUNT(*) AS totalUsers FROM users`);
+  const [[{ activeModules }]] = await pool.query(`SELECT COUNT(*) AS activeModules FROM modules WHERE is_available = 1`);
+  const [[{ totalRevenue }]] = await pool.query(`SELECT COALESCE(SUM(amount), 0) AS totalRevenue FROM invoices WHERE status = 'paid'`);
+
+  // User growth over time
+  const [userGrowthRows] = await pool.query(`
+    SELECT 
+      DATE_FORMAT(created_at, '%b') AS name, 
+      COUNT(*) AS users
+    FROM users
+    GROUP BY YEAR(created_at), MONTH(created_at), DATE_FORMAT(created_at, '%b')
+    ORDER BY YEAR(created_at) ASC, MONTH(created_at) ASC
+  `);
+
+  // Revenue trend over time
+  const [revenueTrendRows] = await pool.query(`
+    SELECT 
+      DATE_FORMAT(COALESCE(paid_at, due_date), '%b') AS name, 
+      ROUND(COALESCE(SUM(amount), 0) / 1000000, 2) AS value,
+      COALESCE(SUM(amount), 0) AS rawValue
+    FROM invoices
+    WHERE status = 'paid'
+    GROUP BY YEAR(COALESCE(paid_at, due_date)), MONTH(COALESCE(paid_at, due_date)), DATE_FORMAT(COALESCE(paid_at, due_date), '%b')
+    ORDER BY YEAR(COALESCE(paid_at, due_date)) ASC, MONTH(COALESCE(paid_at, due_date)) ASC
+  `);
+
+  // Active modules share (USAGE_POS_DATA)
+  const [[{ totalActiveBiz }]] = await pool.query(`SELECT COUNT(*) AS totalActiveBiz FROM businesses WHERE status = 'active'`);
+  const [moduleShareRows] = await pool.query(`
+    SELECT 
+      m.name,
+      COUNT(b.id) AS count
+    FROM modules m
+    LEFT JOIN businesses b ON b.module_id = m.id AND b.status = 'active'
+    GROUP BY m.id, m.name
+    ORDER BY count DESC
+  `);
+
+  const colors = ['#0d381c', '#276834', '#4eaf65', '#e5b61b', '#d9801c', '#baa78c', '#e1dc7f'];
+
+  const usagePosData = moduleShareRows.map((row, idx) => {
+    const pct = totalActiveBiz > 0 ? Math.round((Number(row.count) / Number(totalActiveBiz)) * 100) : 0;
+    return {
+      name: row.name,
+      value: pct,
+      count: Number(row.count),
+      color: colors[idx % colors.length],
+    };
+  });
+
+  // Revenue by POS / module (REVENUE_POS_DATA)
+  const [revenuePosRows] = await pool.query(`
+    SELECT 
+      m.name,
+      COALESCE(SUM(inv.amount), 0) AS rawAmount
+    FROM modules m
+    LEFT JOIN businesses b ON b.module_id = m.id
+    LEFT JOIN invoices inv ON inv.business_id = b.id AND inv.status = 'paid'
+    GROUP BY m.id, m.name
+    ORDER BY rawAmount DESC
+  `);
+
+  const totalInvRev = revenuePosRows.reduce((acc, r) => acc + Number(r.rawAmount), 0);
+
+  const revenuePosData = revenuePosRows.map((row, idx) => {
+    const rawAmt = Number(row.rawAmount);
+    const pct = totalInvRev > 0 ? Math.round((rawAmt / totalInvRev) * 100) : 0;
+    return {
+      name: row.name,
+      value: pct,
+      amount: `PKR ${rawAmt.toLocaleString()}`,
+      rawAmount: rawAmt,
+      color: colors[idx % colors.length],
+      barColor: colors[idx % colors.length],
+    };
+  });
+
+  return {
+    summary: {
+      uptime: '99.9%',
+      activeModules: Number(activeModules),
+      totalRevenue: Number(totalRevenue),
+      totalUsers: Number(totalUsers),
+    },
+    userGrowth: userGrowthRows.map(r => ({ name: r.name, users: Number(r.users) })),
+    revenueTrend: revenueTrendRows.map(r => ({ name: r.name, value: Number(r.value), rawValue: Number(r.rawValue) })),
+    usagePosData,
+    revenuePosData,
+  };
+}

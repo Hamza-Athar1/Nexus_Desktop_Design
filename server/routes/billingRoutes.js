@@ -9,10 +9,14 @@ import {
   postInitiateInvoice,
   getPayments,
   getModuleStats,
+  getDashboardAnalyticsHandler,
 } from '../controllers/billingController.js';
 
 const router = express.Router();
 const SA = [verifyToken, roleCheck('super_admin')];
+
+// ── Super Admin Dashboard Analytics ──────────────────────────────────────────
+router.get('/admin/dashboard/stats', ...SA, asyncHandler(getDashboardAnalyticsHandler));
 
 // ── Billing page ──────────────────────────────────────────────────────────────
 // IMPORTANT: /stats before /:id so "stats" is never treated as a numeric ID.
