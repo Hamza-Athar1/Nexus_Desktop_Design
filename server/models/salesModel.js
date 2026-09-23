@@ -21,6 +21,17 @@ async function generateInvoiceNumber(conn, businessId) {
 
 /** Executed inside a MySQL transaction handle (`conn`) */
 export async function executeCheckoutTransaction(conn, { businessId, userId, customerId, items, payment, note }) {
+  // Validate customerId belongs to business if provided
+  if (customerId) {
+    const [custRows] = await conn.query(
+      `SELECT id FROM customers WHERE business_id = ? AND id = ? LIMIT 1`,
+      [businessId, customerId]
+    );
+    if (custRows.length === 0) {
+      throw new Error('CUSTOMER_NOT_FOUND');
+    }
+  }
+
   // 1. Lock product rows FOR UPDATE
   const productIds = items.map((i) => i.productId);
   const placeholders = productIds.map(() => '?').join(',');

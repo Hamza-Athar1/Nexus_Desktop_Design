@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Trash2, Plus, Barcode } from 'lucide-react';
+import { Search, Trash2, Barcode } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api.js';
 import { createSale } from '../../lib/salesService.js';
 import ViewInvoiceModal from '../../components/Admin/ViewInvoiceModal.jsx';
@@ -27,33 +27,27 @@ function POSClock() {
 }
 
 // Fallback catalog if backend has no active products yet
-const FALLBACK_CATALOG = [
-  { id: 5, name: 'Test Product A1', sale_price: 999, price: 999, stock_quantity: 50, stock: 50, tax_rate: 10 },
-  { id: 6, name: 'Test Product A2', sale_price: 200, price: 200, stock_quantity: 40, stock: 40, tax_rate: 0 },
-  { id: 5, name: 'Imtiaz Wheat Flour 10kg', sale_price: 950, price: 950, stock_quantity: 50, stock: 50, tax_rate: 10 },
-  { id: 6, name: 'Olper\'s Milk 1L', sale_price: 280, price: 280, stock_quantity: 40, stock: 40, tax_rate: 5 },
-];
+import { getCustomers } from '../../lib/customerService.js';
 
 export default function POSSystemPage() {
   const navigate = useNavigate();
   // Real products state
   const [products, setProducts] = useState([]);
-  const [_isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const [fetchError, setFetchError] = useState(null);
 
-  // Tabs: Customers
-  const [customers, setCustomers] = useState(['Customer 1', 'Customer 2', 'Customer 3']);
+  // Real Customers State
+  const [customerList, setCustomerList] = useState([{ id: null, name: 'Walk-in Customer' }]);
   const [activeCustomerIndex, setActiveCustomerIndex] = useState(0);
 
   // Cart / Invoice state per customer
   const [carts, setCarts] = useState({
     0: [],
-    1: [],
-    2: [],
   });
 
   // Inputs per customer
-  const [laborCharges, setLaborCharges] = useState({ 0: 0, 1: 0, 2: 0 });
-  const [paidAmounts, setPaidAmounts] = useState({ 0: '', 1: '', 2: '' });
+  const [laborCharges, setLaborCharges] = useState({ 0: 0 });
+  const [paidAmounts, setPaidAmounts] = useState({ 0: '' });
 
   // Invoice numbers / checkout state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,25 +65,44 @@ export default function POSSystemPage() {
   // Fetch real inventory products from backend
   const fetchProducts = async () => {
     setIsLoadingProducts(true);
+    setFetchError(null);
     try {
       const res = await apiFetchJson('/inventory/items');
-      if (res.ok && Array.isArray(res.data?.items) && res.data.items.length > 0) {
+      if (res.ok && Array.isArray(res.data?.items)) {
         setProducts(res.data.items);
       } else {
-        setProducts(FALLBACK_CATALOG);
+        setProducts([]);
+        setFetchError(res.data?.message || 'Failed to fetch inventory from backend');
       }
-    } catch {
-      setProducts(FALLBACK_CATALOG);
+    } catch (err) {
+      setProducts([]);
+      setFetchError(err.message || 'Server connection error');
     } finally {
       setIsLoadingProducts(false);
     }
   };
 
+  // Fetch real customers from backend
+  const fetchCustomers = async () => {
+    try {
+      const res = await getCustomers();
+      if (res.ok && Array.isArray(res.data?.customers) && res.data.customers.length > 0) {
+        setCustomerList([{ id: null, name: 'Walk-in Customer' }, ...res.data.customers]);
+      } else {
+        setCustomerList([{ id: null, name: 'Walk-in Customer' }]);
+      }
+    } catch {
+      setCustomerList([{ id: null, name: 'Walk-in Customer' }]);
+    }
+  };
+
   useEffect(() => {
     fetchProducts();
+    fetchCustomers();
   }, []);
 
-  const catalog = useMemo(() => (products.length > 0 ? products : FALLBACK_CATALOG), [products]);
+  const catalog = products;
+
 
   const currentCart = useMemo(() => carts[activeCustomerIndex] || [], [carts, activeCustomerIndex]);
   const currentLabor = laborCharges[activeCustomerIndex] || 0;
@@ -225,7 +238,9 @@ export default function POSSystemPage() {
     setCheckoutError(null);
 
     try {
+      const selectedCust = customerList[activeCustomerIndex];
       const res = await createSale({
+        customerId: selectedCust?.id || null,
         items: currentCart.map((item) => ({
           productId: Number(item.id),
           quantity: Number(item.qty),
@@ -235,7 +250,7 @@ export default function POSSystemPage() {
           method: 'cash',
           amount: paidVal,
         },
-        note: `${customers[activeCustomerIndex]} - POS Sale`,
+        note: selectedCust?.id ? `Customer: ${selectedCust.name}` : 'Walk-in Customer - POS Sale',
       });
 
       if (!res.ok) {
@@ -254,15 +269,6 @@ export default function POSSystemPage() {
     }
   };
 
-  // Add new customer tab
-  const handleAddCustomer = () => {
-    const nextIndex = customers.length;
-    setCustomers((prev) => [...prev, `Customer ${nextIndex + 1}`]);
-    setCarts((prev) => ({ ...prev, [nextIndex]: [] }));
-    setLaborCharges((prev) => ({ ...prev, [nextIndex]: 0 }));
-    setPaidAmounts((prev) => ({ ...prev, [nextIndex]: '' }));
-    setActiveCustomerIndex(nextIndex);
-  };
 
   // Filter products based on search query
   const filteredProducts = useMemo(() => {
@@ -312,6 +318,20 @@ export default function POSSystemPage() {
           </div>
         </header>
 
+        {/* Error / Empty State Banners */}
+        {fetchError && (
+          <div className="w-full p-3 mb-4 bg-red-100 border border-red-300 text-red-800 rounded-xl text-xs font-bold flex justify-between items-center">
+            <span>Error loading products from server: {fetchError}</span>
+            <button onClick={fetchProducts} className="underline font-extrabold cursor-pointer">Retry</button>
+          </div>
+        )}
+
+        {!fetchError && !isLoadingProducts && products.length === 0 && (
+          <div className="w-full p-3 mb-4 bg-amber-100 border border-amber-300 text-amber-900 rounded-xl text-xs font-bold text-center">
+            No products available in inventory. Please add products from Admin Inventory.
+          </div>
+        )}
+
         {/* Search Bar section */}
         <div className="relative w-full mb-4">
           <div className="flex items-center bg-white rounded-full px-4 py-3 border border-[#ca8a04]/30 shadow-sm focus-within:ring-2 focus-within:ring-[#0d3410]/20 transition-all">
@@ -358,25 +378,18 @@ export default function POSSystemPage() {
 
         {/* Customer tabs bar */}
         <div className="flex flex-wrap gap-2.5 mb-4">
-          {customers.map((cust, idx) => (
+          {customerList.map((cust, idx) => (
             <button
-              key={idx}
+              key={cust.id ?? `walkin-${idx}`}
               onClick={() => setActiveCustomerIndex(idx)}
               className={`px-6 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 ${activeCustomerIndex === idx
                   ? 'bg-[#093311] text-white shadow-md'
                   : 'bg-transparent text-[#093311] border border-[#093311] hover:bg-[#093311]/10'
                 }`}
             >
-              {cust}
+              {cust.name}
             </button>
           ))}
-          <button
-            onClick={handleAddCustomer}
-            className="px-6 py-2.5 rounded-xl text-xs md:text-sm font-bold bg-transparent text-[#093311] border border-[#093311] hover:bg-[#093311]/10 flex items-center gap-1.5"
-          >
-            <Plus size={14} />
-            Add customer
-          </button>
         </div>
 
         {/* Main interactive grid section */}

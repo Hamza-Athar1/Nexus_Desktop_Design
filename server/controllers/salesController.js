@@ -63,6 +63,9 @@ export async function postCheckout(req, res) {
       sale: saleResult,
     });
   } catch (err) {
+    if (err.message === 'CUSTOMER_NOT_FOUND') {
+      throw new ApiError(400, 'Selected customer was not found or belongs to another store');
+    }
     if (err.message?.startsWith('PRODUCT_NOT_FOUND:')) {
       throw new ApiError(400, 'One or more requested products were not found or belong to another store');
     }
