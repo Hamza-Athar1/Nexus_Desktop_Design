@@ -10,13 +10,8 @@ import {
   Tooltip,
 } from 'recharts';
 
-const STOCK_DONUT_DATA = [
-  { name: 'In Stock', value: 78, color: '#f94e2b' },
-  { name: 'Low Stock', value: 14, color: '#eab308' },
-  { name: 'Out of Stock', value: 10, color: '#0d9488' },
-];
-
 import { getInventoryItems } from '../../lib/inventoryService.js';
+import { getStockDistributionReport } from '../../lib/reportService.js';
 
 export default function AdminStockReportPage() {
   const { setHeaderDetails } = useOutletContext() || {};
@@ -24,6 +19,7 @@ export default function AdminStockReportPage() {
   const navigate = useNavigate();
 
   const [itemsList, setItemsList] = React.useState([]);
+  const [stockDonutData, setStockDonutData] = React.useState([]);
   const [_isLoading, setIsLoading] = React.useState(true);
 
   useEffect(() => {
@@ -39,12 +35,16 @@ export default function AdminStockReportPage() {
     async function loadStock() {
       setIsLoading(true);
       try {
-        const res = await getInventoryItems();
+        const [res, donutRes] = await Promise.all([getInventoryItems(), getStockDistributionReport()]);
         if (res.ok && Array.isArray(res.data?.items)) {
           setItemsList(res.data.items);
         }
+        if (donutRes.ok && Array.isArray(donutRes.data?.stockDistribution)) {
+          setStockDonutData(donutRes.data.stockDistribution);
+        }
       } catch {
         setItemsList([]);
+        setStockDonutData([]);
       } finally {
         setIsLoading(false);
       }
@@ -95,7 +95,7 @@ export default function AdminStockReportPage() {
     },
   ];
 
-  const memoizedDonutData = useMemo(() => STOCK_DONUT_DATA, []);
+  const memoizedDonutData = stockDonutData;
 
   return (
     <div className="flex flex-col gap-6 w-full pb-12">

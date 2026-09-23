@@ -21,16 +21,7 @@ import {
 } from 'recharts';
 import { getSales } from '../../lib/salesService.js';
 import { getInventoryItems } from '../../lib/inventoryService.js';
-
-// Mock data for the AreaChart
-const SALES_OVERVIEW_DATA = [
-  { name: '17 aug', sales: 15 },
-  { name: '18 aug', sales: 17 },
-  { name: '19 aug', sales: 22 },
-  { name: '20 aug', sales: 25 },
-  { name: '21 aug', sales: 34 },
-  { name: '22 aug', sales: 40 },
-];
+import { getSalesOverviewReport } from '../../lib/reportService.js';
 
 export default function AdminDashboardPage() {
   const { setHeaderDetails } = useOutletContext() || {};
@@ -38,6 +29,7 @@ export default function AdminDashboardPage() {
 
   const [salesList, setSalesList] = useState([]);
   const [productList, setProductList] = useState([]);
+  const [salesOverviewData, setSalesOverviewData] = useState([]);
   const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -53,12 +45,19 @@ export default function AdminDashboardPage() {
     async function loadMetrics() {
       setIsLoading(true);
       try {
-        const [salesRes, prodRes] = await Promise.all([getSales(), getInventoryItems()]);
+        const [salesRes, prodRes, overviewRes] = await Promise.all([
+          getSales(),
+          getInventoryItems(),
+          getSalesOverviewReport(),
+        ]);
         if (salesRes.ok && Array.isArray(salesRes.data?.sales)) {
           setSalesList(salesRes.data.sales);
         }
         if (prodRes.ok && Array.isArray(prodRes.data?.items)) {
           setProductList(prodRes.data.items);
+        }
+        if (overviewRes.ok && Array.isArray(overviewRes.data?.salesOverview)) {
+          setSalesOverviewData(overviewRes.data.salesOverview);
         }
       } catch {
         // Fallback to empty state
@@ -226,7 +225,7 @@ export default function AdminDashboardPage() {
           {/* Area Chart Container */}
           <div className="h-[220px] w-full text-xs">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={SALES_OVERVIEW_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={salesOverviewData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0c3818" stopOpacity={0.25} />

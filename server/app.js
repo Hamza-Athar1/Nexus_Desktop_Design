@@ -15,6 +15,7 @@ import profileRoutes from './routes/profileRoutes.js';
 import posRoutes from './routes/posRoutes.js';
 import staffRoutes from './routes/staffRoutes.js';
 import salesRoutes from './routes/salesRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 export const app = express();
@@ -45,6 +46,7 @@ app.use('/api', posRoutes);        // must precede business-scoped routers
 app.use('/api', userManagementRoutes);
 app.use('/api', staffRoutes);
 app.use('/api', salesRoutes);
+app.use('/api', reportRoutes);
 app.use('/api', inventoryRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', supplierRoutes);

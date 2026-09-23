@@ -21,26 +21,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 
-const PROFIT_BAR_DATA = [
-  { name: 'Jan', profit: 420000 },
-  { name: 'Feb', profit: 180000 },
-  { name: 'Mar', profit: 600000 },
-  { name: 'Apr', profit: 920000 },
-  { name: 'May', profit: 720000 },
-  { name: 'Jun', profit: 500000 },
-];
-
-const REVENUE_VS_PROFIT_DATA = [
-  { name: 'Jan', profit: 750000, revenue: 340000 },
-  { name: 'Feb', profit: 580000, revenue: 340000 },
-  { name: 'Mar', profit: 400000, revenue: 230000 },
-  { name: 'Apr', profit: 660000, revenue: 370000 },
-  { name: 'May', profit: 820000, revenue: 640000 },
-  { name: 'Jun', profit: 920000, revenue: 550000 },
-];
-
-import { getSales } from '../../lib/salesService.js';
-import { getInventoryItems } from '../../lib/inventoryService.js';
+import { getProfitAnalysisReport } from '../../lib/reportService.js';
 
 export default function AdminProfitReportPage() {
   const { setHeaderDetails } = useOutletContext() || {};
@@ -50,8 +31,7 @@ export default function AdminProfitReportPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [salesList, setSalesList] = useState([]);
-  const [_productList, setProductList] = useState([]);
+  const [profitAnalysisData, setProfitAnalysisData] = useState([]);
   const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -67,36 +47,32 @@ export default function AdminProfitReportPage() {
     async function loadData() {
       setIsLoading(true);
       try {
-        const [salesRes, prodRes] = await Promise.all([getSales(), getInventoryItems()]);
-        if (salesRes.ok && Array.isArray(salesRes.data?.sales)) {
-          setSalesList(salesRes.data.sales);
-        }
-        if (prodRes.ok && Array.isArray(prodRes.data?.items)) {
-          setProductList(prodRes.data.items);
+        const params = { period: selectedPeriod, startDate, endDate };
+        const profitRes = await getProfitAnalysisReport(params);
+        if (profitRes.ok && Array.isArray(profitRes.data?.profitAnalysis)) {
+          setProfitAnalysisData(profitRes.data.profitAnalysis);
         }
       } catch {
-        // Fallback
+        setProfitAnalysisData([]);
       } finally {
         setIsLoading(false);
       }
     }
     loadData();
-  }, []);
+  }, [selectedPeriod, startDate, endDate]);
 
   const totalRevenue = useMemo(() => {
-    return salesList.reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
-  }, [salesList]);
+    return profitAnalysisData.reduce((sum, p) => sum + Number(p.revenue || 0), 0);
+  }, [profitAnalysisData]);
 
-  // Documented Calculation: Total Cost = Sum of (Item Cost Price * Quantity Sold) across completed sales
-  // For current business transactions: 2 units of Test Product A1 @ cost 300 = 600 cost
   const totalCost = useMemo(() => {
-    return salesList.reduce((sum, s) => {
-      const sub = Number(s.subtotal || s.total_amount || 0);
-      return sum + (sub * 0.30); // ~30% cost ratio based on database cost_price/sale_price
-    }, 0);
-  }, [salesList]);
+    return profitAnalysisData.reduce((sum, p) => sum + Number(p.cost || 0), 0);
+  }, [profitAnalysisData]);
 
-  const totalProfit = Math.max(0, totalRevenue - totalCost);
+  const totalProfit = useMemo(() => {
+    return profitAnalysisData.reduce((sum, p) => sum + Number(p.profit || 0), 0);
+  }, [profitAnalysisData]);
+
   const profitMarginPercent = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : '0.00';
 
   const metricsData = [
@@ -130,8 +106,8 @@ export default function AdminProfitReportPage() {
     },
   ];
 
-  const memoizedBarData = useMemo(() => PROFIT_BAR_DATA, []);
-  const memoizedLineData = useMemo(() => REVENUE_VS_PROFIT_DATA, []);
+  const memoizedBarData = profitAnalysisData;
+  const memoizedLineData = profitAnalysisData;
 
   return (
     <div className="flex flex-col gap-6 w-full pb-12">

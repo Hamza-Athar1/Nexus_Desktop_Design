@@ -19,17 +19,8 @@ import {
   CartesianGrid,
 } from 'recharts';
 
-const SALES_CHART_DATA = [
-  { name: '17 Jun', sales: 22000 },
-  { name: '18 Jun', sales: 10000 },
-  { name: '19 Jun', sales: 32000 },
-  { name: '20 Jun', sales: 46000 },
-  { name: '21 Jun', sales: 37000 },
-  { name: '22 Jun', sales: 25000 },
-  { name: '23 Jun', sales: 45000 },
-];
-
 import { getSales } from '../../lib/salesService.js';
+import { getSalesOverviewReport } from '../../lib/reportService.js';
 
 export default function AdminSalesReportPage() {
   const { setHeaderDetails } = useOutletContext() || {};
@@ -41,6 +32,7 @@ export default function AdminSalesReportPage() {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [salesList, setSalesList] = useState([]);
+  const [salesChartData, setSalesChartData] = useState([]);
   const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -56,12 +48,16 @@ export default function AdminSalesReportPage() {
     async function loadSales() {
       setIsLoading(true);
       try {
-        const res = await getSales();
+        const [res, overviewRes] = await Promise.all([getSales(), getSalesOverviewReport()]);
         if (res.ok && Array.isArray(res.data?.sales)) {
           setSalesList(res.data.sales);
         }
+        if (overviewRes.ok && Array.isArray(overviewRes.data?.salesOverview)) {
+          setSalesChartData(overviewRes.data.salesOverview);
+        }
       } catch {
         setSalesList([]);
+        setSalesChartData([]);
       } finally {
         setIsLoading(false);
       }
@@ -116,7 +112,7 @@ export default function AdminSalesReportPage() {
     },
   ];
 
-  const memoizedChartData = useMemo(() => SALES_CHART_DATA, []);
+  const memoizedChartData = salesChartData;
 
   return (
     <div className="flex flex-col gap-6 w-full pb-12">

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Calendar, ChevronDown } from 'lucide-react';
@@ -11,51 +11,7 @@ import {
   Legend,
 } from 'recharts';
 
-const TOP_PRODUCTS_DATA = [
-  { name: 'Cooking Oil', sales: 280 },
-  { name: 'Olpers', sales: 235 },
-  { name: 'Ramen', sales: 190 },
-  { name: 'Rice', sales: 115 },
-  { name: 'Takis', sales: 96 },
-];
-
-const CATEGORY_PIE_DATA = [
-  { name: 'Snacks', value: 20, color: '#FFA533' },
-  { name: 'Beverages', value: 18, color: '#3B82F6' },
-  { name: 'Grocery & Dairy', value: 28, color: '#8B5CF6' },
-  { name: 'Fruit & Vegetable', value: 20, color: '#FF7676' },
-  { name: 'Meat & Fish', value: 14, color: '#38BDF8' },
-];
-
-// Custom label for Pie Chart slices to render leader lines & text like the screenshot
-const renderCustomizedLabel = ({
-  cx,
-  cy,
-  midAngle,
-  outerRadius,
-  name,
-}) => {
-  const RADIAN = Math.PI / 180;
-  const radius = outerRadius + 22;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text
-      x={x}
-      y={y}
-      fill="#0c3818"
-      textAnchor={x > cx ? 'start' : 'end'}
-      dominantBaseline="central"
-      fontSize={12}
-      fontWeight="bold"
-    >
-      {name}
-    </text>
-  );
-};
-
-import { getInventoryItems } from '../../lib/inventoryService.js';
+import { getTopProductsReport, getCategoryDistributionReport } from '../../lib/reportService.js';
 
 export default function AdminProductReportPage() {
   const { setHeaderDetails } = useOutletContext() || {};
@@ -65,7 +21,8 @@ export default function AdminProductReportPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [productsList, setProductsList] = useState([]);
+  const [topProductsData, setTopProductsData] = useState([]);
+  const [categoryPieData, setCategoryPieData] = useState([]);
   const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -78,32 +35,32 @@ export default function AdminProductReportPage() {
   }, [setHeaderDetails, user]);
 
   useEffect(() => {
-    async function loadProducts() {
+    async function loadReportData() {
       setIsLoading(true);
       try {
-        const res = await getInventoryItems();
-        if (res.ok && Array.isArray(res.data?.items)) {
-          setProductsList(res.data.items);
+        const params = { period: selectedPeriod, startDate, endDate };
+        const [topRes, pieRes] = await Promise.all([
+          getTopProductsReport(params),
+          getCategoryDistributionReport(params),
+        ]);
+        if (topRes.ok && Array.isArray(topRes.data?.topProducts)) {
+          setTopProductsData(topRes.data.topProducts);
+        }
+        if (pieRes.ok && Array.isArray(pieRes.data?.categoryDistribution)) {
+          setCategoryPieData(pieRes.data.categoryDistribution);
         }
       } catch {
-        setProductsList([]);
+        setTopProductsData([]);
+        setCategoryPieData([]);
       } finally {
         setIsLoading(false);
       }
     }
-    loadProducts();
-  }, []);
+    loadReportData();
+  }, [selectedPeriod, startDate, endDate]);
 
-  const topProductsChartData = useMemo(() => {
-    if (productsList.length === 0) return TOP_PRODUCTS_DATA;
-    return productsList.map((p) => ({
-      name: p.name,
-      sales: Number(p.stock_qty ?? p.stock_quantity ?? 0),
-    }));
-  }, [productsList]);
-
-  const memoizedBarData = topProductsChartData;
-  const memoizedPieData = useMemo(() => CATEGORY_PIE_DATA, []);
+  const memoizedBarData = topProductsData;
+  const memoizedPieData = categoryPieData;
 
   return (
     <div className="flex flex-col gap-6 w-full pb-12">
@@ -256,7 +213,7 @@ export default function AdminProductReportPage() {
                   innerRadius={0}
                   dataKey="value"
                   labelLine={true}
-                  label={renderCustomizedLabel}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                 >
                   {memoizedPieData.map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
