@@ -3,113 +3,19 @@ import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { Search, Calendar, Eye, TrendingUp, ShoppingCart } from 'lucide-react';
 import ViewInvoiceModal from '../../components/Admin/ViewInvoiceModal';
-
-const INITIAL_SALES_HISTORY = [
-  {
-    id: '1',
-    invoiceNo: 'INV-00080',
-    date: '20 Aug 2026  09:30 PM',
-    amount: 3137,
-    subtotal: 3000,
-    laborCharge: 137,
-    paidAmount: 3000,
-    itemCount: 1,
-    items: [
-      { name: 'Cooking Oil 2L', qty: 1, price: 3000 },
-    ],
-  },
-  {
-    id: '2',
-    invoiceNo: 'INV-00081',
-    date: '20 Aug 2026  09:00 PM',
-    amount: 7000,
-    subtotal: 7000,
-    laborCharge: 0,
-    paidAmount: 7000,
-    itemCount: 2,
-    items: [
-      { name: 'Nestle Milk Pak 1L (Pack of 12)', qty: 2, price: 3500 },
-    ],
-  },
-  {
-    id: '3',
-    invoiceNo: 'INV-00082',
-    date: '20 Aug 2026  08:45 PM',
-    amount: 5000,
-    subtotal: 5000,
-    laborCharge: 0,
-    paidAmount: 5000,
-    itemCount: 2,
-    items: [
-      { name: 'Lipton Yellow Label Tea 950g', qty: 2, price: 2500 },
-    ],
-  },
-  {
-    id: '4',
-    invoiceNo: 'INV-00083',
-    date: '20 Aug 2026  08:15 PM',
-    amount: 2800,
-    subtotal: 2800,
-    laborCharge: 0,
-    paidAmount: 3000,
-    itemCount: 2,
-    items: [
-      { name: 'Surf Excel Washing Powder 2kg', qty: 1, price: 1400 },
-      { name: 'Ariel Powder 1kg', qty: 1, price: 1400 },
-    ],
-  },
-  {
-    id: '5',
-    invoiceNo: 'INV-00084',
-    date: '20 Aug 2026  06:37 PM',
-    amount: 3000,
-    subtotal: 3000,
-    laborCharge: 0,
-    paidAmount: 3000,
-    itemCount: 2,
-    items: [
-      { name: 'Tapal Danedar Tea 900g', qty: 2, price: 1500 },
-    ],
-  },
-  {
-    id: '6',
-    invoiceNo: 'INV-00085',
-    date: '20 Aug 2026  06:06 PM',
-    amount: 8650,
-    subtotal: 8650,
-    laborCharge: 0,
-    paidAmount: 9000,
-    itemCount: 4,
-    items: [
-      { name: 'Cooking Oil 5L', qty: 2, price: 3200 },
-      { name: 'Sugar 5kg', qty: 1, price: 750 },
-      { name: 'Wheat Flour 10kg', qty: 1, price: 1500 },
-    ],
-  },
-  {
-    id: '7',
-    invoiceNo: 'INV-00086',
-    date: '20 Aug 2026  05:15 PM',
-    amount: 3400,
-    subtotal: 3400,
-    laborCharge: 0,
-    paidAmount: 3500,
-    itemCount: 8,
-    items: [
-      { name: 'Olpers Milk 1L', qty: 6, price: 350 },
-      { name: 'Bread Family Pack', qty: 2, price: 650 },
-    ],
-  },
-];
+import { getSales, getSaleById } from '../../lib/salesService.js';
 
 export default function AdminSalesHistoryPage() {
   const { setHeaderDetails } = useOutletContext() || {};
   const { user } = useAuth();
 
+  const [salesList, setSalesList] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [_isLoadingDetail, setIsLoadingDetail] = useState(false);
 
   useEffect(() => {
     if (setHeaderDetails) {
@@ -120,15 +26,52 @@ export default function AdminSalesHistoryPage() {
     }
   }, [setHeaderDetails, user]);
 
-  // Filter invoices based on search term
+  const loadSalesHistory = async () => {
+    setIsLoading(true);
+    try {
+      const res = await getSales();
+      if (res.ok && res.data?.sales) {
+        setSalesList(res.data.sales);
+      } else {
+        setSalesList([]);
+      }
+    } catch {
+      setSalesList([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadSalesHistory();
+  }, []);
+
+  const handleViewInvoice = async (sale) => {
+    setIsLoadingDetail(true);
+    try {
+      const res = await getSaleById(sale.id);
+      if (res.ok && res.data?.sale) {
+        setSelectedInvoice(res.data.sale);
+      } else {
+        setSelectedInvoice(sale);
+      }
+    } catch {
+      setSelectedInvoice(sale);
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  };
+
+  // Filter invoices based on search term and dates
   const filteredInvoices = useMemo(() => {
-    return INITIAL_SALES_HISTORY.filter((item) => {
-      const matchesSearch = item.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase());
+    return salesList.filter((item) => {
+      const invNo = item.invoice_number || item.invoiceNo || '';
+      const matchesSearch = invNo.toLowerCase().includes(searchTerm.toLowerCase());
       return matchesSearch;
     });
-  }, [searchTerm]);
+  }, [salesList, searchTerm]);
 
-  const totalInvoicesCount = 98; // Matching the screen summary
+  const totalInvoicesCount = salesList.length;
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-[1600px] mx-auto pb-12">
@@ -138,7 +81,7 @@ export default function AdminSalesHistoryPage() {
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <h2 className="text-2xl font-black text-[#0c3818] tracking-tight shrink-0">
-            Sales History
+            Sales History ({totalInvoicesCount})
           </h2>
 
           {/* Search and Date Filter Controls */}
@@ -210,37 +153,62 @@ export default function AdminSalesHistoryPage() {
                 <tr className="bg-[#e9e5cb] border-b border-[#0c3818]/20 text-[#0c3818] text-sm lg:text-base font-black">
                   <th className="py-4 px-6">Invoice #</th>
                   <th className="py-4 px-6">Date</th>
+                  <th className="py-4 px-6 text-center">Status</th>
                   <th className="py-4 px-6 text-center">Total Amount (PKR)</th>
                   <th className="py-4 px-6 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#0c3818]/15 bg-white/60">
-                {filteredInvoices.length > 0 ? (
-                  filteredInvoices.map((inv) => (
-                    <tr
-                      key={inv.id}
-                      className="hover:bg-[#efeacb]/40 transition-colors text-[#0c3818] font-bold text-sm lg:text-base"
-                    >
-                      <td className="py-4.5 px-6 font-black tracking-tight">{inv.invoiceNo}</td>
-                      <td className="py-4.5 px-6 text-[#0c3818]/90 font-semibold">{inv.date}</td>
-                      <td className="py-4.5 px-6 text-center font-black text-base lg:text-lg">
-                        {inv.amount.toLocaleString('en-IN')}
-                      </td>
-                      <td className="py-4.5 px-6 text-center">
-                        <button
-                          onClick={() => setSelectedInvoice(inv)}
-                          title="View Invoice Details"
-                          className="p-2 rounded-full hover:bg-[#0c3818]/10 text-[#0c3818] hover:text-[#10b981] transition cursor-pointer inline-flex items-center justify-center"
-                        >
-                          <Eye size={22} className="stroke-[2.2]" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
+                {isLoading ? (
+                  <tr>
+                    <td colSpan="5" className="py-12 text-center text-[#0c3818] font-bold">
+                      Loading sales history...
+                    </td>
+                  </tr>
+                ) : filteredInvoices.length > 0 ? (
+                  filteredInvoices.map((inv) => {
+                    const invNo = inv.invoice_number || inv.invoiceNo || `INV-${inv.id}`;
+                    const dateDisplay = inv.created_at
+                      ? new Date(inv.created_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                      : (inv.date || '-');
+                    const invTotal = Number(inv.total_amount ?? inv.amount ?? 0);
+                    const invStatus = inv.status || 'completed';
+
+                    return (
+                      <tr
+                        key={inv.id}
+                        className="hover:bg-[#efeacb]/40 transition-colors text-[#0c3818] font-bold text-sm lg:text-base"
+                      >
+                        <td className="py-4.5 px-6 font-black tracking-tight">{invNo}</td>
+                        <td className="py-4.5 px-6 text-[#0c3818]/90 font-semibold">{dateDisplay}</td>
+                        <td className="py-4.5 px-6 text-center">
+                          <span className={`text-[11px] font-extrabold uppercase px-2.5 py-1 rounded-full ${
+                            invStatus === 'refunded' ? 'bg-red-100 text-red-700' :
+                            invStatus === 'partially_refunded' ? 'bg-amber-100 text-amber-800' :
+                            'bg-green-100 text-green-800'
+                          }`}>
+                            {invStatus}
+                          </span>
+                        </td>
+                        <td className="py-4.5 px-6 text-center font-black text-base lg:text-lg">
+                          {invTotal.toLocaleString('en-IN')}
+                        </td>
+                        <td className="py-4.5 px-6 text-center">
+                          <button
+                            onClick={() => handleViewInvoice(inv)}
+                            title="View Invoice Details"
+                            className="p-2 rounded-full hover:bg-[#0c3818]/10 text-[#0c3818] hover:text-[#10b981] transition cursor-pointer inline-flex items-center justify-center"
+                          >
+                            <Eye size={22} className="stroke-[2.2]" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 ) : (
                   <tr>
-                    <td colSpan="4" className="py-10 text-center text-[#607455] font-bold">
-                      No invoices found matching your criteria.
+                    <td colSpan="5" className="py-10 text-center text-[#607455] font-bold">
+                      No sales recorded yet.
                     </td>
                   </tr>
                 )}

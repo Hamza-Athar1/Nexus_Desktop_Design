@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   Search,
   ChevronDown,
@@ -49,68 +50,29 @@ const INITIAL_CATEGORIES = [
   { id: 5, name: 'Snacks' },
 ];
 
-const INITIAL_SUBCATEGORIES = [
-  { id: 1, name: 'Oil & Ghee' },
-  { id: 2, name: 'Milk & Eggs' },
-  { id: 3, name: 'Bread & Buns' },
-  { id: 4, name: 'Rice & Flour' },
-  { id: 5, name: 'Cheese & Butter' },
-];
+// Fallback subcategories list
+const INITIAL_SUBCATEGORIES = [];
 
-const INITIAL_PRODUCTS = [
-  {
-    id: 1,
-    name: 'Cooking Oil 1L',
-    price: '1,100',
-    stock: 45,
-    status: 'Active',
-    category: 'Grocery & Dairy',
-    subcategory: 'Oil & Ghee',
-    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=80&auto=format&fit=crop&q=60',
-  },
-  {
-    id: 2,
-    name: 'Lewis Bread',
-    price: '400',
-    stock: 35,
-    status: 'Active',
-    category: 'Grocery & Dairy',
-    subcategory: 'Bread & Buns',
-    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&auto=format&fit=crop&q=60',
-  },
-  {
-    id: 3,
-    name: 'Rice 5Kg',
-    price: '3,500',
-    stock: 0,
-    status: 'Out of Stock',
-    category: 'Grocery & Dairy',
-    subcategory: 'Rice & Flour',
-    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=80&auto=format&fit=crop&q=60',
-  },
-  {
-    id: 4,
-    name: 'Olpers Milk 1L',
-    price: '320',
-    stock: 40,
-    status: 'Active',
-    category: 'Grocery & Dairy',
-    subcategory: 'Milk & Eggs',
-    image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=80&auto=format&fit=crop&q=60',
-  },
-];
+
+import {
+  getInventoryItems,
+  createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem,
+} from '../../lib/inventoryService.js';
 
 export default function AdminProductsPage() {
   const { setHeaderDetails } = useOutletContext() || {};
+  const { user } = useAuth();
 
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: 'IMTIAZ SUPER MARKET',
+        title: user?.businessName?.toUpperCase() || 'IMTIAZ SUPER MARKET',
         subtitle: null,
       });
     }
-  }, [setHeaderDetails]);
+  }, [setHeaderDetails, user]);
 
   // Categories & Subcategories State
   const [categories, setCategories] = useState(INITIAL_CATEGORIES);
@@ -118,12 +80,51 @@ export default function AdminProductsPage() {
   const [subcategories, setSubcategories] = useState(INITIAL_SUBCATEGORIES);
   const [selectedSubcategory, setSelectedSubcategory] = useState('Oil & Ghee');
 
-  // Products State
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  // Products State & Fetching
+  const [products, setProducts] = useState([]);
+  const [_isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+
+  const fetchProductsList = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await getInventoryItems();
+      if (res.ok && Array.isArray(res.data?.items)) {
+        const mapped = res.data.items.map((item) => {
+          const stock = Number(item.stock_qty ?? item.stock_quantity ?? 0);
+          const reorder = Number(item.reorder_level || 0);
+          let status = 'Active';
+          if (!item.is_active || stock === 0) status = 'Out of Stock';
+          else if (stock <= reorder) status = 'Low Stock';
+
+          return {
+            id: item.id,
+            name: item.name,
+            price: String(item.price ?? item.sale_price ?? 0),
+            stock: stock,
+            status,
+            category: item.category || 'Grocery & Dairy',
+            subcategory: 'General',
+            image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&auto=format&fit=crop&q=60',
+          };
+        });
+        setProducts(mapped);
+      } else {
+        setProducts([]);
+      }
+    } catch {
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchProductsList();
+  }, [fetchProductsList]);
 
   // Category Edit/Delete Popover & Modal State
   const [catMenuOpenId, setCatMenuOpenId] = useState(null);
@@ -204,31 +205,66 @@ export default function AdminProductsPage() {
   };
 
   // ── Product Handlers ──────────────────────────────────────────────────────
-  const handleSaveNewProduct = (newProdData) => {
-    const newProduct = {
-      id: Date.now(),
-      name: newProdData.name || 'New Product',
-      price: newProdData.sellingPrice || '0',
-      stock: Number(newProdData.stockQuantity) || 0,
-      status: Number(newProdData.stockQuantity) === 0 ? 'Out of Stock' : (Number(newProdData.stockQuantity) <= Number(newProdData.minStockLevel) ? 'Low Stock' : 'Active'),
-      category: newProdData.category || selectedCategory || 'Grocery & Dairy',
-      subcategory: selectedSubcategory || 'General',
-      image: newProdData.imagePreview || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&auto=format&fit=crop&q=60',
-    };
-    setProducts([newProduct, ...products]);
-    setIsAddingProduct(false);
+  const handleSaveNewProduct = async (newProdData) => {
+    try {
+      const payload = {
+        name: newProdData.name || 'New Product',
+        price: Number(newProdData.sellingPrice) || 0,
+        stockQty: Number(newProdData.stockQuantity) || 0,
+        reorderLevel: Number(newProdData.minStockLevel) || 0,
+        unit: 'pcs',
+        taxRate: Number(newProdData.taxRate) || 0,
+        moduleSpecificFields: {
+          cost_price: Number(newProdData.costPrice) || 0,
+        },
+      };
+
+      const res = await createInventoryItem(payload);
+      if (!res.ok) {
+        alert(`Failed to create product: ${res.data?.message || 'Server error'}`);
+        return;
+      }
+      fetchProductsList();
+      setIsAddingProduct(false);
+    } catch (err) {
+      alert(`Error creating product: ${err.message}`);
+    }
   };
 
-  const handleSaveEditedProduct = (updatedProd) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === updatedProd.id ? updatedProd : p))
-    );
+  const handleSaveEditedProduct = async (updatedProd) => {
+    try {
+      const payload = {
+        name: updatedProd.name,
+        price: Number(updatedProd.price),
+        stockQty: Number(updatedProd.stock),
+      };
+
+      const res = await updateInventoryItem(updatedProd.id, payload);
+      if (!res.ok) {
+        alert(`Failed to update product: ${res.data?.message || 'Server error'}`);
+        return;
+      }
+      fetchProductsList();
+      setEditingProduct(null);
+    } catch (err) {
+      alert(`Error updating product: ${err.message}`);
+    }
   };
 
-  const confirmDeleteProduct = () => {
+  const confirmDeleteProduct = async () => {
     if (productToDelete) {
-      setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
-      setProductToDelete(null);
+      try {
+        const res = await deleteInventoryItem(productToDelete.id);
+        if (!res.ok) {
+          alert(`Failed to delete product: ${res.data?.message || 'Server error'}`);
+          return;
+        }
+        fetchProductsList();
+      } catch (err) {
+        alert(`Error deleting product: ${err.message}`);
+      } finally {
+        setProductToDelete(null);
+      }
     }
   };
 

@@ -16,18 +16,15 @@ const STOCK_DONUT_DATA = [
   { name: 'Out of Stock', value: 10, color: '#0d9488' },
 ];
 
-const LOW_STOCK_ITEMS = [
-  { name: 'Cooking Oil', category: 'Grocery', qty: '10' },
-  { name: 'Takis', category: 'Snacks', qty: '18' },
-  { name: 'Fish', category: 'Meat & Fish', qty: '04' },
-  { name: 'Rice', category: 'Grocery', qty: '10' },
-  { name: 'Olpers', category: 'Dairy', qty: '09' },
-];
+import { getInventoryItems } from '../../lib/inventoryService.js';
 
 export default function AdminStockReportPage() {
   const { setHeaderDetails } = useOutletContext() || {};
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  const [itemsList, setItemsList] = React.useState([]);
+  const [_isLoading, setIsLoading] = React.useState(true);
 
   useEffect(() => {
     if (setHeaderDetails) {
@@ -38,24 +35,60 @@ export default function AdminStockReportPage() {
     }
   }, [setHeaderDetails, user]);
 
+  useEffect(() => {
+    async function loadStock() {
+      setIsLoading(true);
+      try {
+        const res = await getInventoryItems();
+        if (res.ok && Array.isArray(res.data?.items)) {
+          setItemsList(res.data.items);
+        }
+      } catch {
+        setItemsList([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadStock();
+  }, []);
+
+  const totalStockItemsCount = itemsList.length;
+  const lowStockCount = itemsList.filter((i) => {
+    const stock = Number(i.stock_qty ?? i.stock_quantity ?? 0);
+    const reorder = Number(i.reorder_level || 0);
+    return stock > 0 && stock <= reorder;
+  }).length;
+
+  const outOfStockCount = itemsList.filter((i) => Number(i.stock_qty ?? i.stock_quantity ?? 0) === 0).length;
+
+  const lowStockTableItems = useMemo(() => {
+    return itemsList
+      .filter((i) => Number(i.stock_qty ?? i.stock_quantity ?? 0) <= Number(i.reorder_level || 0))
+      .map((i) => ({
+        name: i.name,
+        category: i.category || 'Grocery',
+        qty: String(i.stock_qty ?? i.stock_quantity ?? 0).padStart(2, '0'),
+      }));
+  }, [itemsList]);
+
   const metricsData = [
     {
       label: 'TOTAL STOCK ITEMS',
-      value: '26',
+      value: `${totalStockItemsCount}`,
       icon: TrendingUp,
       iconBg: 'bg-[#e2f0e6] text-[#125d2b]',
       statusPill: { text: 'Optimal', bg: 'bg-[#e2f0e6] text-[#125d2b] border-[#a6dcb8]' },
     },
     {
       label: 'LOW STOCK ITEMS',
-      value: '108',
+      value: `${lowStockCount}`,
       icon: BarChart3,
       iconBg: 'bg-[#fef3d6] text-[#b45309]',
       statusPill: { text: 'Restock Soon', bg: 'bg-[#fef3d6] text-[#b45309] border-[#fde047]' },
     },
     {
       label: 'OUT OF STOCK ITEMS',
-      value: '12',
+      value: `${outOfStockCount}`,
       icon: ShoppingCart,
       iconBg: 'bg-[#fde8e4] text-[#8b1e10]',
       statusPill: { text: 'Action Needed', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
@@ -189,15 +222,23 @@ export default function AdminStockReportPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0c3818]/15">
-                  {LOW_STOCK_ITEMS.map((item, i) => (
-                    <tr key={i} className="text-[#0c3818] text-sm font-bold hover:bg-[#efeacb]/40 transition">
-                      <td className="py-3.5 pr-2 font-black tracking-tight">{item.name}</td>
-                      <td className="py-3.5 px-2 text-[#0c3818]/85">{item.category}</td>
-                      <td className="py-3.5 pl-2 text-right font-black text-[#0c3818]">
-                        {item.qty}
+                  {lowStockTableItems.length > 0 ? (
+                    lowStockTableItems.map((item, i) => (
+                      <tr key={i} className="text-[#0c3818] text-sm font-bold hover:bg-[#efeacb]/40 transition">
+                        <td className="py-3.5 pr-2 font-black tracking-tight">{item.name}</td>
+                        <td className="py-3.5 px-2 text-[#0c3818]/85">{item.category}</td>
+                        <td className="py-3.5 pl-2 text-right font-black text-[#0c3818]">
+                          {item.qty}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-xs text-gray-400 font-semibold">
+                        No low stock items
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

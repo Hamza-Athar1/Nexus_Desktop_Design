@@ -55,6 +55,8 @@ const renderCustomizedLabel = ({
   );
 };
 
+import { getInventoryItems } from '../../lib/inventoryService.js';
+
 export default function AdminProductReportPage() {
   const { setHeaderDetails } = useOutletContext() || {};
   const { user } = useAuth();
@@ -63,6 +65,8 @@ export default function AdminProductReportPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [productsList, setProductsList] = useState([]);
+  const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (setHeaderDetails) {
@@ -73,7 +77,32 @@ export default function AdminProductReportPage() {
     }
   }, [setHeaderDetails, user]);
 
-  const memoizedBarData = useMemo(() => TOP_PRODUCTS_DATA, []);
+  useEffect(() => {
+    async function loadProducts() {
+      setIsLoading(true);
+      try {
+        const res = await getInventoryItems();
+        if (res.ok && Array.isArray(res.data?.items)) {
+          setProductsList(res.data.items);
+        }
+      } catch {
+        setProductsList([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadProducts();
+  }, []);
+
+  const topProductsChartData = useMemo(() => {
+    if (productsList.length === 0) return TOP_PRODUCTS_DATA;
+    return productsList.map((p) => ({
+      name: p.name,
+      sales: Number(p.stock_qty ?? p.stock_quantity ?? 0),
+    }));
+  }, [productsList]);
+
+  const memoizedBarData = topProductsChartData;
   const memoizedPieData = useMemo(() => CATEGORY_PIE_DATA, []);
 
   return (

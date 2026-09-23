@@ -1,6 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, RotateCcw, Trash2, Plus, Barcode } from 'lucide-react';
+import { Search, Trash2, Plus, Barcode } from 'lucide-react';
+import { apiFetchJson } from '../../lib/api.js';
+import { createSale } from '../../lib/salesService.js';
+import ViewInvoiceModal from '../../components/Admin/ViewInvoiceModal.jsx';
 
 function POSClock() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -23,28 +26,25 @@ function POSClock() {
   return <p className="text-sm font-bold text-[#0d3410]/95 font-mono">{formattedDateTime}</p>;
 }
 
-
-// Mock product catalog for search and scanner simulation
-const CATALOG = [
-  { id: 'p1', name: 'Imtiaz Wheat Flour 10kg', price: 950 },
-  { id: 'p2', name: 'Olper\'s Milk 1L', price: 280 },
-  { id: 'p3', name: 'Nestle Pure Life 1.5L', price: 90 },
-  { id: 'p4', name: 'National Ketchup 500g', price: 320 },
-  { id: 'p5', name: 'Tapal Danedar Tea 450g', price: 650 },
-  { id: 'p6', name: 'Lipton Yellow Label 500g', price: 720 },
-  { id: 'p7', name: 'LU Prince Biscuits Half Roll', price: 40 },
-  { id: 'p8', name: 'Sensodyne Toothpaste 100g', price: 450 },
-  { id: 'p9', name: 'Lux Soap 150g', price: 150 },
-  { id: 'p10', name: 'Surf Excel 1kg', price: 580 },
+// Fallback catalog if backend has no active products yet
+const FALLBACK_CATALOG = [
+  { id: 5, name: 'Test Product A1', sale_price: 999, price: 999, stock_quantity: 50, stock: 50, tax_rate: 10 },
+  { id: 6, name: 'Test Product A2', sale_price: 200, price: 200, stock_quantity: 40, stock: 40, tax_rate: 0 },
+  { id: 5, name: 'Imtiaz Wheat Flour 10kg', sale_price: 950, price: 950, stock_quantity: 50, stock: 50, tax_rate: 10 },
+  { id: 6, name: 'Olper\'s Milk 1L', sale_price: 280, price: 280, stock_quantity: 40, stock: 40, tax_rate: 5 },
 ];
 
 export default function POSSystemPage() {
   const navigate = useNavigate();
+  // Real products state
+  const [products, setProducts] = useState([]);
+  const [_isLoadingProducts, setIsLoadingProducts] = useState(false);
+
   // Tabs: Customers
   const [customers, setCustomers] = useState(['Customer 1', 'Customer 2', 'Customer 3']);
   const [activeCustomerIndex, setActiveCustomerIndex] = useState(0);
 
-  // Cart / Invoice state per customer to keep it fully separate
+  // Cart / Invoice state per customer
   const [carts, setCarts] = useState({
     0: [],
     1: [],
@@ -55,12 +55,10 @@ export default function POSSystemPage() {
   const [laborCharges, setLaborCharges] = useState({ 0: 0, 1: 0, 2: 0 });
   const [paidAmounts, setPaidAmounts] = useState({ 0: '', 1: '', 2: '' });
 
-  // Invoice numbers per customer
-  const [invoiceNumbers, setInvoiceNumbers] = useState({
-    0: 'INV-00029',
-    1: 'INV-00030',
-    2: 'INV-00031',
-  });
+  // Invoice numbers / checkout state
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [_checkoutError, setCheckoutError] = useState(null);
+  const [completedSale, setCompletedSale] = useState(null);
 
   // Search input state
   const [searchQuery, setSearchQuery] = useState('');
@@ -70,32 +68,62 @@ export default function POSSystemPage() {
   const [scanLaserActive, setScanLaserActive] = useState(false);
   const [lastScannedItem, setLastScannedItem] = useState(null);
 
+  // Fetch real inventory products from backend
+  const fetchProducts = async () => {
+    setIsLoadingProducts(true);
+    try {
+      const res = await apiFetchJson('/inventory/items');
+      if (res.ok && Array.isArray(res.data?.items) && res.data.items.length > 0) {
+        setProducts(res.data.items);
+      } else {
+        setProducts(FALLBACK_CATALOG);
+      }
+    } catch {
+      setProducts(FALLBACK_CATALOG);
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const catalog = useMemo(() => (products.length > 0 ? products : FALLBACK_CATALOG), [products]);
+
   const currentCart = useMemo(() => carts[activeCustomerIndex] || [], [carts, activeCustomerIndex]);
   const currentLabor = laborCharges[activeCustomerIndex] || 0;
   const currentPaid = paidAmounts[activeCustomerIndex] || '';
-  const currentInvoice = invoiceNumbers[activeCustomerIndex] || 'INV-00029';
 
-  // Subtotal, Total, Change calculations
+  // Subtotal, Tax, Total, Change calculations
   const subtotal = useMemo(() => {
-    return currentCart.reduce((sum, item) => sum + item.price * item.qty, 0);
+    return currentCart.reduce((sum, item) => sum + (Number(item.price || item.sale_price) * item.qty), 0);
+  }, [currentCart]);
+
+  const taxAmount = useMemo(() => {
+    const totalTax = currentCart.reduce((sum, item) => {
+      const lineSub = Number(item.price || item.sale_price || 0) * item.qty;
+      const lineTax = lineSub * (Number(item.tax_rate || 0) / 100);
+      return sum + lineTax;
+    }, 0);
+    return Math.round(totalTax * 100) / 100;
   }, [currentCart]);
 
   const total = useMemo(() => {
-    return subtotal + Number(currentLabor);
-  }, [subtotal, currentLabor]);
+    return Math.round((subtotal + taxAmount + Number(currentLabor)) * 100) / 100;
+  }, [subtotal, taxAmount, currentLabor]);
 
   const changeDue = useMemo(() => {
     if (!currentPaid || Number(currentPaid) < total) return 0;
-    return Number(currentPaid) - total;
+    return Math.round((Number(currentPaid) - total) * 100) / 100;
   }, [currentPaid, total]);
 
   // Handle barcode scan simulator
   const handleScanNext = () => {
     setScanLaserActive(true);
     setTimeout(() => {
-      // Pick a random product from Catalog
-      const randomIndex = Math.floor(Math.random() * CATALOG.length);
-      const product = CATALOG[randomIndex];
+      const randomIndex = Math.floor(Math.random() * catalog.length);
+      const product = catalog[randomIndex];
 
       addItemToCart(product);
       setLastScannedItem(product);
@@ -103,19 +131,33 @@ export default function POSSystemPage() {
     }, 500);
   };
 
-  // Add item to cart helper
+  // Add item to cart helper with stock check
   const addItemToCart = (product) => {
+    const prodPrice = Number(product.sale_price ?? product.price ?? 0);
+    const prodStock = Number(product.stock_quantity ?? product.stock ?? 9999);
+    const prodTaxRate = Number(product.tax_rate ?? product.taxRate ?? product.module_specific_fields?.tax_rate ?? 0);
+
+    if (prodStock <= 0) {
+      alert(`Cannot add "${product.name}": Out of Stock.`);
+      return;
+    }
+
     setCarts((prev) => {
       const activeCart = prev[activeCustomerIndex] || [];
       const existingItemIndex = activeCart.findIndex((item) => item.id === product.id);
 
       let newCart;
       if (existingItemIndex >= 0) {
+        const currentQty = activeCart[existingItemIndex].qty;
+        if (currentQty + 1 > prodStock) {
+          alert(`Cannot add more than available stock (${prodStock} units).`);
+          return prev;
+        }
         newCart = activeCart.map((item, idx) =>
           idx === existingItemIndex ? { ...item, qty: item.qty + 1 } : item
         );
       } else {
-        newCart = [...activeCart, { ...product, qty: 1 }];
+        newCart = [...activeCart, { id: product.id, name: product.name, price: prodPrice, stock: prodStock, tax_rate: prodTaxRate, qty: 1 }];
       }
 
       return {
@@ -125,10 +167,16 @@ export default function POSSystemPage() {
     });
   };
 
-  // Update item qty in cart
+  // Update item qty in cart with stock check
   const updateQty = (productId, newQty) => {
     setCarts((prev) => {
       const activeCart = prev[activeCustomerIndex] || [];
+      const item = activeCart.find((i) => i.id === productId);
+      if (item && newQty > item.stock) {
+        alert(`Maximum stock available for "${item.name}" is ${item.stock} units.`);
+        return prev;
+      }
+
       const updated = activeCart.map((item) =>
         item.id === productId ? { ...item, qty: Math.max(1, newQty) } : item
       );
@@ -157,6 +205,53 @@ export default function POSSystemPage() {
     setLaborCharges((prev) => ({ ...prev, [activeCustomerIndex]: 0 }));
     setPaidAmounts((prev) => ({ ...prev, [activeCustomerIndex]: '' }));
     setLastScannedItem(null);
+    setCheckoutError(null);
+  };
+
+  // Real Checkout Handler
+  const handleCheckout = async () => {
+    if (!currentCart || currentCart.length === 0) {
+      alert('Cart is empty! Please add products before check out.');
+      return;
+    }
+
+    const paidVal = Number(currentPaid);
+    if (!currentPaid || isNaN(paidVal) || paidVal < total) {
+      alert(`Paid amount must be at least the total amount (Rs. ${total}).`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setCheckoutError(null);
+
+    try {
+      const res = await createSale({
+        items: currentCart.map((item) => ({
+          productId: Number(item.id),
+          quantity: Number(item.qty),
+          discountAmount: 0,
+        })),
+        payment: {
+          method: 'cash',
+          amount: paidVal,
+        },
+        note: `${customers[activeCustomerIndex]} - POS Sale`,
+      });
+
+      if (!res.ok) {
+        throw new Error(res.data?.message || 'Checkout failed');
+      }
+
+      // Success
+      setCompletedSale(res.data.sale);
+      handleClear();
+      fetchProducts(); // Refresh real inventory stock
+    } catch (err) {
+      setCheckoutError(err.message);
+      alert(`Checkout Rejected: ${err.message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Add new customer tab
@@ -166,20 +261,16 @@ export default function POSSystemPage() {
     setCarts((prev) => ({ ...prev, [nextIndex]: [] }));
     setLaborCharges((prev) => ({ ...prev, [nextIndex]: 0 }));
     setPaidAmounts((prev) => ({ ...prev, [nextIndex]: '' }));
-    setInvoiceNumbers((prev) => ({
-      ...prev,
-      [nextIndex]: `INV-000${29 + nextIndex}`,
-    }));
     setActiveCustomerIndex(nextIndex);
   };
 
   // Filter products based on search query
   const filteredProducts = useMemo(() => {
     if (!searchQuery.trim()) return [];
-    return CATALOG.filter((p) =>
+    return catalog.filter((p) =>
       p.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
-  }, [searchQuery]);
+  }, [searchQuery, catalog]);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-[#efe9c4] text-[#0f2e13] font-sans">
@@ -252,7 +343,7 @@ export default function POSSystemPage() {
                   className="w-full text-left px-4 py-3 hover:bg-[#efe9c4]/40 flex justify-between items-center border-b border-gray-100 last:border-b-0 text-sm font-semibold transition-colors"
                 >
                   <span className="text-[#0d3410]">{product.name}</span>
-                  <span className="text-[#ca8a04]">Rs. {product.price}</span>
+                  <span className="text-[#ca8a04]">Rs. {product.sale_price ?? product.price}</span>
                 </button>
               ))}
             </div>
@@ -341,7 +432,7 @@ export default function POSSystemPage() {
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-50 rounded-full text-xs font-semibold text-green-700 animate-fade-in">
                   <span>Scanned: {lastScannedItem.name}</span>
                   <span className="text-[10px] bg-green-200 text-green-800 px-1.5 py-0.5 rounded-full">
-                    Rs. {lastScannedItem.price}
+                    Rs. {lastScannedItem.sale_price ?? lastScannedItem.price}
                   </span>
                 </div>
               ) : (
@@ -354,15 +445,8 @@ export default function POSSystemPage() {
           <div className="lg:col-span-5 flex flex-col">
             {/* Dark green header banner */}
             <div className="bg-[#093311] rounded-t-2xl px-4 py-3 flex items-center justify-between text-white shadow-sm select-none">
-              <span className="text-sm md:text-base font-bold font-mono tracking-wide">{currentInvoice}</span>
+              <span className="text-sm md:text-base font-bold font-mono tracking-wide">POS Checkout</span>
               <div className="flex gap-2">
-                <button
-                  onClick={handleClear}
-                  className="bg-white hover:bg-white/90 text-[#b22222] text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
-                >
-                  <RotateCcw size={12} />
-                  Return
-                </button>
                 <button
                   onClick={handleClear}
                   className="bg-white hover:bg-white/90 text-[#093311] text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
@@ -441,6 +525,14 @@ export default function POSSystemPage() {
                   <span className="font-mono text-gray-900">Rs. {subtotal}</span>
                 </div>
 
+                {/* Tax row */}
+                {taxAmount > 0 && (
+                  <div className="flex justify-between items-center text-xs md:text-sm font-bold text-gray-600">
+                    <span>Tax</span>
+                    <span className="font-mono text-gray-900">Rs. {taxAmount}</span>
+                  </div>
+                )}
+
                 {/* Labor Charges input */}
                 <div className="flex justify-between items-center text-xs md:text-sm font-bold text-gray-600">
                   <span>Labor charges</span>
@@ -500,19 +592,19 @@ export default function POSSystemPage() {
                 {/* Action buttons at bottom */}
                 <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
                   <button
-                    onClick={() => {
-                      alert('Bill Saved Successfully!');
-                      handleClear();
-                    }}
-                    className="w-full py-3 border border-[#093311] text-[#093311] hover:bg-[#093311]/5 rounded-xl text-xs md:text-sm font-extrabold tracking-wide uppercase transition-colors"
+                    onClick={handleCheckout}
+                    disabled={isSubmitting || currentCart.length === 0}
+                    className={`w-full py-3 bg-[#093311] hover:bg-[#06240c] text-white rounded-xl text-xs md:text-sm font-extrabold tracking-wide uppercase transition-colors ${
+                      isSubmitting || currentCart.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
                   >
-                    Save bill
+                    {isSubmitting ? 'Processing...' : 'Save & Checkout'}
                   </button>
                   <button
                     onClick={() => {
                       window.print();
                     }}
-                    className="w-full py-3 bg-[#093311] hover:bg-[#06240c] text-white rounded-xl text-xs md:text-sm font-extrabold tracking-wide uppercase transition-colors"
+                    className="w-full py-3 border border-[#093311] text-[#093311] hover:bg-[#093311]/5 rounded-xl text-xs md:text-sm font-extrabold tracking-wide uppercase transition-colors"
                   >
                     Print
                   </button>
@@ -522,6 +614,14 @@ export default function POSSystemPage() {
           </div>
         </div>
       </div>
+
+      {/* Server Authoritative Receipt Modal */}
+      {completedSale && (
+        <ViewInvoiceModal
+          invoice={completedSale}
+          onClose={() => setCompletedSale(null)}
+        />
+      )}
     </div>
   );
 }

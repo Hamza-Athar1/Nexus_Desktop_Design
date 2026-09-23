@@ -71,8 +71,7 @@ export const accessTokenCookieOptions = {
   path: '/',
 };
 
-/** @param {boolean} rememberMe */
-export function refreshTokenCookieOptions(rememberMe = false) {
+export function refreshTokenCookieOptions() {
   return {
     httpOnly: true,
     secure: isProd,
