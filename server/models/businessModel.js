@@ -13,7 +13,7 @@ export async function findBusinessById(id) {
   return rows[0] || null;
 }
 
-/** Joins in the module code/name and resolved palette details — fallback order: business.palette_id -> pos_modules.palette_id -> preset fallback. */
+/** Joins in the module code/name and resolved palette details — fallback order: business.palette_id -> preset fallback. */
 export async function findBusinessWithModuleByOwner(ownerUserId) {
   const [rows] = await pool.query(
     `SELECT b.*, m.code AS module_code, m.name AS module_name,
@@ -21,8 +21,7 @@ export async function findBusinessWithModuleByOwner(ownerUserId) {
             p.color_primary, p.color_accent, p.color_shade, p.color_light
      FROM businesses b
      JOIN modules m ON m.id = b.module_id
-     LEFT JOIN pos_modules pm ON LOWER(pm.name) LIKE CONCAT('%', LOWER(m.name), '%')
-     LEFT JOIN pos_palettes p ON p.id = COALESCE(b.palette_id, pm.palette_id, (SELECT id FROM pos_palettes WHERE is_preset = 1 ORDER BY id ASC LIMIT 1))
+     LEFT JOIN pos_palettes p ON p.id = COALESCE(b.palette_id, (SELECT id FROM pos_palettes WHERE is_preset = 1 ORDER BY id ASC LIMIT 1))
      WHERE b.owner_user_id = ? LIMIT 1`,
     [ownerUserId]
   );
@@ -41,8 +40,7 @@ export async function findBusinessWithModuleByUser(userId) {
        (u.role = 'user' AND b.id = u.business_id)
      )
      JOIN modules m ON m.id = b.module_id
-     LEFT JOIN pos_modules pm ON LOWER(pm.name) LIKE CONCAT('%', LOWER(m.name), '%')
-     LEFT JOIN pos_palettes p ON p.id = COALESCE(b.palette_id, pm.palette_id, (SELECT id FROM pos_palettes WHERE is_preset = 1 ORDER BY id ASC LIMIT 1))
+     LEFT JOIN pos_palettes p ON p.id = COALESCE(b.palette_id, (SELECT id FROM pos_palettes WHERE is_preset = 1 ORDER BY id ASC LIMIT 1))
      WHERE u.id = ? LIMIT 1`,
     [userId]
   );

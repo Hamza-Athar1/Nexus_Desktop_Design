@@ -65,6 +65,14 @@ async function runThemeTests() {
       recordTest('Theme Fallback Resolution', false, 'Fallback palette resolution failed');
     }
 
+    // 5. Test Deterministic Module ID Relationship (b.module_id -> modules.id)
+    const [modCheck] = await pool.query('SELECT b.module_id, m.name FROM businesses b JOIN modules m ON m.id = b.module_id WHERE b.id = ?', [bizA.id]);
+    if (userA_fallback && Number(userA_fallback.module_id) === Number(modCheck[0].module_id)) {
+      recordTest('Deterministic Module ID Resolution', true, `Business module resolved directly via FK businesses.module_id=${modCheck[0].module_id} -> modules.id ("${modCheck[0].name}")`);
+    } else {
+      recordTest('Deterministic Module ID Resolution', false, 'Module ID resolution mismatch');
+    }
+
     // Restore original state
     await updateBusinessPalette(bizA.id, bizA.palette_id);
     await updateBusinessPalette(bizB.id, bizB.palette_id);
