@@ -221,6 +221,7 @@ CREATE TABLE businesses (
   bill_due_date       DATE NULL,           -- "Expires" column in User Management
   last_paid_at        DATE NULL,           -- "Last Paid" column in User Management
   status_reason       VARCHAR(255) NULL,   -- reason recorded when status changed,
+  palette_id          BIGINT UNSIGNED NULL,
   terms_accepted_at   TIMESTAMP    NULL,
   created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -234,6 +235,8 @@ CREATE TABLE businesses (
     REFERENCES modules(id),
   CONSTRAINT fk_businesses_type FOREIGN KEY (business_type_id)
     REFERENCES business_types(id),
+  CONSTRAINT fk_businesses_palette FOREIGN KEY (palette_id)
+    REFERENCES pos_palettes(id) ON DELETE SET NULL,
   -- A registered business must supply an NIC.
   CONSTRAINT chk_businesses_nic
     CHECK (is_registered = 0 OR nic_number IS NOT NULL)

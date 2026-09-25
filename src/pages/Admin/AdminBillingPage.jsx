@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetchJson } from '../../lib/api';
 import { Plus, Upload, Trash2 } from 'lucide-react';
 
 export default function AdminBillingPage() {
   const { setHeaderDetails } = useOutletContext() || {};
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   // ── Form State ──
-  const [shopName, setShopName] = useState(user?.businessName || 'Imtiaz Super Market');
+  const [shopName, setShopName] = useState(user?.businessName || 'My Store');
   const [showShopName, setShowShopName] = useState(true);
 
-  const [shopAddress, setShopAddress] = useState('Shop 12, Dolmen Mall, Karachi');
+  const [shopAddress, setShopAddress] = useState('Main Branch Address');
   const [showShopAddress, setShowShopAddress] = useState(true);
 
   const [fontSize, setFontSize] = useState(15);
@@ -26,7 +27,7 @@ export default function AdminBillingPage() {
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: user?.businessName?.toUpperCase() || 'IMTIAZ SUPER MARKET',
+        title: user?.businessName?.toUpperCase() || 'MY STORE',
         subtitle: null,
       });
     }
@@ -45,6 +46,50 @@ export default function AdminBillingPage() {
     setLogoUrl(null);
   };
 
+  // ── Theme State ──
+  const [palettes, setPalettes] = useState([]);
+  const [selectedPaletteId, setSelectedPaletteId] = useState(user?.palette?.id || null);
+  const [savingTheme, setSavingTheme] = useState(false);
+  const [themeMsg, setThemeMsg] = useState('');
+
+  useEffect(() => {
+    async function loadPalettes() {
+      try {
+        const { ok, data } = await apiFetchJson('/catalog/palettes');
+        if (ok && data.palettes) setPalettes(data.palettes);
+      } catch {
+        // Fallback or ignore
+      }
+    }
+    loadPalettes();
+  }, []);
+
+  useEffect(() => {
+    if (user?.palette?.id) setSelectedPaletteId(user.palette.id);
+  }, [user]);
+
+  const handlePaletteSelect = async (paletteId) => {
+    setSelectedPaletteId(paletteId);
+    setSavingTheme(true);
+    setThemeMsg('');
+    try {
+      const { ok, data } = await apiFetchJson('/profile/theme', {
+        method: 'PATCH',
+        body: JSON.stringify({ paletteId }),
+      });
+      if (ok) {
+        setThemeMsg('Theme updated!');
+        await refreshUser();
+      } else {
+        setThemeMsg(data.message || 'Failed to update theme');
+      }
+    } catch {
+      setThemeMsg('Failed to update theme');
+    } finally {
+      setSavingTheme(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 w-full pb-12">
       {/* ── Page Header ── */}
@@ -61,6 +106,39 @@ export default function AdminBillingPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* ── LEFT SECTION: Billing Settings Form ── */}
         <div className="lg:col-span-7 border-2 border-[#0c3818]/25 rounded-2xl md:rounded-3xl bg-[#f9f7ea]/90 backdrop-blur-xs shadow-xs p-6 md:p-8 flex flex-col divide-y divide-[#0c3818]/15">
+          
+          {/* Item 0: Business Theme Palette */}
+          <div className="pb-6 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-[#0c3818]">Business Theme Palette</h3>
+                <p className="text-sm font-bold text-[#607455]">Applies your chosen color scheme across the application</p>
+              </div>
+              {themeMsg && <span className="text-xs font-bold text-[#14391a]">{themeMsg}</span>}
+            </div>
+            <div className="flex flex-wrap gap-3 mt-1">
+              {palettes.map((p) => {
+                const isSel = selectedPaletteId === p.id;
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    disabled={savingTheme}
+                    onClick={() => handlePaletteSelect(p.id)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition cursor-pointer ${
+                      isSel ? 'border-[#0c3818] bg-[#0c3818]/10 ring-2 ring-[#0c3818]/30' : 'border-[#0c3818]/20 bg-white hover:border-[#0c3818]/50'
+                    }`}
+                  >
+                    <span className="text-xs font-black text-[#0c3818]">{p.name}</span>
+                    <div className="flex items-center gap-0.5">
+                      <span className="w-3.5 h-3.5 rounded-full border border-black/20" style={{ backgroundColor: p.color_primary }} />
+                      <span className="w-3.5 h-3.5 rounded-full border border-black/20" style={{ backgroundColor: p.color_accent }} />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           
           {/* Item 1: Shop name on bill */}
           <div className="pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">

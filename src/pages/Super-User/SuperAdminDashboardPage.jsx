@@ -66,7 +66,8 @@ export default function SuperAdminDashboardPage() {
       try {
         const res = await getSuperAdminDashboardAnalytics();
         if (res.ok && res.data) {
-          const { summary: sum, userGrowth, revenueTrend, usagePosData: uPos, revenuePosData: rPos } = res.data;
+          const analytics = res.data.data || res.data;
+          const { summary: sum, userGrowth, revenueTrend, usagePosData: uPos, revenuePosData: rPos } = analytics;
           if (sum) setSummary(sum);
           if (Array.isArray(userGrowth)) setUserGrowthData(userGrowth);
           if (Array.isArray(revenueTrend)) setRevenueTrendData(revenueTrend);

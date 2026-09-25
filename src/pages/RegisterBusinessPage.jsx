@@ -29,6 +29,8 @@ export default function RegisterBusinessPage() {
   const [modules, setModules] = useState([]);
   const [plans, setPlans] = useState([]);
   const [backupModulesCatalog, setBackupModulesCatalog] = useState([]);
+  const [palettesCatalog, setPalettesCatalog] = useState([]);
+  const [selectedPaletteId, setSelectedPaletteId] = useState(null);
   const [loadingCatalog, setLoadingCatalog] = useState(true);
 
   // Step 1 Form State
@@ -68,11 +70,12 @@ export default function RegisterBusinessPage() {
 
     async function loadEverything() {
       try {
-        const [typesRes, modulesRes, plansRes, backupRes, draftRes] = await Promise.all([
+        const [typesRes, modulesRes, plansRes, backupRes, palettesRes, draftRes] = await Promise.all([
           apiFetchJson('/catalog/business-types'),
           apiFetchJson('/catalog/modules'),
           apiFetchJson('/catalog/plans'),
           apiFetchJson('/catalog/backup-modules'),
+          apiFetchJson('/catalog/palettes'),
           apiFetchJson('/registration/draft'),
         ]);
         if (cancelled) return;
@@ -80,6 +83,7 @@ export default function RegisterBusinessPage() {
         if (typesRes.ok) setBusinessTypes(typesRes.data.businessTypes || []);
         if (modulesRes.ok) setModules(modulesRes.data.modules || []);
         if (plansRes.ok) setPlans(plansRes.data.plans || []);
+        if (palettesRes.ok) setPalettesCatalog(palettesRes.data.palettes || []);
 
         let backupCodesDefault = [];
         if (backupRes.ok) {
@@ -94,6 +98,7 @@ export default function RegisterBusinessPage() {
           const p = draft.payload;
           if (p.business) setBusinessForm((prev) => ({ ...prev, ...p.business }));
           if (p.moduleCode) setSelectedModule(p.moduleCode);
+          if (p.paletteId) setSelectedPaletteId(p.paletteId);
           if (p.subscription?.planCode) setPlanCode(p.subscription.planCode);
           if (p.subscription?.platform) setPlatform(p.subscription.platform);
           if (p.subscription?.paymentMethod) setPaymentMethod(p.subscription.paymentMethod);
@@ -125,6 +130,7 @@ export default function RegisterBusinessPage() {
           payload: {
             business: businessForm,
             moduleCode: selectedModule,
+            paletteId: selectedPaletteId,
             subscription: { planCode, platform, paymentMethod, backupModuleCodes: selectedBackupCodes },
           },
         }),
@@ -225,6 +231,7 @@ export default function RegisterBusinessPage() {
             shopAddress: businessForm.shopAddress,
             isRegistered: businessForm.isRegistered,
             nicNumber: businessForm.nicNumber,
+            paletteId: selectedPaletteId,
           },
           moduleCode: selectedModule,
           subscription: { planCode, platform, paymentMethod, backupModuleCodes: selectedBackupCodes },
@@ -520,6 +527,38 @@ export default function RegisterBusinessPage() {
                   );
                 })}
               </div>
+
+              {/* Theme Palette Selection */}
+              {palettesCatalog.length > 0 && (
+                <div className="space-y-3 pt-2">
+                  <h3 className="text-sm font-bold text-[#14391a]">
+                    Select Initial Color Theme (Optional)
+                  </h3>
+                  <div className="flex flex-wrap gap-3">
+                    {palettesCatalog.map((p) => {
+                      const isSel = selectedPaletteId === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => setSelectedPaletteId(p.id)}
+                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-xs font-bold transition cursor-pointer ${
+                            isSel
+                              ? 'bg-[#14391a] text-white border-[#14391a]'
+                              : 'bg-white text-[#14391a] border-gray-200 hover:border-[#14391a]/40'
+                          }`}
+                        >
+                          <span>{p.name}</span>
+                          <div className="flex items-center gap-1">
+                            <span className="w-3 h-3 rounded-full border border-black/20" style={{ backgroundColor: p.color_primary }} />
+                            <span className="w-3 h-3 rounded-full border border-black/20" style={{ backgroundColor: p.color_accent }} />
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <div className="w-full h-px bg-gray-300 pt-2" />
 

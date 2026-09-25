@@ -1,5 +1,5 @@
 import { ApiError } from '../utils/ApiError.js';
-import { withTransaction } from '../config/db.js';
+import { pool, withTransaction } from '../config/db.js';
 import {
   findDraftByUser,
   upsertDraft,
@@ -118,6 +118,13 @@ export async function finishSetup(req, res) {
   const backupModules = await getBackupModulesByCodes(subscription.backupModuleCodes || []);
   const backupModulesPrice = backupModules.reduce((sum, m) => sum + Number(m.monthly_price), 0);
 
+  let paletteIdToUse = null;
+  if (business.paletteId) {
+    const [pRows] = await pool.query('SELECT id FROM pos_palettes WHERE id = ? LIMIT 1', [Number(business.paletteId)]);
+    if (!pRows[0]) throw new ApiError(400, 'Unknown or invalid palette');
+    paletteIdToUse = Number(business.paletteId);
+  }
+
   // ── All validated — create business + subscription together ───────────
   const result = await withTransaction(async (conn) => {
     const createdBusiness = await createBusiness(conn, {
@@ -130,6 +137,7 @@ export async function finishSetup(req, res) {
       shopAddress: business.shopAddress?.trim() || null,
       isRegistered,
       nicNumber: isRegistered ? business.nicNumber.trim() : null,
+      paletteId: paletteIdToUse,
     });
 
     const subscriptionId = await createSubscription(conn, {

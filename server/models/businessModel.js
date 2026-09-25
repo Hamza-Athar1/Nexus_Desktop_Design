@@ -13,27 +13,36 @@ export async function findBusinessById(id) {
   return rows[0] || null;
 }
 
-/** Joins in the module code/name — used by requireBusiness to decide which satellite table product writes go to. */
+/** Joins in the module code/name and resolved palette details — fallback order: business.palette_id -> pos_modules.palette_id -> preset fallback. */
 export async function findBusinessWithModuleByOwner(ownerUserId) {
   const [rows] = await pool.query(
-    `SELECT b.*, m.code AS module_code, m.name AS module_name
-     FROM businesses b JOIN modules m ON m.id = b.module_id
+    `SELECT b.*, m.code AS module_code, m.name AS module_name,
+            p.id AS resolved_palette_id, p.name AS palette_name,
+            p.color_primary, p.color_accent, p.color_shade, p.color_light
+     FROM businesses b
+     JOIN modules m ON m.id = b.module_id
+     LEFT JOIN pos_modules pm ON LOWER(pm.name) LIKE CONCAT('%', LOWER(m.name), '%')
+     LEFT JOIN pos_palettes p ON p.id = COALESCE(b.palette_id, pm.palette_id, (SELECT id FROM pos_palettes WHERE is_preset = 1 ORDER BY id ASC LIMIT 1))
      WHERE b.owner_user_id = ? LIMIT 1`,
     [ownerUserId]
   );
   return rows[0] || null;
 }
 
-/** Resolves business context for either owner (admin) or staff (user). */
+/** Resolves business context with palette details for either owner (admin) or staff (user). */
 export async function findBusinessWithModuleByUser(userId) {
   const [rows] = await pool.query(
-    `SELECT b.*, m.code AS module_code, m.name AS module_name
+    `SELECT b.*, m.code AS module_code, m.name AS module_name,
+            p.id AS resolved_palette_id, p.name AS palette_name,
+            p.color_primary, p.color_accent, p.color_shade, p.color_light
      FROM users u
      JOIN businesses b ON (
        (u.role = 'admin' AND b.owner_user_id = u.id) OR
        (u.role = 'user' AND b.id = u.business_id)
      )
      JOIN modules m ON m.id = b.module_id
+     LEFT JOIN pos_modules pm ON LOWER(pm.name) LIKE CONCAT('%', LOWER(m.name), '%')
+     LEFT JOIN pos_palettes p ON p.id = COALESCE(b.palette_id, pm.palette_id, (SELECT id FROM pos_palettes WHERE is_preset = 1 ORDER BY id ASC LIMIT 1))
      WHERE u.id = ? LIMIT 1`,
     [userId]
   );
@@ -57,12 +66,13 @@ export async function createBusiness(conn, {
   shopAddress,
   isRegistered,
   nicNumber,
+  paletteId = null,
 }) {
   const [result] = await conn.query(
     `INSERT INTO businesses
        (owner_user_id, module_id, business_type_id, name, location, city_region,
-        shop_address, is_registered, nic_number, onboarding_status, terms_accepted_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())`,
+        shop_address, is_registered, nic_number, palette_id, onboarding_status, terms_accepted_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', NOW())`,
     [
       ownerUserId,
       moduleId,
@@ -73,8 +83,13 @@ export async function createBusiness(conn, {
       shopAddress,
       isRegistered ? 1 : 0,
       nicNumber,
+      paletteId || null,
     ]
   );
   const [rows] = await conn.query(`SELECT * FROM businesses WHERE id = ?`, [result.insertId]);
   return rows[0];
+}
+
+export async function updateBusinessPalette(businessId, paletteId) {
+  await pool.query(`UPDATE businesses SET palette_id = ? WHERE id = ?`, [paletteId, businessId]);
 }

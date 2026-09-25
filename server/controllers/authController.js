@@ -9,11 +9,11 @@ import {
   findUserByUsername,
   findUserByIdentifier,
   findUserById,
-  findBusinessIdForOwner,
   createUser,
   updateLastLogin,
   updatePasswordHash,
 } from '../models/userModel.js';
+import { findBusinessWithModuleByUser } from '../models/businessModel.js';
 import {
   createSession,
   findActiveSessionByToken,
@@ -41,7 +41,7 @@ const SALT_ROUNDS = 10;
 
 /** Shapes a DB user row into what the frontend's AuthContext expects. */
 async function toAuthUser(user) {
-  const businessId = await findBusinessIdForOwner(user.id);
+  const business = await findBusinessWithModuleByUser(user.id);
   return {
     id: user.id,
     username: user.username,
@@ -49,7 +49,17 @@ async function toAuthUser(user) {
     phone: user.phone,
     role: user.role, // 'super_admin' | 'admin' | 'user'
     status: user.status,
-    businessId, // null until the registration wizard finishes — drives frontend routing
+    businessId: business?.id ?? null, // null until the registration wizard finishes — drives frontend routing
+    businessName: business?.name ?? null,
+    moduleCode: business?.module_code ?? null,
+    palette: business?.resolved_palette_id ? {
+      id: business.resolved_palette_id,
+      name: business.palette_name,
+      colorPrimary: business.color_primary,
+      colorAccent: business.color_accent,
+      colorShade: business.color_shade,
+      colorLight: business.color_light,
+    } : null,
   };
 }
 

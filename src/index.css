@@ -1,9 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
+:root {
+  --color-primary: #14391a;
+  --color-accent: #4caf50;
+  --color-shade: #81c784;
+  --color-light: #e8f5e9;
+}
+
 @theme {
-  --color-nexus:       #1e5c1e;
-  --color-nexus-dark:  #14391a;
+  --color-nexus:       var(--color-primary, #1e5c1e);
+  --color-nexus-dark:  var(--color-primary, #14391a);
   --color-nexus-cream: #e8d87a;
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Inter', sans-serif;
