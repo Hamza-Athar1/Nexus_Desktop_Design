@@ -144,19 +144,28 @@ export default function POSSystemPage() {
   };
 
   // Add item to cart helper with stock check
-  const addItemToCart = (product) => {
-    const prodPrice = Number(product.sale_price ?? product.price ?? 0);
-    const prodStock = Number(product.stock_quantity ?? product.stock ?? 9999);
+  const addItemToCart = (product, selectedVariant = null) => {
+    const variant = selectedVariant || product.matched_variant || null;
+    const prodId = Number(product.id);
+    const varId = variant ? Number(variant.id) : null;
+    const itemKey = varId ? `${prodId}-v${varId}` : `${prodId}`;
+
+    const prodName = variant && (variant.size || variant.color)
+      ? `${product.name} (${[variant.size, variant.color].filter(Boolean).join(' / ')})`
+      : product.name;
+
+    const prodPrice = Number(variant ? (variant.sale_price || product.sale_price || product.price || 0) : (product.sale_price ?? product.price ?? 0));
+    const prodStock = Number(variant ? variant.stock_quantity : (product.stock_quantity ?? product.stock ?? 9999));
     const prodTaxRate = Number(product.tax_rate ?? product.taxRate ?? product.module_specific_fields?.tax_rate ?? 0);
 
     if (prodStock <= 0) {
-      alert(`Cannot add "${product.name}": Out of Stock.`);
+      alert(`Cannot add "${prodName}": Out of Stock.`);
       return;
     }
 
     setCarts((prev) => {
       const activeCart = prev[activeCustomerIndex] || [];
-      const existingItemIndex = activeCart.findIndex((item) => item.id === product.id);
+      const existingItemIndex = activeCart.findIndex((item) => (item.key ? item.key === itemKey : (item.id === prodId && item.variantId === varId)));
 
       let newCart;
       if (existingItemIndex >= 0) {
@@ -169,7 +178,16 @@ export default function POSSystemPage() {
           idx === existingItemIndex ? { ...item, qty: item.qty + 1 } : item
         );
       } else {
-        newCart = [...activeCart, { id: product.id, name: product.name, price: prodPrice, stock: prodStock, tax_rate: prodTaxRate, qty: 1 }];
+        newCart = [...activeCart, {
+          key: itemKey,
+          id: prodId,
+          variantId: varId,
+          name: prodName,
+          price: prodPrice,
+          stock: prodStock,
+          tax_rate: prodTaxRate,
+          qty: 1
+        }];
       }
 
       return {
@@ -180,17 +198,17 @@ export default function POSSystemPage() {
   };
 
   // Update item qty in cart with stock check
-  const updateQty = (productId, newQty) => {
+  const updateQty = (itemKeyOrId, newQty) => {
     setCarts((prev) => {
       const activeCart = prev[activeCustomerIndex] || [];
-      const item = activeCart.find((i) => i.id === productId);
+      const item = activeCart.find((i) => i.key === itemKeyOrId || i.id === itemKeyOrId);
       if (item && newQty > item.stock) {
         alert(`Maximum stock available for "${item.name}" is ${item.stock} units.`);
         return prev;
       }
 
       const updated = activeCart.map((item) =>
-        item.id === productId ? { ...item, qty: Math.max(1, newQty) } : item
+        (item.key === itemKeyOrId || item.id === itemKeyOrId) ? { ...item, qty: Math.max(0.001, Number(newQty)) } : item
       );
       return {
         ...prev,
@@ -200,10 +218,10 @@ export default function POSSystemPage() {
   };
 
   // Remove item from cart
-  const removeItem = (productId) => {
+  const removeItem = (itemKeyOrId) => {
     setCarts((prev) => {
       const activeCart = prev[activeCustomerIndex] || [];
-      const updated = activeCart.filter((item) => item.id !== productId);
+      const updated = activeCart.filter((item) => item.key !== itemKeyOrId && item.id !== itemKeyOrId);
       return {
         ...prev,
         [activeCustomerIndex]: updated,
@@ -242,6 +260,7 @@ export default function POSSystemPage() {
         customerId: selectedCust?.id || null,
         items: currentCart.map((item) => ({
           productId: Number(item.id),
+          variantId: item.variantId ? Number(item.variantId) : undefined,
           quantity: Number(item.qty),
           discountAmount: 0,
         })),

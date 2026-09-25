@@ -1,16 +1,43 @@
 import React, { useState, useRef } from 'react';
-import { Upload, ChevronDown, ChevronUp } from 'lucide-react';
+import { Upload, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AddProductForm({ onCancel, onSave, categories = ['Meat & Fish', 'Fruits & Vegetables', 'Bread & Baked', 'Frozen Food'] }) {
+  const { user } = useAuth();
+  const moduleCode = user?.moduleCode || user?.businessModule || 'general_store';
+
   const [formData, setFormData] = useState({
     category: '',
     name: '',
+    sku: '',
+    barcode: '',
+    unit: moduleCode === 'grocery' ? 'kg' : 'pcs',
     purchasePrice: '',
     sellingPrice: '',
     stockQuantity: '',
     minStockLevel: '',
     image: null,
+    // Vertical fields
+    brand: '',
+    expiry_date: '',
+    batch_no: '',
+    manufacturer: '',
+    generic_name: '',
+    model_number: '',
+    serial_number: '',
+    warranty_months: '',
+    baked_on: '',
+    contains_allergens: '',
+    course_type: 'main',
+    preparation_minutes: '',
+    is_vegetarian: false,
+    package_size: '',
   });
+
+  const [clothingVariants, setClothingVariants] = useState([
+    { size: 'S', color: 'Black', sku: '', barcode: '', stock: 5, price: '' },
+    { size: 'M', color: 'Black', sku: '', barcode: '', stock: 8, price: '' },
+  ]);
 
   const [imagePreview, setImagePreview] = useState(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
@@ -32,11 +59,46 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleVariantChange = (index, field, value) => {
+    setClothingVariants((prev) =>
+      prev.map((v, i) => (i === index ? { ...v, [field]: value } : v))
+    );
+  };
+
+  const addVariantRow = () => {
+    setClothingVariants((prev) => [
+      ...prev,
+      { size: 'L', color: 'Black', sku: '', barcode: '', stock: 0, price: '' },
+    ]);
+  };
+
+  const removeVariantRow = (index) => {
+    setClothingVariants((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (onSave) {
+      const moduleFields = {};
+      if (formData.brand) moduleFields.brand = formData.brand;
+      if (formData.expiry_date) moduleFields.expiry_date = formData.expiry_date;
+      if (formData.batch_no) moduleFields.batch_no = formData.batch_no;
+      if (formData.manufacturer) moduleFields.manufacturer = formData.manufacturer;
+      if (formData.generic_name) moduleFields.generic_name = formData.generic_name;
+      if (formData.model_number) moduleFields.model_number = formData.model_number;
+      if (formData.serial_number) moduleFields.serial_number = formData.serial_number;
+      if (formData.warranty_months) moduleFields.warranty_months = formData.warranty_months;
+      if (formData.baked_on) moduleFields.baked_on = formData.baked_on;
+      if (formData.contains_allergens) moduleFields.contains_allergens = formData.contains_allergens;
+      if (formData.course_type) moduleFields.course_type = formData.course_type;
+      if (formData.preparation_minutes) moduleFields.preparation_minutes = formData.preparation_minutes;
+      if (formData.is_vegetarian) moduleFields.is_vegetarian = formData.is_vegetarian;
+      if (formData.package_size) moduleFields.package_size = formData.package_size;
+
       onSave({
         ...formData,
+        moduleSpecificFields: moduleFields,
+        variants: moduleCode === 'clothing' ? clothingVariants : [],
         imagePreview: imagePreview || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&auto=format&fit=crop&q=60'
       });
     }
@@ -46,8 +108,8 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
     <div className="flex flex-col gap-6 2xl:gap-8 w-full max-w-5xl 2xl:max-w-7xl mx-auto pb-10">
       {/* Top Header Title */}
       <div className="flex flex-col gap-1">
-        <h2 className="text-2xl 2xl:text-4xl font-black text-[#0c3818]">Add New Products</h2>
-        <p className="text-xs 2xl:text-sm text-[#0c3818]/60 font-semibold">Fill in the product details below</p>
+        <h2 className="text-2xl 2xl:text-4xl font-black text-[#0c3818]">Add New Products ({moduleCode.toUpperCase()})</h2>
+        <p className="text-xs 2xl:text-sm text-[#0c3818]/60 font-semibold">Fill in the product details and module attributes below</p>
       </div>
 
       {/* Main Container Card */}
@@ -151,6 +213,30 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
               />
             </div>
 
+            {/* SKU and Barcode Pair */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 2xl:gap-6">
+              <div className="flex flex-col gap-1.5 2xl:gap-2">
+                <label className="text-xs 2xl:text-sm font-black text-[#0c3818]">SKU</label>
+                <input
+                  type="text"
+                  placeholder="Auto-generated if empty"
+                  value={formData.sku}
+                  onChange={(e) => handleChange('sku', e.target.value)}
+                  className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-xs 2xl:text-sm font-bold text-[#0c3818] placeholder-gray-400 focus:outline-none focus:border-[#0c3818]"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5 2xl:gap-2">
+                <label className="text-xs 2xl:text-sm font-black text-[#0c3818]">Barcode</label>
+                <input
+                  type="text"
+                  placeholder="Scan or enter barcode"
+                  value={formData.barcode}
+                  onChange={(e) => handleChange('barcode', e.target.value)}
+                  className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-xs 2xl:text-sm font-bold text-[#0c3818] placeholder-gray-400 focus:outline-none focus:border-[#0c3818]"
+                />
+              </div>
+            </div>
+
             {/* Price Pair */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 2xl:gap-6">
               {/* Purchase Price */}
@@ -181,8 +267,8 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
               </div>
             </div>
 
-            {/* Stock Quantity Pair */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 2xl:gap-6">
+            {/* Stock Quantity Pair & Unit */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 2xl:gap-6">
               {/* Stock Quantity */}
               <div className="flex flex-col gap-1.5 2xl:gap-2">
                 <label className="text-xs 2xl:text-sm font-black text-[#0c3818]">
@@ -190,8 +276,9 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
                 </label>
                 <input
                   type="number"
+                  step="any"
                   required
-                  placeholder="Enter stock quantity"
+                  placeholder="e.g. 50 or 2.5"
                   value={formData.stockQuantity}
                   onChange={(e) => handleChange('stockQuantity', e.target.value)}
                   className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-xs 2xl:text-sm font-bold text-[#0c3818] placeholder-gray-400 focus:outline-none focus:border-[#0c3818]"
@@ -205,6 +292,7 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
                 </label>
                 <input
                   type="number"
+                  step="any"
                   required
                   placeholder="Enter min stock level"
                   value={formData.minStockLevel}
@@ -212,6 +300,235 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
                   className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-xs 2xl:text-sm font-bold text-[#0c3818] placeholder-gray-400 focus:outline-none focus:border-[#0c3818]"
                 />
               </div>
+
+              {/* Unit Selection */}
+              <div className="flex flex-col gap-1.5 2xl:gap-2">
+                <label className="text-xs 2xl:text-sm font-black text-[#0c3818]">Measurement Unit</label>
+                <select
+                  value={formData.unit}
+                  onChange={(e) => handleChange('unit', e.target.value)}
+                  className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-xs 2xl:text-sm font-bold text-[#0c3818] outline-none"
+                >
+                  <option value="pcs">Pieces (pcs)</option>
+                  <option value="kg">Kilogram (kg)</option>
+                  <option value="g">Gram (g)</option>
+                  <option value="litre">Litre (L)</option>
+                  <option value="ml">Millilitre (ml)</option>
+                  <option value="dozen">Dozen</option>
+                  <option value="pack">Pack</option>
+                </select>
+              </div>
+            </div>
+
+            {/* ── VERTICAL SPECIFIC FIELDS ── */}
+            <div className="border-t border-[#0c3818]/15 pt-5 flex flex-col gap-4">
+              <h3 className="text-sm font-black text-[#0c3818] uppercase tracking-wide">
+                Module-Specific Attributes ({moduleCode})
+              </h3>
+
+              {moduleCode === 'grocery' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Brand</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Nestle, Olpers"
+                      value={formData.brand}
+                      onChange={(e) => handleChange('brand', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Expiry Date</label>
+                    <input
+                      type="date"
+                      value={formData.expiry_date}
+                      onChange={(e) => handleChange('expiry_date', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {moduleCode === 'pharmacy' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Generic Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Paracetamol"
+                      value={formData.generic_name}
+                      onChange={(e) => handleChange('generic_name', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Batch Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. BATCH-9012"
+                      value={formData.batch_no}
+                      onChange={(e) => handleChange('batch_no', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Expiry Date</label>
+                    <input
+                      type="date"
+                      value={formData.expiry_date}
+                      onChange={(e) => handleChange('expiry_date', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {moduleCode === 'electronics' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Brand</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Samsung, Apple"
+                      value={formData.brand}
+                      onChange={(e) => handleChange('brand', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Model Number</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. SM-G990B"
+                      value={formData.model_number}
+                      onChange={(e) => handleChange('model_number', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Serial / IMEI</label>
+                    <input
+                      type="text"
+                      placeholder="Optional serial tracking"
+                      value={formData.serial_number}
+                      onChange={(e) => handleChange('serial_number', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {moduleCode === 'clothing' && (
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-black text-[#0c3818]">Clothing Variants (Size / Color / Stock)</label>
+                    <button
+                      type="button"
+                      onClick={addVariantRow}
+                      className="flex items-center gap-1 text-xs font-bold text-[#0c3818] bg-[#efeacb] px-3 py-1 rounded-lg hover:bg-[#e4ddb6]"
+                    >
+                      <Plus size={12} /> Add Variant
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {clothingVariants.map((varItem, idx) => (
+                      <div key={idx} className="flex flex-wrap items-center gap-2 bg-white p-2.5 rounded-xl border border-[#0c3818]/20">
+                        <input
+                          type="text"
+                          placeholder="Size (e.g. S, M, L)"
+                          value={varItem.size}
+                          onChange={(e) => handleVariantChange(idx, 'size', e.target.value)}
+                          className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Color (e.g. Black)"
+                          value={varItem.color}
+                          onChange={(e) => handleVariantChange(idx, 'color', e.target.value)}
+                          className="w-28 border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold"
+                        />
+                        <input
+                          type="number"
+                          placeholder="Stock"
+                          value={varItem.stock}
+                          onChange={(e) => handleVariantChange(idx, 'stock', e.target.value)}
+                          className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeVariantRow(idx)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {moduleCode === 'bakery' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Baked On</label>
+                    <input
+                      type="date"
+                      value={formData.baked_on}
+                      onChange={(e) => handleChange('baked_on', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Allergens</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Nuts, Dairy, Gluten"
+                      value={formData.contains_allergens}
+                      onChange={(e) => handleChange('contains_allergens', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {moduleCode === 'restaurant' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Course Type</label>
+                    <select
+                      value={formData.course_type}
+                      onChange={(e) => handleChange('course_type', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    >
+                      <option value="starter">Starter</option>
+                      <option value="main">Main Course</option>
+                      <option value="dessert">Dessert</option>
+                      <option value="beverage">Beverage</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs font-black text-[#0c3818]">Prep Time (mins)</label>
+                    <input
+                      type="number"
+                      placeholder="e.g. 15"
+                      value={formData.preparation_minutes}
+                      onChange={(e) => handleChange('preparation_minutes', e.target.value)}
+                      className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-3 py-2 text-xs font-bold text-[#0c3818]"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-5">
+                    <input
+                      type="checkbox"
+                      id="veg_check"
+                      checked={formData.is_vegetarian}
+                      onChange={(e) => handleChange('is_vegetarian', e.target.checked)}
+                      className="w-4 h-4 text-[#0c3818] rounded"
+                    />
+                    <label htmlFor="veg_check" className="text-xs font-bold text-[#0c3818]">Vegetarian</label>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Action Buttons */}
@@ -236,4 +553,5 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
     </div>
   );
 }
+
 

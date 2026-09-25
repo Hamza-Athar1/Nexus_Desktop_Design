@@ -225,14 +225,19 @@ export default function AdminProductsPage() {
     try {
       const payload = {
         name: newProdData.name || 'New Product',
+        sku: newProdData.sku || undefined,
+        barcode: newProdData.barcode || undefined,
+        category: newProdData.category || undefined,
         price: Number(newProdData.sellingPrice) || 0,
         stockQty: Number(newProdData.stockQuantity) || 0,
         reorderLevel: Number(newProdData.minStockLevel) || 0,
-        unit: 'pcs',
+        unit: newProdData.unit || 'pcs',
         taxRate: Number(newProdData.taxRate) || 0,
         moduleSpecificFields: {
-          cost_price: Number(newProdData.costPrice) || 0,
+          cost_price: Number(newProdData.purchasePrice ?? newProdData.costPrice ?? 0),
+          ...(newProdData.moduleSpecificFields || {}),
         },
+        variants: newProdData.variants || [],
       };
 
       const res = await createInventoryItem(payload);
@@ -253,6 +258,12 @@ export default function AdminProductsPage() {
         name: updatedProd.name,
         price: Number(updatedProd.price),
         stockQty: Number(updatedProd.stock),
+        category: updatedProd.category,
+        unit: updatedProd.unit,
+        sku: updatedProd.sku,
+        barcode: updatedProd.barcode,
+        moduleSpecificFields: updatedProd.moduleSpecificFields || {},
+        variants: updatedProd.variants || [],
       };
 
       const res = await updateInventoryItem(updatedProd.id, payload);

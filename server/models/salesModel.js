@@ -46,7 +46,24 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
 
   const productMap = new Map(products.map((p) => [p.id, p]));
 
-  // Validate all requested products exist for this business
+  // Lock product_variants FOR UPDATE if any items have variantId
+  const variantIds = items.map((i) => i.variantId || i.variant_id).filter(Boolean);
+  const variantMap = new Map();
+  if (variantIds.length > 0) {
+    const vPlaceholders = variantIds.map(() => '?').join(',');
+    const [variants] = await conn.query(
+      `SELECT id, product_id, sku, barcode, size, color, cost_price, sale_price, stock_quantity, is_active
+       FROM product_variants
+       WHERE id IN (${vPlaceholders})
+       FOR UPDATE`,
+      variantIds
+    );
+    for (const v of variants) {
+      variantMap.set(v.id, v);
+    }
+  }
+
+  // Validate all requested products/variants exist for this business
   for (const item of items) {
     const prod = productMap.get(item.productId);
     if (!prod) {
@@ -58,11 +75,23 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
     if (Number(item.discountAmount || 0) < 0) {
       throw new Error(`INVALID_DISCOUNT:${prod.name}`);
     }
-    if (Number(item.discountAmount || 0) > Number(prod.sale_price)) {
-      throw new Error(`DISCOUNT_EXCEEDS_PRICE:${prod.name}`);
-    }
-    if (Number(prod.stock_quantity) < Number(item.quantity)) {
-      throw new Error(`INSUFFICIENT_STOCK:${prod.name}`);
+    
+    const vId = item.variantId || item.variant_id;
+    if (vId) {
+      const variant = variantMap.get(vId);
+      if (!variant) {
+        throw new Error(`VARIANT_NOT_FOUND:${vId}`);
+      }
+      if (!variant.is_active) {
+        throw new Error(`VARIANT_INACTIVE:${vId}`);
+      }
+      if (Number(variant.stock_quantity) < Number(item.quantity)) {
+        throw new Error(`INSUFFICIENT_STOCK:${prod.name} (${variant.size}/${variant.color})`);
+      }
+    } else {
+      if (Number(prod.stock_quantity) < Number(item.quantity)) {
+        throw new Error(`INSUFFICIENT_STOCK:${prod.name}`);
+      }
     }
   }
 
@@ -74,9 +103,12 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
 
   for (const item of items) {
     const prod = productMap.get(item.productId);
+    const vId = item.variantId || item.variant_id;
+    const variant = vId ? variantMap.get(vId) : null;
+    
     const qty = Number(item.quantity);
-    const unitPrice = Number(prod.sale_price);
-    const costPrice = Number(prod.cost_price);
+    const unitPrice = variant && Number(variant.sale_price) > 0 ? Number(variant.sale_price) : Number(prod.sale_price);
+    const costPrice = variant && Number(variant.cost_price) > 0 ? Number(variant.cost_price) : Number(prod.cost_price);
     const itemDiscount = Number(item.discountAmount || 0);
     const taxRate = Number(prod.tax_rate || 0);
 
@@ -89,10 +121,18 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
     taxAmount += lineTax;
     discountAmountTotal += round(itemDiscount * qty);
 
+    let displayName = prod.name;
+    if (variant && (variant.size || variant.color)) {
+      const details = [variant.size, variant.color].filter(Boolean).join(' / ');
+      displayName = `${prod.name} (${details})`;
+    }
+
     processedItems.push({
       product: prod,
+      variant: variant,
+      variantId: variant ? variant.id : null,
       productId: prod.id,
-      productName: prod.name,
+      productName: displayName,
       quantity: qty,
       unitPrice,
       costPrice,
@@ -142,11 +182,12 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
   for (const item of processedItems) {
     await conn.query(
       `INSERT INTO sale_items
-         (sale_id, product_id, product_name, quantity, unit_price, cost_price, discount_amount, tax_rate, tax_amount, line_total)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (sale_id, product_id, variant_id, product_name, quantity, unit_price, cost_price, discount_amount, tax_rate, tax_amount, line_total)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         saleId,
         item.productId,
+        item.variantId,
         item.productName,
         item.quantity,
         item.unitPrice,
@@ -158,21 +199,31 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
       ]
     );
 
-    // Decrement stock
+    // Decrement main product stock
     const newStock = round(Number(item.product.stock_quantity) - item.quantity, 3);
     await conn.query(
       `UPDATE products SET stock_quantity = ? WHERE id = ? AND business_id = ?`,
       [newStock, item.productId, businessId]
     );
 
+    // Decrement variant stock if applicable
+    if (item.variant) {
+      const newVStock = round(Number(item.variant.stock_quantity) - item.quantity, 3);
+      await conn.query(
+        `UPDATE product_variants SET stock_quantity = ? WHERE id = ?`,
+        [newVStock, item.variantId]
+      );
+    }
+
     // Record stock movement
     await conn.query(
       `INSERT INTO stock_movements
-         (business_id, product_id, user_id, movement_type, quantity_change, balance_after, reference_type, reference_id, note)
-       VALUES (?, ?, ?, 'sale', ?, ?, 'sale', ?, ?)`,
+         (business_id, product_id, variant_id, user_id, movement_type, quantity_change, balance_after, reference_type, reference_id, note)
+       VALUES (?, ?, ?, ?, 'sale', ?, ?, 'sale', ?, ?)`,
       [
         businessId,
         item.productId,
+        item.variantId,
         userId,
         -item.quantity,
         newStock,
@@ -402,13 +453,28 @@ export async function executeReturnTransaction(conn, { businessId, userId, saleI
           [newStock, ret.saleItem.product_id, businessId]
         );
 
+        if (ret.saleItem.variant_id) {
+          const [vars] = await conn.query(
+            `SELECT id, stock_quantity FROM product_variants WHERE id = ? FOR UPDATE`,
+            [ret.saleItem.variant_id]
+          );
+          if (vars[0]) {
+            const newVStock = round(Number(vars[0].stock_quantity) + ret.quantity, 3);
+            await conn.query(
+              `UPDATE product_variants SET stock_quantity = ? WHERE id = ?`,
+              [newVStock, ret.saleItem.variant_id]
+            );
+          }
+        }
+
         await conn.query(
           `INSERT INTO stock_movements
-             (business_id, product_id, user_id, movement_type, quantity_change, balance_after, reference_type, reference_id, note)
-           VALUES (?, ?, ?, 'refund', ?, ?, 'refund', ?, ?)`,
+             (business_id, product_id, variant_id, user_id, movement_type, quantity_change, balance_after, reference_type, reference_id, note)
+           VALUES (?, ?, ?, ?, 'refund', ?, ?, 'refund', ?, ?)`,
           [
             businessId,
             ret.saleItem.product_id,
+            ret.saleItem.variant_id || null,
             userId,
             ret.quantity,
             newStock,

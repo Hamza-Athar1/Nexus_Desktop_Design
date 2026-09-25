@@ -21,7 +21,7 @@ import {
 } from 'recharts';
 import { getSales } from '../../lib/salesService.js';
 import { getInventoryItems } from '../../lib/inventoryService.js';
-import { getSalesOverviewReport } from '../../lib/reportService.js';
+import { getSalesOverviewReport, getTopProductsReport } from '../../lib/reportService.js';
 
 export default function AdminDashboardPage() {
   const { setHeaderDetails } = useOutletContext() || {};
@@ -30,12 +30,13 @@ export default function AdminDashboardPage() {
   const [salesList, setSalesList] = useState([]);
   const [productList, setProductList] = useState([]);
   const [salesOverviewData, setSalesOverviewData] = useState([]);
+  const [topProductsList, setTopProductsList] = useState([]);
   const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: user?.businessName?.toUpperCase() || 'IMTIAZ SUPER MARKET',
+        title: user?.businessName?.toUpperCase() || 'STORE DASHBOARD',
         subtitle: 'Store Analytics & Management Summary',
       });
     }
@@ -45,10 +46,11 @@ export default function AdminDashboardPage() {
     async function loadMetrics() {
       setIsLoading(true);
       try {
-        const [salesRes, prodRes, overviewRes] = await Promise.all([
+        const [salesRes, prodRes, overviewRes, topProdRes] = await Promise.all([
           getSales(),
           getInventoryItems(),
           getSalesOverviewReport(),
+          getTopProductsReport(),
         ]);
         if (salesRes.ok && Array.isArray(salesRes.data?.sales)) {
           setSalesList(salesRes.data.sales);
@@ -58,6 +60,9 @@ export default function AdminDashboardPage() {
         }
         if (overviewRes.ok && Array.isArray(overviewRes.data?.salesOverview)) {
           setSalesOverviewData(overviewRes.data.salesOverview);
+        }
+        if (topProdRes.ok && Array.isArray(topProdRes.data?.topProducts)) {
+          setTopProductsList(topProdRes.data.topProducts);
         }
       } catch {
         // Fallback to empty state
@@ -267,24 +272,26 @@ export default function AdminDashboardPage() {
             </h4>
 
             <div className="flex flex-col gap-3">
-              {[
-                { name: 'Cooking Oil 1L', sold: 45, category: 'Spices' },
-                { name: 'Lewis Bread', sold: 36, category: 'Frozen Items' },
-                { name: 'Ramen Noodles', sold: 28, category: 'Noodles' },
-              ].map((prod, i) => (
-                <div key={i} className="flex items-center justify-between border-b border-[#bfbc9b]/15 pb-2 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#efeacb]/40 flex items-center justify-center border border-[#bfbc9b]/35">
-                      {getCategoryIcon(prod.category, 20)}
+              {topProductsList.length > 0 ? (
+                topProductsList.slice(0, 5).map((prod, i) => (
+                  <div key={i} className="flex items-center justify-between border-b border-[#bfbc9b]/15 pb-2 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-[#efeacb]/40 flex items-center justify-center border border-[#bfbc9b]/35">
+                        {getCategoryIcon(prod.category, 20)}
+                      </div>
+                      <span className="text-sm font-extrabold text-[#0c3818]">{prod.name}</span>
                     </div>
-                    <span className="text-sm font-extrabold text-[#0c3818]">{prod.name}</span>
+                    <div className="text-right">
+                      <span className="text-base font-black text-[#0c3818] block">{prod.sales ?? prod.sold ?? 0}</span>
+                      <span className="text-[9px] font-bold text-[#607455]/80 uppercase tracking-widest">Qty Sold</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-base font-black text-[#0c3818] block">{prod.sold}</span>
-                    <span className="text-[9px] font-bold text-[#607455]/80 uppercase tracking-widest">Qty Sold</span>
-                  </div>
+                ))
+              ) : (
+                <div className="py-4 text-center text-xs text-gray-400 font-semibold">
+                  No top selling products recorded yet
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
