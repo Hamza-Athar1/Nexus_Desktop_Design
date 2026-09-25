@@ -42,18 +42,6 @@ export function getCategoryIcon(category, size = 24) {
   }
 }
 
-const INITIAL_CATEGORIES = [
-  { id: 1, name: 'Grocery & Dairy' },
-  { id: 2, name: 'Home & Essentials' },
-  { id: 3, name: 'Meat & Fish' },
-  { id: 4, name: 'Beverages' },
-  { id: 5, name: 'Snacks' },
-];
-
-// Fallback subcategories list
-const INITIAL_SUBCATEGORIES = [];
-
-
 import { apiFetchJson } from '../../lib/api';
 import {
   getInventoryItems,
@@ -76,10 +64,12 @@ export default function AdminProductsPage() {
   }, [setHeaderDetails, user]);
 
   // Categories & Subcategories State
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-  const [selectedCategory, setSelectedCategory] = useState('Grocery & Dairy');
-  const [subcategories, setSubcategories] = useState(INITIAL_SUBCATEGORIES);
-  const [selectedSubcategory, setSelectedSubcategory] = useState('Oil & Ghee');
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [subcategories, setSubcategories] = useState([]);
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
 
   // Products State & Fetching
   const [products, setProducts] = useState([]);
@@ -124,16 +114,28 @@ export default function AdminProductsPage() {
   }, []);
 
   const fetchCategoriesList = useCallback(async () => {
+    setCategoriesLoading(true);
+    setCategoriesError(null);
     try {
       const { ok, data } = await apiFetchJson('/categories');
-      if (ok && Array.isArray(data?.categories) && data.categories.length > 0) {
+      if (ok && Array.isArray(data?.categories)) {
         setCategories(data.categories);
-        if (!selectedCategory || !data.categories.some(c => c.name === selectedCategory)) {
-          setSelectedCategory(data.categories[0].name);
+        if (data.categories.length > 0) {
+          if (!selectedCategory || !data.categories.some(c => c.name === selectedCategory)) {
+            setSelectedCategory(data.categories[0].name);
+          }
+        } else {
+          setSelectedCategory('');
         }
+      } else {
+        setCategories([]);
+        setSelectedCategory('');
       }
     } catch {
-      // Keep initial if network fails
+      setCategoriesError('Unable to load categories.');
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
     }
   }, [selectedCategory]);
 
@@ -171,27 +173,57 @@ export default function AdminProductsPage() {
   }, [products, searchQuery, selectedStatus, selectedCategory]);
 
   // ── Category Handlers ─────────────────────────────────────────────────────
-  const handleAddCategory = (newCat) => {
-    const created = { id: Date.now(), name: newCat.name };
-    setCategories((prev) => [...prev, created]);
-    setSelectedCategory(created.name);
-  };
-
-  const handleSaveEditCategory = (id, newName) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, name: newName } : c))
-    );
-    if (selectedCategory === categories.find((c) => c.id === id)?.name) {
-      setSelectedCategory(newName);
+  const handleAddCategory = async (newCat) => {
+    try {
+      const { ok, data } = await apiFetchJson('/categories', {
+        method: 'POST',
+        body: JSON.stringify({ name: newCat.name }),
+      });
+      if (ok && data.category) {
+        setCategories((prev) => [...prev, data.category]);
+        setSelectedCategory(data.category.name);
+      } else {
+        alert(data?.message || 'Failed to create category');
+      }
+    } catch {
+      alert('Network error creating category');
     }
   };
 
-  const handleDeleteCategory = (id) => {
-    const target = categories.find((c) => c.id === id);
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-    if (selectedCategory === target?.name) {
-      const remaining = categories.filter((c) => c.id !== id);
-      setSelectedCategory(remaining[0]?.name || '');
+  const handleSaveEditCategory = async (id, newName) => {
+    try {
+      const { ok } = await apiFetchJson(`/categories/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: newName }),
+      });
+      if (ok) {
+        setCategories((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, name: newName } : c))
+        );
+        if (selectedCategory === categories.find((c) => c.id === id)?.name) {
+          setSelectedCategory(newName);
+        }
+      }
+    } catch {
+      alert('Failed to update category');
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    try {
+      const { ok } = await apiFetchJson(`/categories/${id}`, {
+        method: 'DELETE',
+      });
+      if (ok) {
+        const target = categories.find((c) => c.id === id);
+        setCategories((prev) => prev.filter((c) => c.id !== id));
+        if (selectedCategory === target?.name) {
+          const remaining = categories.filter((c) => c.id !== id);
+          setSelectedCategory(remaining[0]?.name || '');
+        }
+      }
+    } catch {
+      alert('Failed to delete category');
     }
   };
 
@@ -411,53 +443,69 @@ export default function AdminProductsPage() {
 
         {/* Category Pills Row (Scrollable on Mobile, Wrap on Desktop) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 sm:pb-0 sm:flex-wrap scrollbar-none max-w-full">
-          {categories.map((cat) => {
-            const isSelected = selectedCategory === cat.name;
-            const isMenuOpen = catMenuOpenId === cat.id;
+          {categoriesLoading ? (
+            <span className="text-xs font-semibold text-[#0c3818]/60 italic py-2">Loading categories...</span>
+          ) : categoriesError ? (
+            <span className="text-xs font-bold text-red-600 py-2">{categoriesError}</span>
+          ) : categories.length === 0 ? (
+            <div className="flex items-center gap-2 py-1">
+              <span className="text-xs font-semibold text-[#0c3818]/60">No categories created yet.</span>
+              <button
+                type="button"
+                onClick={() => setIsAddCatModalOpen(true)}
+                className="text-xs font-bold text-[#0c3818] underline hover:text-[#114720]"
+              >
+                Create category
+              </button>
+            </div>
+          ) : (
+            categories.map((cat) => {
+              const isSelected = selectedCategory === cat.name;
+              const isMenuOpen = catMenuOpenId === cat.id;
 
-            return (
-              <div key={cat.id} className="relative shrink-0">
-                <div
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition duration-200 cursor-pointer border ${
-                    isSelected
-                      ? 'bg-[#0c3818] text-[#efeacb] border-[#0c3818] shadow-sm'
-                      : 'bg-[#efeacb] text-[#0c3818] border-[#0c3818]/20 hover:bg-[#e4ddb6]'
-                  }`}
-                >
-                  {/* Checkmark badge when active */}
-                  {isSelected && (
-                    <div className="w-4 h-4 rounded-full bg-[#efeacb] text-[#0c3818] flex items-center justify-center shadow-2xs shrink-0">
-                      <Check size={11} strokeWidth={3} />
-                    </div>
-                  )}
-
-                  <span className="whitespace-nowrap">{cat.name}</span>
-
-                  {/* Edit Pencil Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCatMenuOpenId(isMenuOpen ? null : cat.id);
-                    }}
-                    className={`p-1 rounded-md border transition cursor-pointer shrink-0 ${
-                      isSelected
-                        ? 'bg-[#efeacb]/20 text-[#efeacb] border-[#efeacb]/30 hover:bg-[#efeacb] hover:text-[#0c3818]'
-                        : 'bg-[#0c3818]/10 text-[#0c3818] border-[#0c3818]/20 hover:bg-[#0c3818] hover:text-[#efeacb]'
-                    }`}
-                    title="Category options"
-                  >
-                    <Edit2 size={12} />
-                  </button>
-                </div>
-
-                {/* Category Actions Popover */}
-                {isMenuOpen && (
+              return (
+                <div key={cat.id} className="relative shrink-0">
                   <div
-                    className="absolute left-0 top-full mt-1.5 bg-[#fbf9f0] border border-[#0c3818]/25 rounded-xl shadow-xl z-40 py-1 min-w-[140px] text-xs font-bold animate-in fade-in zoom-in-95 duration-100"
-                    onMouseLeave={() => setCatMenuOpenId(null)}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition duration-200 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-[#0c3818] text-[#efeacb] border-[#0c3818] shadow-sm'
+                        : 'bg-[#efeacb] text-[#0c3818] border-[#0c3818]/20 hover:bg-[#e4ddb6]'
+                    }`}
                   >
+                    {/* Checkmark badge when active */}
+                    {isSelected && (
+                      <div className="w-4 h-4 rounded-full bg-[#efeacb] text-[#0c3818] flex items-center justify-center shadow-2xs shrink-0">
+                        <Check size={11} strokeWidth={3} />
+                      </div>
+                    )}
+
+                    <span className="whitespace-nowrap">{cat.name}</span>
+
+                    {/* Edit Pencil Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCatMenuOpenId(isMenuOpen ? null : cat.id);
+                      }}
+                      className={`p-1 rounded-md border transition cursor-pointer shrink-0 ${
+                        isSelected
+                          ? 'bg-[#efeacb]/20 text-[#efeacb] border-[#efeacb]/30 hover:bg-[#efeacb] hover:text-[#0c3818]'
+                          : 'bg-[#0c3818]/10 text-[#0c3818] border-[#0c3818]/20 hover:bg-[#0c3818] hover:text-[#efeacb]'
+                      }`}
+                      title="Category options"
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                  </div>
+
+                  {/* Category Actions Popover */}
+                  {isMenuOpen && (
+                    <div
+                      className="absolute left-0 top-full mt-1.5 bg-[#fbf9f0] border border-[#0c3818]/25 rounded-xl shadow-xl z-40 py-1 min-w-[140px] text-xs font-bold animate-in fade-in zoom-in-95 duration-100"
+                      onMouseLeave={() => setCatMenuOpenId(null)}
+                    >
                     <button
                       type="button"
                       onClick={() => {
@@ -484,7 +532,7 @@ export default function AdminProductsPage() {
                 )}
               </div>
             );
-          })}
+          }))}
         </div>
       </div>
 

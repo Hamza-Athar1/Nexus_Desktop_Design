@@ -2,9 +2,9 @@ import React, { useState, useRef } from 'react';
 import { Upload, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-export default function AddProductForm({ onCancel, onSave, categories = ['Meat & Fish', 'Fruits & Vegetables', 'Bread & Baked', 'Frozen Food'] }) {
+export default function AddProductForm({ onCancel, onSave, categories = [] }) {
   const { user } = useAuth();
-  const moduleCode = user?.moduleCode || user?.businessModule || 'general_store';
+  const moduleCode = user?.moduleCode || user?.businessModule || '';
 
   const [formData, setFormData] = useState({
     category: '',
@@ -181,19 +181,25 @@ export default function AddProductForm({ onCancel, onSave, categories = ['Meat &
 
               {categoryDropdownOpen && (
                 <div className="absolute left-0 top-full mt-1 w-full bg-white border border-[#0c3818]/20 rounded-xl shadow-lg z-30 overflow-hidden flex flex-col divide-y divide-gray-100">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => {
-                        handleChange('category', cat);
-                        setCategoryDropdownOpen(false);
-                      }}
-                      className="px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-left text-xs 2xl:text-sm font-bold text-[#0c3818] hover:bg-[#efeacb]/40 transition cursor-pointer"
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                  {categories.length > 0 ? (
+                    categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => {
+                          handleChange('category', cat);
+                          setCategoryDropdownOpen(false);
+                        }}
+                        className="px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-left text-xs 2xl:text-sm font-bold text-[#0c3818] hover:bg-[#efeacb]/40 transition cursor-pointer"
+                      >
+                        {cat}
+                      </button>
+                    ))
+                  ) : (
+                    <div className="px-4 py-3 text-xs font-semibold text-gray-500 italic">
+                      No categories available
+                    </div>
+                  )}
                 </div>
               )}
             </div>
