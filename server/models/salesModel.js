@@ -133,6 +133,7 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
       variantId: variant ? variant.id : null,
       productId: prod.id,
       productName: displayName,
+      product_name: displayName,
       quantity: qty,
       unitPrice,
       costPrice,

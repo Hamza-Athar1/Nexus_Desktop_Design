@@ -42,6 +42,28 @@ export function getCategoryIcon(category, size = 24) {
   }
 }
 
+function ProductImageOrIcon({ image, category, size = 20 }) {
+  const [imgError, setImgError] = useState(false);
+
+  if (image && !imgError) {
+    return (
+      <img
+        src={image}
+        alt=""
+        className="w-full h-full object-contain"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-[#efeacb]/40 text-[#0c3818]">
+      {getCategoryIcon(category, size)}
+    </div>
+  );
+}
+
+
 import { apiFetchJson } from '../../lib/api';
 import {
   getInventoryItems,
@@ -99,7 +121,7 @@ export default function AdminProductsPage() {
             status,
             category: item.category || 'General',
             subcategory: 'General',
-            image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&auto=format&fit=crop&q=60',
+            image: item.image || item.image_url || null,
           };
         });
         setProducts(mapped);
@@ -708,15 +730,7 @@ export default function AdminProductsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-white border border-[#0c3818]/15 overflow-hidden flex items-center justify-center p-1 shrink-0">
-                    <img
-                      src={p.image}
-                      alt={p.name}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
-                      }}
-                    />
+                    <ProductImageOrIcon image={p.image} category={p.category} size={22} />
                   </div>
                   <div>
                     <h4 className="font-extrabold text-sm text-[#0c3818]">{p.name}</h4>
@@ -784,15 +798,7 @@ export default function AdminProductsPage() {
                     {/* Image Column */}
                     <td className="py-3 px-6">
                       <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-[#0c3818]/15 overflow-hidden shadow-2xs">
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          className="w-full h-full object-contain p-0.5"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = 'none';
-                          }}
-                        />
+                        <ProductImageOrIcon image={p.image} category={p.category} size={18} />
                       </div>
                     </td>
 

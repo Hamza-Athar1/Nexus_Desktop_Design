@@ -75,8 +75,8 @@ router.patch('/business/receipt-settings', ...Auth, asyncHandler(async (req, res
   }
 
   const numFontSize = fontSize !== undefined ? Number(fontSize) : undefined;
-  if (numFontSize !== undefined && (isNaN(numFontSize) || numFontSize < 10 || numFontSize > 30)) {
-    throw new ApiError(400, 'fontSize must be a number between 10 and 30');
+  if (numFontSize !== undefined && (isNaN(numFontSize) || numFontSize < 10 || numFontSize > 50)) {
+    throw new ApiError(400, 'fontSize must be a number between 10 and 50');
   }
 
   if (language !== undefined && !['en', 'ur'].includes(language)) {

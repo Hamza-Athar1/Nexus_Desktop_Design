@@ -118,7 +118,7 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
         {/* ── Main Content Body ── */}
         <div className="p-5 sm:p-6 flex flex-col gap-5">
           {/* Item Table Header */}
-          <div className="grid grid-cols-12 gap-2 text-sm sm:text-base font-bold text-[#0c3818] pb-2 border-b border-[#0c3818]/15 px-1">
+          <div className="grid grid-cols-12 gap-2 font-bold text-[#0c3818] pb-2 border-b border-[#0c3818]/15 px-1" style={{ fontSize }}>
             <div className={`col-span-6 ${isUrdu ? 'text-right' : 'text-left'}`}>{labels.itemName}</div>
             <div className="col-span-3 text-center">{labels.qty}</div>
             <div className={`col-span-3 ${isUrdu ? 'text-left' : 'text-right'}`}>{labels.price}</div>
@@ -128,7 +128,7 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
           <div className="flex flex-col gap-4 py-2 min-h-[90px] max-h-56 overflow-y-auto">
             {rawItems.length > 0 ? (
               rawItems.map((item, idx) => {
-                const itemName = item.product_name || item.name || `Product #${item.product_id || idx + 1}`;
+                const itemName = item.product_name || item.productName || item.name || item.product?.name || item.item_name || item.title || (item.product_id || item.productId ? `Product #${item.product_id || item.productId}` : `Item #${idx + 1}`);
                 const itemQty = item.quantity ?? item.qty ?? 1;
                 const itemPrice = Number(item.unit_price ?? item.price ?? 0);
                 return (
@@ -161,27 +161,27 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
                 );
               })
             ) : (
-              <div className="text-center py-6 text-sm text-gray-500 font-medium">{labels.noItems}</div>
+              <div className="text-center py-6 text-gray-500 font-medium" style={{ fontSize }}>{labels.noItems}</div>
             )}
           </div>
 
           {/* ── Financial Breakdown Divider ── */}
           <div className="border-t border-[#0c3818]/20 pt-4 flex flex-col gap-2.5">
             {/* Subtotal */}
-            <div className="flex justify-between items-center text-sm sm:text-base font-bold text-[#0c3818]">
+            <div className="flex justify-between items-center font-bold text-[#0c3818]" style={{ fontSize }}>
               <span>{labels.subtotal}</span>
               <span dir="ltr">Rs. {subtotal}</span>
             </div>
 
             {tax > 0 && (
-              <div className="flex justify-between items-center text-sm sm:text-base font-bold text-[#0c3818]">
+              <div className="flex justify-between items-center font-bold text-[#0c3818]" style={{ fontSize }}>
                 <span>{labels.tax}</span>
                 <span dir="ltr">Rs. {tax}</span>
               </div>
             )}
 
             {laborCharge > 0 && (
-              <div className="flex justify-between items-center text-sm sm:text-base font-bold text-[#0c3818]">
+              <div className="flex justify-between items-center font-bold text-[#0c3818]" style={{ fontSize }}>
                 <span>{labels.labor}</span>
                 <span dir="ltr">Rs. {laborCharge}</span>
               </div>
@@ -191,22 +191,22 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
             <div className="border-t border-[#0c3818]/20 my-1" />
 
             {/* Total */}
-            <div className="flex justify-between items-center text-base sm:text-lg text-[#8b1e10] font-black">
+            <div className="flex justify-between items-center text-[#8b1e10] font-black" style={{ fontSize }}>
               <span>{labels.total}</span>
-              <span className="text-xl sm:text-2xl" dir="ltr">
+              <span className="font-extrabold" dir="ltr" style={{ fontSize }}>
                 Rs. {total.toLocaleString('en-IN')}
               </span>
             </div>
 
             {/* Paid Amount */}
-            <div className="flex justify-between items-center text-sm sm:text-base font-bold text-[#0c3818]">
+            <div className="flex justify-between items-center font-bold text-[#0c3818]" style={{ fontSize }}>
               <span>{labels.paid}</span>
               <span dir="ltr">Rs. {paidAmount}</span>
             </div>
 
             {/* Change */}
             {changeAmount > 0 && (
-              <div className="flex justify-between items-center text-sm sm:text-base font-bold text-green-700">
+              <div className="flex justify-between items-center font-bold text-green-700" style={{ fontSize }}>
                 <span>{labels.change}</span>
                 <span dir="ltr">Rs. {changeAmount}</span>
               </div>
@@ -214,7 +214,7 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
           </div>
 
           {/* Footer Note */}
-          <div className="text-center text-xs font-semibold text-[#0c3818]/70 pt-2 border-t border-[#0c3818]/10">
+          <div className="text-center font-semibold text-[#0c3818]/70 pt-2 border-t border-[#0c3818]/10" style={{ fontSize }}>
             {labels.thankYou}
           </div>
 

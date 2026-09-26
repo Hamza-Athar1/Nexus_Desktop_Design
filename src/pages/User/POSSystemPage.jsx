@@ -316,13 +316,13 @@ export default function POSSystemPage() {
 
           {/* Center Store Title */}
           <div className="flex flex-col items-center">
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide text-[#0d3410] text-center uppercase">
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide text-center uppercase" style={{ color: 'var(--color-primary)' }}>
               {displayShopName}
             </h1>
             <div className="flex gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-600" />
+              <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: 'var(--color-accent)' }} />
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }} />
+              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }} />
             </div>
           </div>
 
@@ -333,7 +333,8 @@ export default function POSSystemPage() {
             </div>
             <button
               onClick={() => navigate('/admin-login')}
-              className="bg-[#093311] hover:bg-[#06240c] text-[#efe9c4] text-xs font-extrabold px-4 py-2.5 rounded-full transition-all duration-200 tracking-wider cursor-pointer active:scale-95"
+              className="text-[#efe9c4] text-xs font-extrabold px-4 py-2.5 rounded-full transition-all duration-200 tracking-wider cursor-pointer active:scale-95 shadow-md"
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               ADMIN LOGIN
             </button>
@@ -400,18 +401,25 @@ export default function POSSystemPage() {
 
         {/* Customer tabs bar */}
         <div className="flex flex-wrap gap-2.5 mb-4">
-          {customerList.map((cust, idx) => (
-            <button
-              key={cust.id ?? `walkin-${idx}`}
-              onClick={() => setActiveCustomerIndex(idx)}
-              className={`px-6 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 ${activeCustomerIndex === idx
-                  ? 'bg-[#093311] text-white shadow-md'
-                  : 'bg-transparent text-[#093311] border border-[#093311] hover:bg-[#093311]/10'
+          {customerList.map((cust, idx) => {
+            const isActive = activeCustomerIndex === idx;
+            return (
+              <button
+                key={cust.id ?? `walkin-${idx}`}
+                onClick={() => setActiveCustomerIndex(idx)}
+                className={`px-6 py-2.5 rounded-xl text-xs md:text-sm font-bold transition-all duration-200 ${
+                  isActive ? 'text-white shadow-md' : 'bg-transparent border hover:opacity-80'
                 }`}
-            >
-              {cust.name}
-            </button>
-          ))}
+                style={
+                  isActive
+                    ? { backgroundColor: 'var(--color-primary)' }
+                    : { color: 'var(--color-primary)', borderColor: 'var(--color-primary)' }
+                }
+              >
+                {cust.name}
+              </button>
+            );
+          })}
         </div>
 
         {/* Main interactive grid section */}
@@ -419,10 +427,9 @@ export default function POSSystemPage() {
           {/* Left panel: Barcode scanning simulator */}
           <div className="lg:col-span-7 bg-white rounded-3xl border border-gray-100 p-6 flex flex-col items-center justify-between min-h-[460px] shadow-sm relative overflow-hidden">
             {/* Top Right Scanned items badge */}
-            <div className="absolute top-4 right-4 bg-[#e6ecce] text-[#093311] text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-full select-none">
+            <div className="absolute top-4 right-4 text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-full select-none" style={{ backgroundColor: 'var(--color-light)', color: 'var(--color-primary)' }}>
               {currentCart.reduce((sum, item) => sum + item.qty, 0)} items scanned
             </div>
-
 
             {/* Simulated Scanner visualization */}
             <div className="my-6 relative flex flex-col items-center justify-center w-full max-w-[280px] h-[180px] border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-4 transition-all">
@@ -452,8 +459,8 @@ export default function POSSystemPage() {
             <button
               onClick={handleScanNext}
               disabled={scanLaserActive}
-              className={`w-full max-w-[240px] py-3 bg-[#093311] hover:bg-[#06240c] text-[#efe9c4] text-sm md:text-base font-extrabold rounded-xl shadow-sm transition-colors ${scanLaserActive ? 'opacity-70 cursor-not-allowed' : ''
-                }`}
+              className={`w-full max-w-[240px] py-3 text-[#efe9c4] text-sm md:text-base font-extrabold rounded-xl shadow-sm transition-colors ${scanLaserActive ? 'opacity-70 cursor-not-allowed' : ''}`}
+              style={{ backgroundColor: 'var(--color-primary)' }}
             >
               {scanLaserActive ? 'Scanning...' : 'Scan next item'}
             </button>
@@ -478,13 +485,14 @@ export default function POSSystemPage() {
 
           {/* Right panel: Bill preview and table */}
           <div className="lg:col-span-5 flex flex-col">
-            {/* Dark green header banner */}
-            <div className="bg-[#093311] rounded-t-2xl px-4 py-3 flex items-center justify-between text-white shadow-sm select-none">
+            {/* Header banner with active theme */}
+            <div className="rounded-t-2xl px-4 py-3 flex items-center justify-between text-white shadow-sm select-none" style={{ backgroundColor: 'var(--color-primary)' }}>
               <span className="text-sm md:text-base font-bold font-mono tracking-wide">POS Checkout</span>
               <div className="flex gap-2">
                 <button
                   onClick={handleClear}
-                  className="bg-white hover:bg-white/90 text-[#093311] text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                  className="bg-white hover:bg-white/90 text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                  style={{ color: 'var(--color-primary)' }}
                 >
                   <Trash2 size={12} />
                   Clear
@@ -591,8 +599,8 @@ export default function POSSystemPage() {
 
                 {/* Total bold row */}
                 <div className="flex justify-between items-center pt-1.5 border-t border-dashed border-gray-100">
-                  <span className="text-sm md:text-base font-extrabold text-[#093311]">Total</span>
-                  <span className="text-base md:text-lg font-extrabold text-[#093311] font-mono">
+                  <span className="text-sm md:text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>Total</span>
+                  <span className="text-base md:text-lg font-extrabold font-mono" style={{ color: 'var(--color-primary)' }}>
                     Rs. {total}
                   </span>
                 </div>
@@ -629,9 +637,10 @@ export default function POSSystemPage() {
                   <button
                     onClick={handleCheckout}
                     disabled={isSubmitting || currentCart.length === 0}
-                    className={`w-full py-3 bg-[#093311] hover:bg-[#06240c] text-white rounded-xl text-xs md:text-sm font-extrabold tracking-wide uppercase transition-colors ${
+                    className={`w-full py-3 text-white rounded-xl text-xs md:text-sm font-extrabold tracking-wide uppercase transition-colors ${
                       isSubmitting || currentCart.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
                     }`}
+                    style={{ backgroundColor: 'var(--color-primary)' }}
                   >
                     {isSubmitting ? 'Processing...' : 'Save & Checkout'}
                   </button>
@@ -639,7 +648,8 @@ export default function POSSystemPage() {
                     onClick={() => {
                       window.print();
                     }}
-                    className="w-full py-3 border border-[#093311] text-[#093311] hover:bg-[#093311]/5 rounded-xl text-xs md:text-sm font-extrabold tracking-wide uppercase transition-colors"
+                    className="w-full py-3 border rounded-xl text-xs md:text-sm font-extrabold tracking-wide uppercase transition-colors"
+                    style={{ borderColor: 'var(--color-primary)', color: 'var(--color-primary)' }}
                   >
                     Print
                   </button>

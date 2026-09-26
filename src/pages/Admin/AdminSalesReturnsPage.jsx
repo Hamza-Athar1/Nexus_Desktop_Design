@@ -66,7 +66,7 @@ export default function AdminSalesReturnsPage() {
             return {
               saleItemId: Number(i.id),
               productId: Number(i.product_id || i.productId),
-              product_name: i.product_name || i.name || `Product #${i.product_id}`,
+              product_name: i.product_name || i.productName || i.name || i.product?.name || `Product #${i.product_id || i.productId}`,
               original_quantity: origQty,
               returned_quantity: retQty,
               returnable_quantity: returnable,

@@ -99,7 +99,7 @@ export default function AddProductForm({ onCancel, onSave, categories = [] }) {
         ...formData,
         moduleSpecificFields: moduleFields,
         variants: moduleCode === 'clothing' ? clothingVariants : [],
-        imagePreview: imagePreview || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=150&auto=format&fit=crop&q=60'
+        imagePreview: imagePreview || null
       });
     }
   };

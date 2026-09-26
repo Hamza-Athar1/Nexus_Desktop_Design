@@ -31,6 +31,11 @@ export async function postStaff(req, res) {
     throw new ApiError(400, 'Password must be at least 6 characters');
   }
 
+  const cleanPhone = phone?.trim() ? phone.trim().replace(/[\s-]/g, '') : '';
+  if (!cleanPhone || !/^\d{11}$/.test(cleanPhone)) {
+    throw new ApiError(400, 'Phone number must be exactly 11 digits');
+  }
+
   if (await findUserByEmail(email.trim())) {
     throw new ApiError(409, 'An account with this email already exists');
   }
@@ -42,7 +47,7 @@ export async function postStaff(req, res) {
   const staff = await createStaffMember(req.businessId, {
     username: username.trim(),
     email: email.trim(),
-    phone: phone?.trim() || null,
+    phone: cleanPhone,
     passwordHash,
   });
 
@@ -57,6 +62,14 @@ export async function putStaff(req, res) {
   const existing = await findStaffById(req.businessId, id);
   if (!existing) {
     throw new ApiError(404, 'Staff member not found');
+  }
+
+  let cleanPhone;
+  if (phone !== undefined) {
+    cleanPhone = phone?.trim() ? phone.trim().replace(/[\s-]/g, '') : '';
+    if (!cleanPhone || !/^\d{11}$/.test(cleanPhone)) {
+      throw new ApiError(400, 'Phone number must be exactly 11 digits');
+    }
   }
 
   if (email && email.trim() !== existing.email) {
@@ -76,7 +89,7 @@ export async function putStaff(req, res) {
   const updated = await updateStaffMember(req.businessId, id, {
     username: username?.trim(),
     email: email?.trim(),
-    phone: phone?.trim(),
+    phone: cleanPhone,
     status,
   });
 

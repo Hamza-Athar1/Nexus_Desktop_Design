@@ -19,6 +19,11 @@ export default function AddStaffModal({ isOpen, onClose, onSave }) {
       setError('Username, email, and password are required.');
       return;
     }
+    const cleanPhone = phone.trim().replace(/[\s-]/g, '');
+    if (!cleanPhone || !/^\d{11}$/.test(cleanPhone)) {
+      setError('Phone number must be exactly 11 digits (e.g. 03001234567).');
+      return;
+    }
     if (password.length < 6) {
       setError('Password must be at least 6 characters.');
       return;
@@ -29,7 +34,7 @@ export default function AddStaffModal({ isOpen, onClose, onSave }) {
       await onSave({
         username: username.trim(),
         email: email.trim(),
-        phone: phone.trim() || null,
+        phone: cleanPhone,
         password,
       });
 
@@ -107,12 +112,16 @@ export default function AddStaffModal({ isOpen, onClose, onSave }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-black text-[#0c3818]">Phone Number</label>
+            <label className="text-xs font-black text-[#0c3818]">
+              Phone Number<span className="text-red-500 ml-0.5">*</span>
+            </label>
             <input
               type="text"
+              required
+              maxLength={13}
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="0300-1234567"
+              placeholder="e.g. 03001234567"
               className="w-full px-4 py-2.5 rounded-xl border border-[#0c3818]/20 bg-white font-bold text-[#0c3818] text-sm focus:outline-hidden focus:border-[#0c3818]"
             />
           </div>
