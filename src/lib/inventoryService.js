@@ -27,3 +27,10 @@ export async function deleteInventoryItem(id) {
     method: 'DELETE',
   });
 }
+
+/** Scan product/variant by barcode */
+export async function scanBarcodeApi(barcode) {
+  return apiFetchJson(`/inventory/scan/${encodeURIComponent(barcode.trim())}`, {
+    method: 'GET',
+  });
+}

@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { Search, Trash2, Barcode } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api.js';
 import { createSale } from '../../lib/salesService.js';
+import { scanBarcodeApi } from '../../lib/inventoryService.js';
 import ViewInvoiceModal from '../../components/Admin/ViewInvoiceModal.jsx';
+import BarcodeScannerModal from '../../components/BarcodeScannerModal.jsx';
 
 function POSClock() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -61,9 +63,13 @@ export default function POSSystemPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
 
-  // Scan simulation state
+  // Scan simulation & camera scanner state
   const [scanLaserActive, setScanLaserActive] = useState(false);
   const [lastScannedItem, setLastScannedItem] = useState(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [barcodeScanError, setBarcodeScanError] = useState(null);
+  const [barcodeScanSuccess, setBarcodeScanSuccess] = useState(null);
+  const [manualBarcode, setManualBarcode] = useState('');
 
   // Fetch real inventory products from backend
   const fetchProducts = async () => {
@@ -134,17 +140,47 @@ export default function POSSystemPage() {
     return Math.round((Number(currentPaid) - total) * 100) / 100;
   }, [currentPaid, total]);
 
-  // Handle barcode scan simulator
-  const handleScanNext = () => {
+  // Real Barcode Lookup Handler (supports Camera & Hardware/Manual Scanner)
+  const handleBarcodeLookup = async (barcodeVal) => {
+    if (!barcodeVal || !barcodeVal.trim()) return;
+    const cleanBarcode = barcodeVal.trim();
+    setBarcodeScanError(null);
+    setBarcodeScanSuccess(null);
     setScanLaserActive(true);
-    setTimeout(() => {
-      const randomIndex = Math.floor(Math.random() * catalog.length);
-      const product = catalog[randomIndex];
 
-      addItemToCart(product);
-      setLastScannedItem(product);
+    try {
+      const res = await scanBarcodeApi(cleanBarcode);
+      if (res.ok && res.data?.item) {
+        const matchedItem = res.data.item;
+        const matchedVariant = matchedItem.matched_variant || null;
+        addItemToCart(matchedItem, matchedVariant);
+        setLastScannedItem(matchedItem);
+
+        const displayName = matchedVariant && (matchedVariant.size || matchedVariant.color)
+          ? `${matchedItem.name} (${[matchedVariant.size, matchedVariant.color].filter(Boolean).join('/')})`
+          : matchedItem.name;
+
+        setBarcodeScanSuccess(`Scanned & Added: ${displayName}`);
+        setScanLaserActive(false);
+        return true;
+      } else {
+        setBarcodeScanError(`Barcode not found: No active product or variant with barcode "${cleanBarcode}" exists in this shop.`);
+        setScanLaserActive(false);
+        return false;
+      }
+    } catch (err) {
+      setBarcodeScanError(err.message || `No active product or variant with barcode "${cleanBarcode}" exists in this shop.`);
       setScanLaserActive(false);
-    }, 500);
+      return false;
+    }
+  };
+
+  const handleManualBarcodeSubmit = (e) => {
+    e.preventDefault();
+    if (manualBarcode.trim()) {
+      handleBarcodeLookup(manualBarcode);
+      setManualBarcode('');
+    }
   };
 
   // Add item to cart helper with stock check
@@ -422,17 +458,31 @@ export default function POSSystemPage() {
           })}
         </div>
 
+        {/* Barcode Feedback Notifications */}
+        {barcodeScanSuccess && (
+          <div className="w-full p-3 mb-4 bg-emerald-100 border border-emerald-300 text-emerald-900 rounded-xl text-xs font-bold flex justify-between items-center animate-in fade-in">
+            <span>{barcodeScanSuccess}</span>
+            <button onClick={() => setBarcodeScanSuccess(null)} className="text-emerald-800 hover:text-emerald-950 font-extrabold cursor-pointer">✕</button>
+          </div>
+        )}
+        {barcodeScanError && (
+          <div className="w-full p-3 mb-4 bg-red-100 border border-red-300 text-red-900 rounded-xl text-xs font-bold flex justify-between items-center animate-in fade-in">
+            <span>{barcodeScanError}</span>
+            <button onClick={() => setBarcodeScanError(null)} className="text-red-800 hover:text-red-950 font-extrabold cursor-pointer">✕</button>
+          </div>
+        )}
+
         {/* Main interactive grid section */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Left panel: Barcode scanning simulator */}
+          {/* Left panel: Barcode Scanner & Hardware Input */}
           <div className="lg:col-span-7 bg-white rounded-3xl border border-gray-100 p-6 flex flex-col items-center justify-between min-h-[460px] shadow-sm relative overflow-hidden">
             {/* Top Right Scanned items badge */}
             <div className="absolute top-4 right-4 text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-full select-none" style={{ backgroundColor: 'var(--color-light)', color: 'var(--color-primary)' }}>
               {currentCart.reduce((sum, item) => sum + item.qty, 0)} items scanned
             </div>
 
-            {/* Simulated Scanner visualization */}
-            <div className="my-6 relative flex flex-col items-center justify-center w-full max-w-[280px] h-[180px] border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-4 transition-all">
+            {/* Scanner visualization */}
+            <div className="my-4 relative flex flex-col items-center justify-center w-full max-w-[280px] h-[160px] border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50 p-4 transition-all">
               {/* Target brackets */}
               <div className="absolute top-2 left-2 w-4 h-4 border-t-2 border-l-2 border-gray-400" />
               <div className="absolute top-2 right-2 w-4 h-4 border-t-2 border-r-2 border-gray-400" />
@@ -449,25 +499,45 @@ export default function POSSystemPage() {
               />
             </div>
 
-            {/* Instruction labels */}
-            <div className="text-center mb-4">
-              <h3 className="text-base md:text-lg font-bold text-gray-900">Scan to enter bill item</h3>
-              <p className="text-xs md:text-sm text-gray-500 mt-1">Point the barcode scanner at a product</p>
+            {/* Instruction labels & Actions */}
+            <div className="text-center mb-3 w-full max-w-sm flex flex-col items-center gap-3">
+              <div>
+                <h3 className="text-base md:text-lg font-bold text-gray-900">Scan Barcode / Enter Manually</h3>
+                <p className="text-xs text-gray-500 mt-0.5">Use camera or hardware USB barcode reader</p>
+              </div>
+
+              {/* Camera Scanner Trigger */}
+              <button
+                type="button"
+                onClick={() => setIsScannerOpen(true)}
+                disabled={scanLaserActive}
+                className={`w-full py-2.5 text-[#efe9c4] text-xs md:text-sm font-extrabold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer ${scanLaserActive ? 'opacity-70 cursor-not-allowed' : 'hover:opacity-90'}`}
+                style={{ backgroundColor: 'var(--color-primary)' }}
+              >
+                <Barcode size={18} /> Scan next item
+              </button>
+
+              {/* Hardware Scanner / Manual Barcode Input Form */}
+              <form onSubmit={handleManualBarcodeSubmit} className="w-full flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Enter barcode or scan here..."
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                  className="flex-1 bg-gray-50 border border-gray-300 rounded-xl px-3.5 py-2 text-xs font-bold text-[#0d3410] outline-none focus:border-[#0d3410] focus:bg-white"
+                />
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#0d3410] text-white text-xs font-bold rounded-xl hover:bg-[#114720] transition cursor-pointer"
+                >
+                  Lookup
+                </button>
+              </form>
             </div>
 
-            {/* Scan Trigger Button */}
-            <button
-              onClick={handleScanNext}
-              disabled={scanLaserActive}
-              className={`w-full max-w-[240px] py-3 text-[#efe9c4] text-sm md:text-base font-extrabold rounded-xl shadow-sm transition-colors ${scanLaserActive ? 'opacity-70 cursor-not-allowed' : ''}`}
-              style={{ backgroundColor: 'var(--color-primary)' }}
-            >
-              {scanLaserActive ? 'Scanning...' : 'Scan next item'}
-            </button>
-
             {/* Footer scanned list */}
-            <div className="w-full mt-6 pt-4 border-t border-gray-100 text-center">
-              <p className="text-[10px] font-extrabold tracking-wider text-gray-400 mb-2 uppercase">
+            <div className="w-full mt-4 pt-3 border-t border-gray-100 text-center">
+              <p className="text-[10px] font-extrabold tracking-wider text-gray-400 mb-1 uppercase">
                 SCANNED SO FAR
               </p>
               {lastScannedItem ? (
@@ -667,6 +737,15 @@ export default function POSSystemPage() {
           onClose={() => setCompletedSale(null)}
         />
       )}
+
+      {/* Camera Barcode Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onScan={(scannedCode) => {
+          handleBarcodeLookup(scannedCode);
+        }}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
-import { Upload, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
+import { Upload, ChevronDown, ChevronUp, Plus, Trash2, Barcode } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import BarcodeScannerModal from '../BarcodeScannerModal';
 
 export default function AddProductForm({ onCancel, onSave, categories = [] }) {
   const { user } = useAuth();
@@ -41,6 +42,8 @@ export default function AddProductForm({ onCancel, onSave, categories = [] }) {
 
   const [imagePreview, setImagePreview] = useState(null);
   const [categoryDropdownOpen, setCategoryDropdownOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanningTarget, setScanningTarget] = useState('base'); // 'base' or variant index
   const fileInputRef = useRef(null);
 
   const handleImageUpload = (e) => {
@@ -233,13 +236,27 @@ export default function AddProductForm({ onCancel, onSave, categories = [] }) {
               </div>
               <div className="flex flex-col gap-1.5 2xl:gap-2">
                 <label className="text-xs 2xl:text-sm font-black text-[#0c3818]">Barcode</label>
-                <input
-                  type="text"
-                  placeholder="Scan or enter barcode"
-                  value={formData.barcode}
-                  onChange={(e) => handleChange('barcode', e.target.value)}
-                  className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-xs 2xl:text-sm font-bold text-[#0c3818] placeholder-gray-400 focus:outline-none focus:border-[#0c3818]"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Scan or enter barcode"
+                    value={formData.barcode}
+                    onChange={(e) => handleChange('barcode', e.target.value)}
+                    className="w-full bg-white border border-[#0c3818]/25 rounded-xl px-4 py-2.5 2xl:px-5 2xl:py-3.5 text-xs 2xl:text-sm font-bold text-[#0c3818] placeholder-gray-400 focus:outline-none focus:border-[#0c3818]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScanningTarget('base');
+                      setScannerOpen(true);
+                    }}
+                    className="px-3 py-2.5 2xl:px-4 2xl:py-3.5 bg-[#0c3818] text-[#efeacb] hover:bg-[#114720] hover:text-white rounded-xl text-xs font-black flex items-center gap-1.5 shrink-0 transition cursor-pointer"
+                    title="Scan barcode with camera"
+                  >
+                    <Barcode size={16} />
+                    <span>Scan</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -459,8 +476,28 @@ export default function AddProductForm({ onCancel, onSave, categories = [] }) {
                           placeholder="Stock"
                           value={varItem.stock}
                           onChange={(e) => handleVariantChange(idx, 'stock', e.target.value)}
-                          className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold"
+                          className="w-20 border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold"
                         />
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="text"
+                            placeholder="Barcode"
+                            value={varItem.barcode || ''}
+                            onChange={(e) => handleVariantChange(idx, 'barcode', e.target.value)}
+                            className="w-24 border border-gray-300 rounded-lg px-2 py-1 text-xs font-bold"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScanningTarget(idx);
+                              setScannerOpen(true);
+                            }}
+                            className="p-1 bg-[#0c3818] text-[#efeacb] hover:bg-[#114720] hover:text-white rounded-lg transition cursor-pointer"
+                            title="Scan variant barcode with camera"
+                          >
+                            <Barcode size={14} />
+                          </button>
+                        </div>
                         <button
                           type="button"
                           onClick={() => removeVariantRow(idx)}
@@ -556,6 +593,19 @@ export default function AddProductForm({ onCancel, onSave, categories = [] }) {
           </div>
         </form>
       </div>
+      {/* Camera Barcode Scanner Modal */}
+      <BarcodeScannerModal
+        isOpen={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={(scannedCode) => {
+          if (scanningTarget === 'base') {
+            handleChange('barcode', scannedCode);
+          } else if (typeof scanningTarget === 'number') {
+            handleVariantChange(scanningTarget, 'barcode', scannedCode);
+          }
+          setScannerOpen(false);
+        }}
+      />
     </div>
   );
 }
