@@ -3,7 +3,7 @@ import { verifyToken } from '../middleware/verifyToken.js';
 import { roleCheck } from '../middleware/roleCheck.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import {
-  getPalettesHandler, postPaletteHandler, deletePaletteHandler,
+  getPalettesHandler, postPaletteHandler, patchPaletteHandler, deletePaletteHandler,
   getPosListHandler, getPosStatsHandler,
   postPosHandler, patchPosHandler, deletePosHandler,
 } from '../controllers/posController.js';
@@ -14,6 +14,7 @@ const SA = [verifyToken, roleCheck('super_admin')];
 // ── Palettes ──────────────────────────────────────────────────────────────────
 router.get(   '/admin/pos/palettes',     ...SA, asyncHandler(getPalettesHandler));
 router.post(  '/admin/pos/palettes',     ...SA, asyncHandler(postPaletteHandler));
+router.patch( '/admin/pos/palettes/:id', ...SA, asyncHandler(patchPaletteHandler));
 router.delete('/admin/pos/palettes/:id', ...SA, asyncHandler(deletePaletteHandler));
 
 // ── POS Modules ───────────────────────────────────────────────────────────────

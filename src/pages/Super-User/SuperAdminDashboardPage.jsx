@@ -26,10 +26,7 @@ import {
 import { getSuperAdminDashboardAnalytics } from '../../lib/reportService.js';
 import { useAuth } from '../../context/AuthContext.jsx';
 
-// Custom formatting for Tooltip values
-const formatYAxisRevenue = (tick) => {
-  return `${tick}M`;
-};
+
 
 export default function SuperAdminDashboardPage() {
   const { user } = useAuth();
@@ -239,7 +236,7 @@ export default function SuperAdminDashboardPage() {
         <div className="bg-[#efeacb] rounded-[24px] border border-[#bfbc9b] p-6 shadow-sm flex flex-col justify-between min-h-[380px]">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-bold uppercase tracking-wider text-[#152f16]">
-              PLATFORM REVENUE TREND (M)
+              PLATFORM REVENUE TREND (PKR in Thousands)
             </h3>
             <div className="flex items-center gap-1.5 text-xs font-bold text-[#137333]">
               <TrendingUp size={16} />
@@ -259,9 +256,9 @@ export default function SuperAdminDashboardPage() {
                     strokeWidth={1}
                     fontSize={10}
                     tickLine={false}
-                    tickFormatter={formatYAxisRevenue}
+                    tickFormatter={(tick) => `${tick}k`}
                   />
-                  <Tooltip formatter={(value) => [`${value}M`, 'Revenue']} />
+                  <Tooltip formatter={(value, _name, item) => [`PKR ${(item.payload.rawValue || value * 1000).toLocaleString()}`, 'Revenue']} />
                   <Bar dataKey="value" fill="#0d381c" radius={[4, 4, 0, 0]} maxBarSize={32} />
                 </BarChart>
               </ResponsiveContainer>

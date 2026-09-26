@@ -128,6 +128,14 @@ export async function finishSetup(req, res) {
     paletteIdToUse = Number(business.paletteId);
     themePrice = Number(pRows[0].price || 0);
     paletteName = pRows[0].name;
+  } else {
+    // Fallback to module's default palette or preset palette 1
+    paletteIdToUse = module.palette_id || 1;
+    const [pRows] = await pool.query('SELECT name, price FROM pos_palettes WHERE id = ? LIMIT 1', [paletteIdToUse]);
+    if (pRows[0]) {
+      themePrice = Number(pRows[0].price || 0);
+      paletteName = pRows[0].name;
+    }
   }
 
   const totalMonthlyCost = Number(plan.monthly_price) + backupModulesPrice + themePrice;

@@ -228,12 +228,12 @@ export async function getDashboardAnalytics() {
   // Revenue trend over time
   const [revenueTrendRows] = await pool.query(`
     SELECT 
-      DATE_FORMAT(COALESCE(paid_at, due_date), '%b') AS name, 
-      ROUND(COALESCE(SUM(amount), 0) / 1000000, 2) AS value,
+      DATE_FORMAT(COALESCE(paid_at, due_date), '%b %Y') AS name, 
+      ROUND(COALESCE(SUM(amount), 0) / 1000, 1) AS value,
       COALESCE(SUM(amount), 0) AS rawValue
     FROM invoices
     WHERE status = 'paid'
-    GROUP BY YEAR(COALESCE(paid_at, due_date)), MONTH(COALESCE(paid_at, due_date)), DATE_FORMAT(COALESCE(paid_at, due_date), '%b')
+    GROUP BY YEAR(COALESCE(paid_at, due_date)), MONTH(COALESCE(paid_at, due_date)), DATE_FORMAT(COALESCE(paid_at, due_date), '%b %Y')
     ORDER BY YEAR(COALESCE(paid_at, due_date)) ASC, MONTH(COALESCE(paid_at, due_date)) ASC
   `);
 

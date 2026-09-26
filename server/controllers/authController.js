@@ -62,6 +62,7 @@ async function toAuthUser(user) {
       colorAccent: business.color_accent,
       colorShade: business.color_shade,
       colorLight: business.color_light,
+      colors: [business.color_primary, business.color_accent, business.color_shade, business.color_light],
     } : null,
   };
 }

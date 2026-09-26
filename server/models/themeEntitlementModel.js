@@ -84,6 +84,7 @@ export async function getBusinessThemeCatalog(businessId) {
       colorAccent: p.color_accent,
       colorShade: p.color_shade,
       colorLight: p.color_light,
+      colors: [p.color_primary, p.color_accent, p.color_shade, p.color_light],
       isPreset: Boolean(p.is_preset),
       price: Number(p.price),
       owned: isOwned,

@@ -1,77 +1,96 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { Plus, Monitor, CheckCircle2, Palette } from 'lucide-react';
+import { Plus, Palette, ShieldCheck, Tag, Trash2 } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api';
-import AddPOSModal from '../../components/Super-User/AddPOSModal';
-import EditPOSModal from '../../components/Super-User/EditPOSModal';
+import AddPaletteForm from '../../components/Super-User/AddPaletteForm';
 
 export default function SuperAdminPOSPage() {
   const { setHeaderDetails } = useOutletContext() || {};
-  const [modules,  setModules]  = useState([]);
   const [palettes, setPalettes] = useState([]);
-  const [stats,    setStats]    = useState({ total: 0, active: 0, themed: 0 });
+  const [loading, setLoading] = useState(true);
+  const [addPaletteOpen, setAddPaletteOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: 'POS management',
+        title: 'Theme management',
         subtitle: (
           <>
-            <span>{stats.total} POS modules</span>
+            <span>{palettes.length} Color Palettes</span>
             <span className="text-[#14391a]/30">•</span>
-            <span>themed with color palettes</span>
+            <span>Platform themes catalogue</span>
           </>
         )
       });
     }
-  }, [stats.total, setHeaderDetails]);
+  }, [palettes.length, setHeaderDetails]);
 
-  const [loading,  setLoading]  = useState(true);
-
-  // Modal state
-  const [addOpen,    setAddOpen]    = useState(false);
-  const [editTarget, setEditTarget] = useState(null);   // module object | null
-  const [deleteTarget, setDeleteTarget] = useState(null);
-
-  // ── Load data ───────────────────────────────────────────────────────────────
-  const loadAll = useCallback(async () => {
-    const [modsRes, palRes, statsRes] = await Promise.all([
-      apiFetchJson('/admin/pos'),
-      apiFetchJson('/admin/pos/palettes'),
-      apiFetchJson('/admin/pos/stats'),
-    ]);
-    if (modsRes.ok)  setModules(modsRes.data.modules);
-    if (palRes.ok)   setPalettes(palRes.data.palettes);
-    if (statsRes.ok) setStats(statsRes.data.stats);
+  // ── Load Palettes ────────────────────────────────────────────────────────────
+  const loadPalettes = useCallback(async () => {
+    const palRes = await apiFetchJson('/admin/pos/palettes');
+    if (palRes.ok) setPalettes(palRes.data.palettes);
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { loadPalettes(); }, [loadPalettes]);
 
-  // ── Delete ──────────────────────────────────────────────────────────────────
-  const handleDelete = async () => {
-    if (!deleteTarget) return;
-    const { ok } = await apiFetchJson(`/admin/pos/${deleteTarget.id}`, { method: 'DELETE' });
-    if (ok) { setDeleteTarget(null); loadAll(); }
-  };
-
-  // ── Palette create/delete callbacks (passed to modals) ───────────────────────
-  const handleCreatePalette = async (paletteData) => {
-    const { ok, data } = await apiFetchJson('/admin/pos/palettes', {
+  // ── Create Custom Palette ───────────────────────────────────────────────────
+  const handleCreatePalette = async (formData) => {
+    // formData: { name, colors:[primary, accent, shade, light], price }
+    const payload = {
+      name: formData.name,
+      colorPrimary: formData.colors[0],
+      colorAccent: formData.colors[1],
+      colorShade: formData.colors[2],
+      colorLight: formData.colors[3],
+      price: formData.price || 0,
+    };
+    const { ok } = await apiFetchJson('/admin/pos/palettes', {
       method: 'POST',
-      body: JSON.stringify(paletteData),
+      body: JSON.stringify(payload),
     });
     if (ok) {
-      setPalettes(prev => [...prev, data.palette]);
-      return data.palette;
+      setAddPaletteOpen(false);
+      loadPalettes();
     }
-    return null;
   };
 
-  const handleDeletePalette = async (id) => {
-    const { ok } = await apiFetchJson(`/admin/pos/palettes/${id}`, { method: 'DELETE' });
-    if (ok) setPalettes(prev => prev.filter(p => p.id !== id));
+  const [editPaletteTarget, setEditPaletteTarget] = useState(null);
+
+  // ── Update Custom Palette ───────────────────────────────────────────────────
+  const handleUpdatePalette = async (formData) => {
+    if (!editPaletteTarget) return;
+    const payload = {
+      name: formData.name,
+      colorPrimary: formData.colors[0],
+      colorAccent: formData.colors[1],
+      colorShade: formData.colors[2],
+      colorLight: formData.colors[3],
+      price: formData.price || 0,
+    };
+    const { ok } = await apiFetchJson(`/admin/pos/palettes/${editPaletteTarget.id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+    if (ok) {
+      setEditPaletteTarget(null);
+      loadPalettes();
+    }
   };
+
+  // ── Delete Custom Palette ───────────────────────────────────────────────────
+  const handleDeletePalette = async () => {
+    if (!deleteTarget) return;
+    const { ok } = await apiFetchJson(`/admin/pos/palettes/${deleteTarget.id}`, { method: 'DELETE' });
+    if (ok) {
+      setDeleteTarget(null);
+      loadPalettes();
+    }
+  };
+
+  const presetCount = palettes.filter(p => p.isPreset).length;
+  const customCount = palettes.filter(p => !p.isPreset).length;
 
   return (
     <div className="flex-1 flex flex-col font-sans select-none text-[#14391a]">
@@ -79,32 +98,35 @@ export default function SuperAdminPOSPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div className="lg:hidden">
           <h1 className="text-3xl sm:text-[44px] font-black text-[#14391a] leading-none mb-1">
-            POS management
+            Theme management
           </h1>
           <p className="text-xs sm:text-base text-[#14391a]/70 font-semibold mt-2 flex items-center gap-2">
-            <span>{stats.total} POS modules</span>
+            <span>{palettes.length} Color Palettes</span>
             <span className="text-[#14391a]/30">•</span>
-            <span>themed with color palettes</span>
+            <span>Platform themes catalogue</span>
           </p>
         </div>
         <div className="w-full sm:w-auto lg:ml-auto">
           <button
             type="button"
-            onClick={() => setAddOpen(true)}
+            onClick={() => {
+              setEditPaletteTarget(null);
+              setAddPaletteOpen(prev => !prev);
+            }}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-[#113819] hover:bg-[#14391a] text-white text-sm font-extrabold rounded-xl transition cursor-pointer shadow-sm"
           >
             <Plus size={18} strokeWidth={2.5} />
-            <span>Add POS</span>
+            <span>{addPaletteOpen ? 'Close Form' : 'Add New Theme'}</span>
           </button>
         </div>
       </div>
 
-      {/* Stats */}
+      {/* KPI Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 mb-8">
         {[
-          { label: 'Total POS',       value: stats.total,  color: 'text-white', icon: Monitor },
-          { label: 'Active',          value: stats.active, color: 'text-white', icon: CheckCircle2 },
-          { label: 'Themes Assigned', value: stats.themed, color: 'text-[#deb887]', icon: Palette },
+          { label: 'Total Palettes', value: palettes.length, color: 'text-white', icon: Palette },
+          { label: 'Free / Presets', value: presetCount, color: 'text-white', icon: ShieldCheck },
+          { label: 'Custom Palettes', value: customCount, color: 'text-[#deb887]', icon: Tag },
         ].map(({ label, value, color, icon: IconComponent }) => (
           <div key={label} className="bg-[#0b2b14] rounded-3xl border border-[#2e5c38]/40 p-6 flex items-center justify-between text-[#efeacb] hover:border-[#40804e]/60 transition-all duration-300 shadow-[0_8px_30px_rgb(0,0,0,0.12)] hover:-translate-y-1 hover:shadow-[0_12px_40px_rgb(0,0,0,0.18)]">
             <div className="flex flex-col gap-1 flex-1 min-w-0 pr-2">
@@ -119,173 +141,160 @@ export default function SuperAdminPOSPage() {
         ))}
       </div>
 
-      {/* Mobile Touch Cards View (block md:hidden) */}
-      <div className="block md:hidden space-y-3 mb-8">
-        {loading && <div className="p-6 text-center text-xs font-semibold text-[#14391a]/60 bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">Loading POS modules...</div>}
-        {!loading && modules.length === 0 && (
-          <div className="p-6 text-center text-xs font-semibold text-[#14391a]/60 bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">No POS modules yet. Click "Add POS" to create one.</div>
-        )}
-        {modules.map((row) => (
-          <div key={row.id} className="bg-[#efeacb] border border-[#bfbc9b] rounded-2xl p-4 shadow-xs flex flex-col gap-3">
-            <div className="flex items-start justify-between">
-              <div>
-                <h4 className="font-black text-base text-[#14391a]">{row.name}</h4>
-                <p className="text-xs font-bold text-[#14391a]/70">{row.priceLabel}</p>
-              </div>
-              <span className={`px-3 py-1 rounded-lg text-xs font-extrabold border ${
-                row.isActive ? 'bg-[#cbebc7] text-[#14391a] border-[#14391a]/30' : 'bg-[#e4dcbc] text-[#14391a]/60 border-[#14391a]/20'
-              }`}>
-                {row.isActive ? 'Active' : 'Inactive'}
-              </span>
-            </div>
+      {/* Inline Add/Edit Theme Form */}
+      {(addPaletteOpen || editPaletteTarget) && (
+        <div className="mb-8">
+          <h3 className="text-lg font-black text-[#14391a] mb-3">
+            {editPaletteTarget ? `Edit Theme: ${editPaletteTarget.name}` : 'Create New Theme Palette'}
+          </h3>
+          <AddPaletteForm
+            initialData={editPaletteTarget}
+            onCancel={() => {
+              setAddPaletteOpen(false);
+              setEditPaletteTarget(null);
+            }}
+            onAdd={editPaletteTarget ? handleUpdatePalette : handleCreatePalette}
+          />
+        </div>
+      )}
 
-            {row.palette ? (
-              <div className="flex items-center gap-2 bg-[#eae3c1]/60 p-2.5 rounded-xl border border-[#c8c2a3]/30">
-                <div className="flex -space-x-1.5 shrink-0">
-                  {row.palette.colors.map((c, i) => (
-                    <span key={i} className="w-4 h-4 rounded-full border border-white/60 shadow-xs" style={{ backgroundColor: c }} />
-                  ))}
-                </div>
-                <span className="text-xs font-extrabold text-[#14391a]">{row.palette.name}</span>
-              </div>
-            ) : (
-              <div className="text-xs text-[#14391a]/50 italic font-semibold">No theme assigned</div>
-            )}
-
-            <div className="flex items-center gap-2 pt-1 border-t border-[#14391a]/15">
-              <button
-                type="button"
-                onClick={() => setEditTarget(row)}
-                className="flex-1 py-2 bg-white text-[#14391a] border border-[#14391a]/40 text-xs font-extrabold rounded-xl text-center shadow-2xs hover:bg-neutral-50"
-              >
-                Edit Module
-              </button>
-              <button
-                type="button"
-                onClick={() => setDeleteTarget(row)}
-                className="py-2 px-4 bg-red-50 text-[#8c1d1d] border border-red-200 text-xs font-extrabold rounded-xl text-center shadow-2xs hover:bg-red-100"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        ))}
+      {/* Palette Catalogue Grid */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-black uppercase tracking-wider text-[#14391a]/80">Available Theme Catalogue</h3>
+        <span className="text-xs font-bold text-[#14391a]/60">{palettes.length} total themes available</span>
       </div>
 
-      {/* Desktop View Table Container (hidden md:block) */}
-      <div className="hidden md:block bg-[#ede7cd]/40 rounded-[20px] border border-[#14391a]/15 shadow-sm overflow-hidden mb-8">
-        <table className="w-full border-collapse text-left">
-          <thead>
-            <tr className="bg-[#e4dcbc] border-b border-[#14391a]/15 text-[14px] font-extrabold text-[#14391a]">
-              <th className="py-5 px-6">POS name</th>
-              <th className="py-5 px-6">Price</th>
-              <th className="py-5 px-6">Theme</th>
-              <th className="py-5 px-6">Status</th>
-              <th className="py-5 px-6 text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[#14391a]/10 bg-[#fbf9f0]">
-            {loading && (
-              <tr><td colSpan={5} className="py-8 text-center text-sm text-[#14391a]/50 font-semibold">Loading…</td></tr>
-            )}
-            {!loading && modules.length === 0 && (
-              <tr><td colSpan={5} className="py-8 text-center text-sm text-[#14391a]/50 font-semibold">No POS modules yet. Click "+ Add POS" to create one.</td></tr>
-            )}
-            {modules.map(row => (
-              <tr key={row.id} className="hover:bg-[#e9e3cb]/30 transition text-[15px] font-semibold text-[#14391a]">
-                <td className="py-5 px-6 font-black">{row.name}</td>
-                <td className="py-5 px-6 font-bold">{row.priceLabel}</td>
-                <td className="py-5 px-6">
-                  {row.palette ? (
-                    <div className="flex items-center gap-3">
-                      <div className="flex -space-x-1.5">
-                        {row.palette.colors.map((c, i) => (
-                          <span key={i} className="w-4.5 h-4.5 rounded-full border border-white/60 shadow-xs shrink-0"
-                            style={{ backgroundColor: c }} />
-                        ))}
-                      </div>
-                      <span className="text-sm font-bold text-[#14391a]/85">{row.palette.name}</span>
+      {loading && (
+        <div className="p-8 text-center text-sm font-semibold text-[#14391a]/60 bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">
+          Loading themes catalogue...
+        </div>
+      )}
+
+      {!loading && palettes.length === 0 && (
+        <div className="p-8 text-center text-sm font-semibold text-[#14391a]/60 bg-[#efeacb] rounded-2xl border border-[#bfbc9b]">
+          No theme palettes created yet. Click "Add New Theme" to create your first palette.
+        </div>
+      )}
+
+      {!loading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {palettes.map((p) => {
+            const colorsArray = p.colors || [p.colorPrimary, p.colorAccent, p.colorShade, p.colorLight];
+            return (
+              <div
+                key={p.id}
+                className="bg-[#efeacb] border border-[#bfbc9b] rounded-3xl p-5 shadow-xs flex flex-col justify-between gap-4 hover:border-[#14391a]/40 transition duration-200"
+              >
+                {/* Header */}
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h4 className="font-black text-lg text-[#14391a] leading-snug">{p.name}</h4>
+                    <span className="text-xs font-bold text-[#14391a]/70">
+                      {p.price > 0 ? `Rs ${p.price.toLocaleString()}` : 'Free / Included'}
+                    </span>
+                  </div>
+                  <span className={`px-3 py-1 rounded-xl text-[11px] font-extrabold border ${
+                    p.isPreset ? 'bg-[#cbebc7] text-[#14391a] border-[#14391a]/25' : 'bg-[#e4dcbc] text-[#14391a]/80 border-[#14391a]/20'
+                  }`}>
+                    {p.isPreset ? 'Preset Theme' : 'Custom Theme'}
+                  </span>
+                </div>
+
+                {/* Swatches */}
+                <div className="flex items-center justify-between bg-[#eae3c1]/70 p-3 rounded-2xl border border-[#c8c2a3]/40">
+                  <div className="flex items-center gap-2">
+                    <div className="flex -space-x-2">
+                      {colorsArray.map((c, idx) => (
+                        <span
+                          key={idx}
+                          className="w-6 h-6 rounded-full border-2 border-white shadow-xs"
+                          style={{ backgroundColor: c }}
+                        />
+                      ))}
                     </div>
-                  ) : (
-                    <span className="text-sm text-[#14391a]/40 font-semibold italic">No theme</span>
-                  )}
-                </td>
-                <td className="py-5 px-6">
-                  {row.status === 'active' ? (
-                    <span className="inline-flex px-3.5 py-1.5 bg-[#cbebc7] border border-[#14391a]/25 rounded-[10px] text-[13px] font-extrabold text-[#14391a]">Active</span>
-                  ) : (
-                    <span className="inline-flex px-3.5 py-1.5 bg-[#f7d6d3] border border-[#d65f57]/30 rounded-[10px] text-[13px] font-extrabold text-[#99221b]">Inactive</span>
-                  )}
-                </td>
-                <td className="py-5 px-6 text-center">
-                  <div className="flex items-center justify-center gap-2.5">
-                    <button onClick={() => setEditTarget(row)}
-                      className="px-4 py-2 border border-[#14391a]/35 rounded-[10px] text-[13px] font-extrabold text-[#14391a] hover:bg-[#14391a]/5 transition cursor-pointer">
-                      Edit
-                    </button>
-                    <button onClick={() => setDeleteTarget(row)}
-                      className="px-4 py-2 border border-[#99221b]/35 rounded-[10px] text-[13px] font-extrabold text-[#99221b] hover:bg-[#99221b]/5 transition cursor-pointer">
-                      Delete
+                  </div>
+                  <span className="text-[11px] font-bold text-[#14391a]/60 uppercase tracking-wider">4 Swatches</span>
+                </div>
+
+                {/* Live Card Preview */}
+                <div
+                  className="rounded-2xl p-4 shadow-inner flex flex-col gap-3 justify-between min-h-[120px]"
+                  style={{ backgroundColor: colorsArray[2] || '#fcfbfa' }}
+                >
+                  <div
+                    className="px-3 py-1.5 rounded-lg text-xs font-black truncate shadow-xs"
+                    style={{ backgroundColor: colorsArray[0], color: '#ffffff' }}
+                  >
+                    {p.name} Primary Title
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="px-2.5 py-1 rounded-md text-[10px] font-bold"
+                      style={{ backgroundColor: colorsArray[3], color: '#ffffff' }}
+                    >
+                      Card Light Shade
+                    </span>
+                    <button
+                      type="button"
+                      className="px-3 py-1 rounded-lg text-[11px] font-black shadow-xs"
+                      style={{ backgroundColor: colorsArray[1], color: '#ffffff' }}
+                    >
+                      Accent Button
                     </button>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
 
-      {/* Add Modal */}
-      <AddPOSModal
-        isOpen={addOpen}
-        palettes={palettes}
-        onCancel={() => setAddOpen(false)}
-        onCreatePalette={handleCreatePalette}
-        onDeletePalette={handleDeletePalette}
-        onSave={async ({ name, priceCents, paletteId }) => {
-          const { ok } = await apiFetchJson('/admin/pos', {
-            method: 'POST',
-            body: JSON.stringify({ name, priceCents, paletteId }),
-          });
-          if (ok) { setAddOpen(false); loadAll(); }
-        }}
-      />
+                {/* Actions */}
+                <div className="pt-2 border-t border-[#14391a]/15 flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAddPaletteOpen(false);
+                      setEditPaletteTarget(p);
+                    }}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-white text-[#14391a] border border-[#14391a]/40 text-xs font-extrabold rounded-xl hover:bg-neutral-50 transition cursor-pointer"
+                  >
+                    <span>Edit Theme</span>
+                  </button>
+                  {!p.isPreset && (
+                    <button
+                      type="button"
+                      onClick={() => setDeleteTarget(p)}
+                      className="flex items-center gap-1.5 px-3 py-2 bg-red-50 text-[#99221b] border border-red-200 text-xs font-extrabold rounded-xl hover:bg-red-100 transition cursor-pointer"
+                    >
+                      <Trash2 size={14} />
+                      <span>Delete</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      {/* Edit Modal */}
-      <EditPOSModal
-        pos={editTarget}
-        isOpen={!!editTarget}
-        palettes={palettes}
-        onCancel={() => setEditTarget(null)}
-        onCreatePalette={handleCreatePalette}
-        onDeletePalette={handleDeletePalette}
-        onSave={async ({ name, priceCents, paletteId, status }) => {
-          const { ok } = await apiFetchJson(`/admin/pos/${editTarget.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ name, priceCents, paletteId, status }),
-          });
-          if (ok) { setEditTarget(null); loadAll(); }
-        }}
-      />
-
-      {/* Delete Confirm */}
+      {/* Delete Confirmation Modal */}
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-[#fcfbfa] border border-[#99221b]/15 rounded-[24px] w-full max-w-sm p-6.5 flex flex-col gap-5 shadow-lg">
+          <div className="bg-[#fcfbfa] border border-[#99221b]/15 rounded-[24px] w-full max-w-sm p-6 flex flex-col gap-5 shadow-lg">
             <div>
-              <h2 className="text-[20px] font-black text-[#99221b] leading-none mb-1">Delete POS Module?</h2>
+              <h2 className="text-[20px] font-black text-[#99221b] leading-none mb-1">Delete Custom Theme?</h2>
               <p className="text-sm text-[#99221b]/80 font-semibold mt-2.5 leading-snug">
-                Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This action cannot be undone.
+                Are you sure you want to delete theme <strong>{deleteTarget.name}</strong>? Businesses using this theme will revert to the default preset theme.
               </p>
             </div>
             <div className="flex items-center justify-end gap-3 mt-2">
-              <button onClick={() => setDeleteTarget(null)}
-                className="px-4.5 py-2.5 border border-gray-300 rounded-[12px] text-xs font-extrabold text-[#14391a]/60 hover:text-[#14391a] hover:bg-gray-50 transition cursor-pointer">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="px-4.5 py-2.5 border border-gray-300 rounded-[12px] text-xs font-extrabold text-[#14391a]/60 hover:text-[#14391a] hover:bg-gray-50 transition cursor-pointer"
+              >
                 Cancel
               </button>
-              <button onClick={handleDelete}
-                className="px-5 py-2.5 bg-[#99221b] hover:bg-[#b03026] text-white text-xs font-extrabold rounded-[12px] transition cursor-pointer">
-                Delete
+              <button
+                onClick={handleDeletePalette}
+                className="px-5 py-2.5 bg-[#99221b] hover:bg-[#b03026] text-white text-xs font-extrabold rounded-[12px] transition cursor-pointer"
+              >
+                Delete Theme
               </button>
             </div>
           </div>

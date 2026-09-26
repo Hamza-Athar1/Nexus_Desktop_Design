@@ -10,10 +10,14 @@ import { pool } from '../config/db.js';
 /** Serialise a palette DB row → frontend shape */
 function serPalette(row) {
   return {
-    id:       row.id,
-    name:     row.name,
-    price:    Number(row.price || 0),
-    isPreset: Boolean(row.is_preset),
+    id:          row.id,
+    name:        row.name,
+    price:       Number(row.price || 0),
+    isPreset:    Boolean(row.is_preset),
+    colorPrimary: row.color_primary,
+    colorAccent:  row.color_accent,
+    colorShade:   row.color_shade,
+    colorLight:   row.color_light,
     colors: [row.color_primary, row.color_accent, row.color_shade, row.color_light],
   };
 }
@@ -27,17 +31,44 @@ export async function listPalettes() {
 }
 
 /** Create a custom palette */
-export async function createPalette({ name, colorPrimary, colorAccent, colorShade, colorLight }) {
+export async function createPalette({ name, colorPrimary, colorAccent, colorShade, colorLight, price = 0 }) {
   const [existing] = await pool.query('SELECT id FROM pos_palettes WHERE name = ?', [name]);
   if (existing.length) throw Object.assign(new Error('Palette name already exists'), { status: 409 });
 
   const [result] = await pool.query(
-    `INSERT INTO pos_palettes (name, color_primary, color_accent, color_shade, color_light, is_preset)
-     VALUES (?, ?, ?, ?, ?, 0)`,
-    [name, colorPrimary, colorAccent, colorShade, colorLight]
+    `INSERT INTO pos_palettes (name, color_primary, color_accent, color_shade, color_light, is_preset, price)
+     VALUES (?, ?, ?, ?, ?, 0, ?)`,
+    [name, colorPrimary, colorAccent, colorShade, colorLight, price]
   );
   const [rows] = await pool.query('SELECT * FROM pos_palettes WHERE id = ?', [result.insertId]);
   return serPalette(rows[0]);
+}
+
+/** Update a palette */
+export async function updatePalette(id, { name, colorPrimary, colorAccent, colorShade, colorLight, price }) {
+  const [rows] = await pool.query('SELECT * FROM pos_palettes WHERE id = ?', [id]);
+  if (!rows.length) throw Object.assign(new Error('Palette not found'), { status: 404 });
+
+  if (name && name !== rows[0].name) {
+    const [ex] = await pool.query('SELECT id FROM pos_palettes WHERE name = ? AND id != ?', [name, id]);
+    if (ex.length) throw Object.assign(new Error('Palette name already exists'), { status: 409 });
+  }
+
+  const fields = [];
+  const params = [];
+  if (name         !== undefined) { fields.push('name = ?');          params.push(name); }
+  if (colorPrimary !== undefined) { fields.push('color_primary = ?'); params.push(colorPrimary); }
+  if (colorAccent  !== undefined) { fields.push('color_accent = ?');  params.push(colorAccent); }
+  if (colorShade   !== undefined) { fields.push('color_shade = ?');   params.push(colorShade); }
+  if (colorLight   !== undefined) { fields.push('color_light = ?');   params.push(colorLight); }
+  if (price        !== undefined) { fields.push('price = ?');         params.push(price); }
+
+  if (fields.length) {
+    await pool.query(`UPDATE pos_palettes SET ${fields.join(', ')} WHERE id = ?`, [...params, id]);
+  }
+
+  const [updated] = await pool.query('SELECT * FROM pos_palettes WHERE id = ?', [id]);
+  return serPalette(updated[0]);
 }
 
 /** Delete a custom palette (refuse if preset) */
@@ -79,10 +110,14 @@ function serModule(row) {
     status:     row.status,
     createdAt:  row.created_at,
     palette: row.palette_id ? {
-      id:       row.palette_id,
-      name:     row.palette_name,
-      isPreset: Boolean(row.is_preset),
-      colors:   [row.color_primary, row.color_accent, row.color_shade, row.color_light],
+      id:          row.palette_id,
+      name:        row.palette_name,
+      isPreset:    Boolean(row.is_preset),
+      colorPrimary: row.color_primary,
+      colorAccent:  row.color_accent,
+      colorShade:   row.color_shade,
+      colorLight:   row.color_light,
+      colors:      [row.color_primary, row.color_accent, row.color_shade, row.color_light],
     } : null,
   };
 }

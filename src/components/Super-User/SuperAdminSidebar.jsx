@@ -5,7 +5,7 @@ import {
   Receipt,
   CreditCard,
   UserCircle,
-  Settings,
+  Palette,
   ArrowLeft,
   LogOut,
 } from 'lucide-react';
@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { id: 'billing', label: 'Billing', icon: Receipt },
   { id: 'payment', label: 'Payment', icon: CreditCard },
   { id: 'profile', label: 'Profile Management', icon: UserCircle },
-  { id: 'pos', label: 'POS management', icon: Settings },
+  { id: 'pos', label: 'Theme Management', icon: Palette },
 ];
 
 function NavItem({ icon: Icon, label, active, onClick }) {
