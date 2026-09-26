@@ -8,8 +8,11 @@ import {
   updateShopRequestStatus,
 } from '../models/shopRequestModel.js';
 
-// Matches shop_requests.request_type ENUM in schema.sql exactly.
-const REQUEST_TYPES = ['pos_terminal', 'plan_upgrade', 'module_change', 'other'];
+import { pool } from '../config/db.js';
+import { checkBusinessThemeOwnership } from '../models/themeEntitlementModel.js';
+
+// Matches shop_requests.request_type ENUM in database.
+const REQUEST_TYPES = ['pos_terminal', 'plan_upgrade', 'module_change', 'registration', 'theme_purchase', 'general', 'other'];
 // Matches shop_requests.status ENUM exactly — same strings the frontend renders.
 const STATUSES = ['Pending', 'Approved', 'Rejected', 'Resubmit'];
 
@@ -34,19 +37,60 @@ function serializeRequest(row) {
 
 // ── Business-side (role: admin, scoped by requireBusiness) ─────────────
 
-/** A business owner files a new request (billing/plan/module/other). */
+/** A business owner files a new request (billing/plan/module/theme/general/other). */
 export async function postRequest(req, res) {
-  const { requestType, title, details } = req.body;
+  const { requestType, title, details, paletteId } = req.body;
   if (!REQUEST_TYPES.includes(requestType)) {
     throw new ApiError(400, `requestType must be one of: ${REQUEST_TYPES.join(', ')}`);
   }
-  if (!title?.trim()) {
-    throw new ApiError(400, 'title is required');
+
+  let finalTitle = title?.trim();
+  let finalDetails = details?.trim() || null;
+
+  if (requestType === 'theme_purchase') {
+    if (!paletteId) throw new ApiError(400, 'paletteId is required for theme purchase request');
+    const [pRows] = await pool.query('SELECT id, name, price FROM pos_palettes WHERE id = ? LIMIT 1', [Number(paletteId)]);
+    if (!pRows.length) throw new ApiError(404, 'Selected theme not found');
+
+    const theme = pRows[0];
+    const isOwned = await checkBusinessThemeOwnership(req.businessId, theme.id);
+    if (isOwned) {
+      throw new ApiError(400, `Your business already owns the ${theme.name} theme.`);
+    }
+
+    // Check for existing pending request
+    const existingRequests = await listShopRequests({ businessId: req.businessId, status: 'Pending' });
+    const hasPending = existingRequests.some((r) => {
+      if (r.request_type !== 'theme_purchase') return false;
+      try {
+        const parsed = typeof r.details === 'string' && r.details.startsWith('{') ? JSON.parse(r.details) : null;
+        return parsed?.paletteId === theme.id;
+      } catch {
+        return false;
+      }
+    });
+
+    if (hasPending) {
+      throw new ApiError(400, 'A request for this theme is already pending.');
+    }
+
+    finalTitle = `Theme Purchase: ${theme.name}`;
+    finalDetails = JSON.stringify({
+      paletteId: theme.id,
+      themeName: theme.name,
+      price: Number(theme.price),
+      message: details?.trim() || null,
+    });
+  } else {
+    if (!finalTitle) {
+      throw new ApiError(400, 'title is required');
+    }
   }
+
   const request = await createShopRequest(req.businessId, {
     requestType,
-    title: title.trim(),
-    details: details?.trim() || null,
+    title: finalTitle,
+    details: finalDetails,
   });
   res.status(201).json({ request: serializeRequest(request) });
 }

@@ -132,6 +132,7 @@ export default function AdminLayout() {
             <button
               onClick={handleLogout}
               className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 lg:px-6 lg:py-3.5 bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] hover:text-white text-xs lg:text-sm font-extrabold rounded-lg transition duration-200 shadow-sm cursor-pointer border border-[#efeacb]/10 shrink-0"
+              style={{ backgroundColor: 'var(--color-primary, #0c3818)' }}
               title="Admin Logout"
             >
               <LogOut size={15} />

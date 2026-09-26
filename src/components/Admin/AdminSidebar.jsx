@@ -6,6 +6,7 @@ import {
   FileText,
   UserCircle,
   Receipt,
+  MessageSquare,
   ArrowLeft,
   Sliders,
   LogOut,
@@ -26,6 +27,7 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
     else if (location.pathname.includes('/admin/sales')) currentActiveTab = 'sales';
     else if (location.pathname.includes('/admin/reports')) currentActiveTab = 'reports';
     else if (location.pathname.includes('/admin/user')) currentActiveTab = 'user';
+    else if (location.pathname.includes('/admin/requests')) currentActiveTab = 'requests';
     else if (location.pathname.includes('/admin/billing')) currentActiveTab = 'billing';
   }
 
@@ -50,8 +52,8 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
 
   return (
     <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-72 flex flex-col shrink-0 transition-transform duration-300 ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-      {/* Dark Green Sidebar Navigation Area */}
-      <div className="bg-[#0c3818] flex-1 p-5 flex flex-col gap-6 overflow-y-auto">
+      {/* Theme-aware Sidebar Navigation Area */}
+      <div className="bg-[#0c3818] flex-1 p-5 flex flex-col gap-6 overflow-y-auto" style={{ backgroundColor: 'var(--color-primary, #0c3818)' }}>
         <div className="flex flex-col gap-2 items-start">
           <button
             onClick={() => navigate(-1)}
@@ -205,6 +207,15 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
           >
             <UserCircle size={20} className={iconClass('user')} />
             <span className="text-sm tracking-wide">User</span>
+          </button>
+
+          {/* Requests */}
+          <button
+            onClick={() => handleNav('requests', '/admin/requests')}
+            className={navItemClass('requests')}
+          >
+            <MessageSquare size={20} className={iconClass('requests')} />
+            <span className="text-sm tracking-wide">Requests</span>
           </button>
 
           {/* Billing */}

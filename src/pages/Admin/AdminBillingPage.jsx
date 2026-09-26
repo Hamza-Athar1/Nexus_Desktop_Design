@@ -47,39 +47,69 @@ export default function AdminBillingPage() {
   };
 
   // ── Theme State ──
-  const [palettes, setPalettes] = useState([]);
-  const [selectedPaletteId, setSelectedPaletteId] = useState(user?.palette?.id || null);
+  const [themes, setThemes] = useState([]);
   const [savingTheme, setSavingTheme] = useState(false);
   const [themeMsg, setThemeMsg] = useState('');
 
-  useEffect(() => {
-    async function loadPalettes() {
-      try {
-        const { ok, data } = await apiFetchJson('/catalog/palettes');
-        if (ok && data.palettes) setPalettes(data.palettes);
-      } catch {
-        // Fallback or ignore
-      }
+  const loadThemes = async () => {
+    try {
+      const { ok, data } = await apiFetchJson('/catalog/themes');
+      if (ok && data.themes) setThemes(data.themes);
+    } catch {
+      // Fallback
     }
-    loadPalettes();
+  };
+
+  useEffect(() => {
+    loadThemes();
   }, []);
 
-  useEffect(() => {
-    if (user?.palette?.id) setSelectedPaletteId(user.palette.id);
-  }, [user]);
+  const handlePaletteSelect = async (theme) => {
+    if (theme.active) return;
 
-  const handlePaletteSelect = async (paletteId) => {
-    setSelectedPaletteId(paletteId);
+    if (!theme.owned) {
+      if (theme.pending) {
+        setThemeMsg(`A request for ${theme.name} is already pending approval.`);
+        return;
+      }
+      // Trigger Purchase Request
+      setSavingTheme(true);
+      setThemeMsg('');
+      try {
+        const { ok, data } = await apiFetchJson('/requests', {
+          method: 'POST',
+          body: JSON.stringify({
+            requestType: 'theme_purchase',
+            paletteId: theme.id,
+            details: `Requesting theme: ${theme.name} (Rs ${theme.price})`,
+          }),
+        });
+        if (ok) {
+          setThemeMsg(`Requested ${theme.name}! Pending Super Admin approval.`);
+          await loadThemes();
+        } else {
+          setThemeMsg(data.message || 'Failed to submit theme purchase request');
+        }
+      } catch {
+        setThemeMsg('Failed to submit theme purchase request');
+      } finally {
+        setSavingTheme(false);
+      }
+      return;
+    }
+
+    // Is Owned - Apply Theme
     setSavingTheme(true);
     setThemeMsg('');
     try {
       const { ok, data } = await apiFetchJson('/profile/theme', {
         method: 'PATCH',
-        body: JSON.stringify({ paletteId }),
+        body: JSON.stringify({ paletteId: theme.id }),
       });
       if (ok) {
         setThemeMsg('Theme updated!');
         await refreshUser();
+        await loadThemes();
       } else {
         setThemeMsg(data.message || 'Failed to update theme');
       }
@@ -95,10 +125,10 @@ export default function AdminBillingPage() {
       {/* ── Page Header ── */}
       <div>
         <h1 className="text-3xl lg:text-4xl font-black text-[#0c3818] tracking-tight">
-          Billing Details
+          Billing Details & Themes
         </h1>
         <p className="text-base sm:text-lg font-bold text-[#607455] mt-1">
-          Turn an option off if the counter doesnt need it - the preview updates live
+          Manage receipt preferences, active tenant theme, and shop theme entitlements.
         </p>
       </div>
 
@@ -107,34 +137,67 @@ export default function AdminBillingPage() {
         {/* ── LEFT SECTION: Billing Settings Form ── */}
         <div className="lg:col-span-7 border-2 border-[#0c3818]/25 rounded-2xl md:rounded-3xl bg-[#f9f7ea]/90 backdrop-blur-xs shadow-xs p-6 md:p-8 flex flex-col divide-y divide-[#0c3818]/15">
           
-          {/* Item 0: Business Theme Palette */}
-          <div className="pb-6 flex flex-col gap-3">
+          {/* Item 0: Business Theme Store & Entitlements */}
+          <div className="pb-6 flex flex-col gap-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="text-lg font-black text-[#0c3818]">Business Theme Palette</h3>
-                <p className="text-sm font-bold text-[#607455]">Applies your chosen color scheme across the application</p>
+                <h3 className="text-lg font-black text-[#0c3818]">Shop Theme Catalogue</h3>
+                <p className="text-sm font-bold text-[#607455]">Select an owned theme to apply, or request additional themes for your shop</p>
               </div>
-              {themeMsg && <span className="text-xs font-bold text-[#14391a]">{themeMsg}</span>}
+              {themeMsg && <span className="text-xs font-extrabold text-[#0c3818] bg-[#efeacb] px-3 py-1 rounded-full border border-[#0c3818]/30">{themeMsg}</span>}
             </div>
-            <div className="flex flex-wrap gap-3 mt-1">
-              {palettes.map((p) => {
-                const isSel = selectedPaletteId === p.id;
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+              {themes.map((t) => {
                 return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    disabled={savingTheme}
-                    onClick={() => handlePaletteSelect(p.id)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 transition cursor-pointer ${
-                      isSel ? 'border-[#0c3818] bg-[#0c3818]/10 ring-2 ring-[#0c3818]/30' : 'border-[#0c3818]/20 bg-white hover:border-[#0c3818]/50'
+                  <div
+                    key={t.id}
+                    className={`p-4 rounded-2xl border-2 flex flex-col justify-between gap-3 transition-all ${
+                      t.active
+                        ? 'border-[#0c3818] bg-[#0c3818]/10 ring-2 ring-[#0c3818]/20'
+                        : t.owned
+                        ? 'border-[#0c3818]/30 bg-white'
+                        : 'border-dashed border-[#0c3818]/40 bg-white/70'
                     }`}
                   >
-                    <span className="text-xs font-black text-[#0c3818]">{p.name}</span>
-                    <div className="flex items-center gap-0.5">
-                      <span className="w-3.5 h-3.5 rounded-full border border-black/20" style={{ backgroundColor: p.color_primary }} />
-                      <span className="w-3.5 h-3.5 rounded-full border border-black/20" style={{ backgroundColor: p.color_accent }} />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-[#0c3818]">{t.name}</span>
+                        {t.active && <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#0c3818] text-[#efeacb]">Active</span>}
+                        {t.owned && !t.active && <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#e6ecce] text-[#0c3818]">Owned</span>}
+                        {t.pending && <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">Pending</span>}
+                      </div>
+                      <span className="text-xs font-bold text-[#607455]">
+                        {t.price > 0 ? `Rs ${t.price}` : 'Free'}
+                      </span>
                     </div>
-                  </button>
+
+                    {/* Color Swatch Bar */}
+                    <div className="flex items-center gap-1.5 h-6 rounded-lg overflow-hidden border border-black/10 p-1 bg-neutral-100">
+                      <span className="flex-1 h-full rounded" style={{ backgroundColor: t.colorPrimary }} title="Primary" />
+                      <span className="flex-1 h-full rounded" style={{ backgroundColor: t.colorAccent }} title="Accent" />
+                      <span className="flex-1 h-full rounded" style={{ backgroundColor: t.colorShade }} title="Shade" />
+                      <span className="flex-1 h-full rounded" style={{ backgroundColor: t.colorLight }} title="Light" />
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      type="button"
+                      disabled={savingTheme || t.active || t.pending}
+                      onClick={() => handlePaletteSelect(t)}
+                      className={`w-full py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer ${
+                        t.active
+                          ? 'bg-transparent text-[#0c3818] cursor-default'
+                          : t.owned
+                          ? 'bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] shadow-xs'
+                          : t.pending
+                          ? 'bg-amber-100 text-amber-800 border border-amber-300 cursor-not-allowed font-extrabold'
+                          : 'bg-[#efeacb] hover:bg-[#e4ddbd] text-[#0c3818] border border-[#0c3818]/40'
+                      }`}
+                    >
+                      {t.active ? 'Currently Active' : t.owned ? 'Apply Theme' : t.pending ? 'Pending Approval' : `Purchase (Rs ${t.price})`}
+                    </button>
+                  </div>
                 );
               })}
             </div>

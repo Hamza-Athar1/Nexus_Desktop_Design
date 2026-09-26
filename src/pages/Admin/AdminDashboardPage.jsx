@@ -252,13 +252,13 @@ export default function AdminDashboardPage() {
                   labelStyle={{ fontWeight: 'bold', color: '#0c3818' }}
                   itemStyle={{ color: '#0c3818', fontWeight: 'bold' }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="sales" 
-                  stroke="#0c3818" 
-                  strokeWidth={3} 
-                  fillOpacity={1} 
-                  fill="url(#salesGrad)" 
+                <Area
+                  type="monotone"
+                  dataKey="sales"
+                  stroke="#0c3818"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#salesGrad)"
                   activeDot={{ r: 6, fill: '#0c3818', stroke: '#efeacb', strokeWidth: 2 }}
                 />
               </AreaChart>

@@ -9,8 +9,8 @@
 }
 
 @theme {
-  --color-nexus:       var(--color-primary, #1e5c1e);
-  --color-nexus-dark:  var(--color-primary, #14391a);
+  --color-nexus: var(--color-primary, #1e5c1e);
+  --color-nexus-dark: var(--color-primary, #14391a);
   --color-nexus-cream: #e8d87a;
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Inter', sans-serif;
@@ -37,11 +37,13 @@ body {
 
   /* Page backgrounds */
   .nexus-bg {
-  background: linear-gradient(135deg, #F1EFC8E5 0%, #eaf0cc 45%, #d6e4a2 100%);
-}
+    background: linear-gradient(135deg, #F1EFC8E5 0%, #eaf0cc 45%, #d6e4a2 100%);
+  }
+
   .nexus-dark-bg {
     background: linear-gradient(160deg, #1a4a1a 0%, #1e5c1e 55%, #14391a 100%);
   }
+
   .nexus-navbar {
     background: linear-gradient(90deg, #1a4a1a 0%, #1e5c1e 100%);
   }
@@ -53,7 +55,9 @@ body {
 
   /* Spinner keyframe */
   @keyframes spin-fast {
-    to { transform: rotate(360deg); }
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   .spinner {
@@ -69,8 +73,15 @@ body {
 
   /* Success pop-in */
   @keyframes pop-in {
-    from { transform: scale(0.4); opacity: 0; }
-    to   { transform: scale(1);   opacity: 1; }
+    from {
+      transform: scale(0.4);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
 
   .pop-in {
@@ -79,8 +90,15 @@ body {
 
   /* Fade-up */
   @keyframes fade-up {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .fade-up {
@@ -89,8 +107,18 @@ body {
 
   /* Loading dots — "Signing in . . . ." */
   @keyframes dot-bounce {
-    0%, 80%, 100% { transform: translateY(0);    opacity: 0.4; }
-    40%            { transform: translateY(-4px); opacity: 1;   }
+
+    0%,
+    80%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+
+    40% {
+      transform: translateY(-4px);
+      opacity: 1;
+    }
   }
 
   .loading-dots {
@@ -108,11 +136,24 @@ body {
     animation: dot-bounce 1.2s ease-in-out infinite;
   }
 
-  .loading-dots span:nth-child(1) { animation-delay: 0s; }
-  .loading-dots span:nth-child(2) { animation-delay: 0.15s; }
-  .loading-dots span:nth-child(3) { animation-delay: 0.3s; }
-  .loading-dots span:nth-child(4) { animation-delay: 0.45s; }
+  .loading-dots span:nth-child(1) {
+    animation-delay: 0s;
+  }
+
+  .loading-dots span:nth-child(2) {
+    animation-delay: 0.15s;
+  }
+
+  .loading-dots span:nth-child(3) {
+    animation-delay: 0.3s;
+  }
+
+  .loading-dots span:nth-child(4) {
+    animation-delay: 0.45s;
+  }
 
   /* Dark variant dots (for cream button) */
-  .loading-dots-dark span { background: #1a3a1a; }
+  .loading-dots-dark span {
+    background: #1a3a1a;
+  }
 }

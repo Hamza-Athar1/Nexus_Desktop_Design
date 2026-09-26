@@ -1,4 +1,5 @@
 import { pool } from '../config/db.js';
+import { grantThemeEntitlement } from './themeEntitlementModel.js';
 
 /**
  * shop_requests workflow model.
@@ -104,15 +105,29 @@ export async function updateShopRequestStatus(id, { status, reviewerId, note = n
     [status, reviewerId, note, id]
   );
   if (result.affectedRows === 0) return null;
-
   if (status === 'Approved') {
-    // Activate business and owner user
-    await pool.query('UPDATE businesses SET status = "active", onboarding_status = "completed" WHERE id = ?', [currentReq.business_id]);
-    await pool.query('UPDATE users SET status = "active" WHERE business_id = ? OR id = (SELECT owner_user_id FROM businesses WHERE id = ?)', [currentReq.business_id, currentReq.business_id]);
-    await pool.query('UPDATE subscriptions SET status = "active" WHERE business_id = ?', [currentReq.business_id]);
+    if (currentReq.request_type === 'theme_purchase') {
+      try {
+        const parsed = typeof currentReq.details === 'string' && currentReq.details.startsWith('{')
+          ? JSON.parse(currentReq.details)
+          : null;
+        if (parsed?.paletteId) {
+          await grantThemeEntitlement(currentReq.business_id, Number(parsed.paletteId), Number(parsed.price || 0));
+        }
+      } catch {
+        // ignore parse error
+      }
+    } else {
+      // Activate business and owner user for registration/other activation requests
+      await pool.query('UPDATE businesses SET status = "active", onboarding_status = "completed" WHERE id = ?', [currentReq.business_id]);
+      await pool.query('UPDATE users SET status = "active" WHERE business_id = ? OR id = (SELECT owner_user_id FROM businesses WHERE id = ?)', [currentReq.business_id, currentReq.business_id]);
+      await pool.query('UPDATE subscriptions SET status = "active" WHERE business_id = ?', [currentReq.business_id]);
+    }
   } else if (status === 'Rejected') {
-    // Keep user pending / blocked
-    await pool.query('UPDATE users SET status = "blocked" WHERE business_id = ? OR id = (SELECT owner_user_id FROM businesses WHERE id = ?)', [currentReq.business_id, currentReq.business_id]);
+    if (currentReq.request_type === 'registration') {
+      // Keep user pending / blocked only for registration requests
+      await pool.query('UPDATE users SET status = "blocked" WHERE business_id = ? OR id = (SELECT owner_user_id FROM businesses WHERE id = ?)', [currentReq.business_id, currentReq.business_id]);
+    }
   }
 
   return findShopRequestById(id);

@@ -16,6 +16,7 @@ import {
 import { pool } from '../config/db.js';
 import { updateBusinessPalette } from '../models/businessModel.js';
 import { findBusinessWithModuleByUser } from '../models/businessModel.js';
+import { checkBusinessThemeOwnership } from '../models/themeEntitlementModel.js';
 import { ApiError } from '../utils/ApiError.js';
 
 const router = express.Router();
@@ -29,6 +30,7 @@ router.patch( '/profile/email',        ...Auth, asyncHandler(updateEmailHandler)
 router.post(  '/profile/password',     ...Auth, asyncHandler(changePasswordHandler));
 router.patch( '/profile/2fa',          ...Auth, asyncHandler(toggle2faHandler));
 router.patch( '/profile/preferences',  ...Auth, asyncHandler(updatePreferencesHandler));
+
 router.patch( '/profile/theme',        ...Auth, asyncHandler(async (req, res) => {
   const { paletteId } = req.body;
   if (!paletteId) throw new ApiError(400, 'paletteId is required');
@@ -36,6 +38,12 @@ router.patch( '/profile/theme',        ...Auth, asyncHandler(async (req, res) =>
   if (!pRows[0]) throw new ApiError(404, 'Palette not found');
   const business = await findBusinessWithModuleByUser(req.user.id);
   if (!business) throw new ApiError(404, 'No business associated with user');
+
+  const isOwned = await checkBusinessThemeOwnership(business.id, Number(paletteId));
+  if (!isOwned) {
+    throw new ApiError(403, 'This theme has not been purchased for your shop.');
+  }
+
   await updateBusinessPalette(business.id, Number(paletteId));
   res.json({ ok: true, message: 'Theme updated successfully' });
 }));

@@ -7,6 +7,7 @@ import {
 } from '../models/registrationDraftModel.js';
 import { findBusinessByOwner, createBusiness } from '../models/businessModel.js';
 import { createSubscription, addSubscriptionBackupModules } from '../models/subscriptionModel.js';
+import { grantThemeEntitlement } from '../models/themeEntitlementModel.js';
 import {
   getModuleByCode,
   resolveBusinessType,
@@ -160,6 +161,9 @@ export async function finishSetup(req, res) {
     });
 
     await addSubscriptionBackupModules(conn, subscriptionId, backupModules);
+
+    // Grant initial theme entitlement for the selected palette
+    await grantThemeEntitlement(createdBusiness.id, paletteIdToUse, themePrice, conn);
 
     // Create Approval Request in shop_requests for Super Admin
     const detailsObj = {

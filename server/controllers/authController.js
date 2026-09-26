@@ -31,7 +31,7 @@ import {
 } from '../models/passwordResetModel.js';
 import {
   generateAccessToken,
-  jjreshToken,
+  generateRefreshToken,
   accessTokenCookieOptions,
   refreshTokenCookieOptions,
   refreshExpiresAt,
