@@ -74,40 +74,13 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
           </button>
 
           {/* Manage Product */}
-          <div className="flex flex-col">
-            <button
-              onClick={() => handleNav('products', '/admin/products')}
-              className={navItemClass('products')}
-            >
-              <Sliders size={20} className={iconClass('products')} />
-              <span className="text-sm tracking-wide">Manage Product</span>
-            </button>
-
-            {/* Submenu under Manage Product */}
-            {(currentActiveTab === 'products' || currentActiveTab === 'categories') && (
-              <div className="flex flex-col gap-1.5 pl-9 mt-1.5 select-none">
-                <button
-                  onClick={() => handleNav('products', '/admin/products')}
-                  className={`w-full flex items-center gap-2 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
-                    currentActiveTab === 'products' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full bg-current`} />
-                  <span>Product</span>
-                </button>
-
-                <button
-                  onClick={() => handleNav('categories', '/admin/categories')}
-                  className={`w-full flex items-center gap-2 py-1 text-left text-xs font-bold transition duration-200 cursor-pointer ${
-                    currentActiveTab === 'categories' ? 'text-[#efeacb]' : 'text-[#a2bc90] hover:text-[#efeacb]'
-                  }`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full bg-current`} />
-                  <span>Categories</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => handleNav('products', '/admin/products')}
+            className={navItemClass('products')}
+          >
+            <Sliders size={20} className={iconClass('products')} />
+            <span className="text-sm tracking-wide">Manage Product</span>
+          </button>
 
           {/* Sales */}
           <div className="flex flex-col">

@@ -729,10 +729,51 @@ export default function SuperAdminRequestsPage() {
 
             {detailsRequest.details && (
               <div>
-                <p className="text-[10px] uppercase font-bold text-[#607455] mb-1">Details</p>
-                <p className="text-sm font-semibold bg-white rounded-xl p-3 border border-[#bfbc9b]/60">
-                  {detailsRequest.details}
-                </p>
+                <p className="text-[10px] uppercase font-bold text-[#607455] mb-1">Details & Pricing Breakdown</p>
+                {(() => {
+                  try {
+                    const parsed = typeof detailsRequest.details === 'string' && detailsRequest.details.startsWith('{')
+                      ? JSON.parse(detailsRequest.details)
+                      : null;
+                    if (parsed) {
+                      return (
+                        <div className="bg-white rounded-xl p-3.5 border border-[#bfbc9b]/60 space-y-2 text-xs font-semibold">
+                          {parsed.ownerEmail && (
+                            <div className="flex justify-between border-b border-gray-100 pb-1.5">
+                              <span className="text-gray-500">Owner Email</span>
+                              <span className="font-bold text-[#0c3818]">{parsed.ownerEmail}</span>
+                            </div>
+                          )}
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Plan ({parsed.planName || parsed.planCode})</span>
+                            <span className="font-bold">Rs {parsed.planPrice}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Theme ({parsed.themeName})</span>
+                            <span className="font-bold">{parsed.themePrice > 0 ? `Rs ${parsed.themePrice}` : 'Included Free'}</span>
+                          </div>
+                          {parsed.backupModulesPrice > 0 && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-500">Backup Modules</span>
+                              <span className="font-bold">Rs {parsed.backupModulesPrice}</span>
+                            </div>
+                          )}
+                          <div className="border-t border-gray-200 pt-1.5 flex justify-between text-sm font-black text-[#0c3818]">
+                            <span>Total Amount</span>
+                            <span>Rs {parsed.totalAmount}</span>
+                          </div>
+                        </div>
+                      );
+                    }
+                  } catch {
+                    // Fallthrough to normal text
+                  }
+                  return (
+                    <p className="text-sm font-semibold bg-white rounded-xl p-3 border border-[#bfbc9b]/60">
+                      {detailsRequest.details}
+                    </p>
+                  );
+                })()}
               </div>
             )}
 

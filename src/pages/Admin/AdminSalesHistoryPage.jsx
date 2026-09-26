@@ -228,7 +228,7 @@ export default function AdminSalesHistoryPage() {
               Total Sales
             </span>
             <span className="text-[#0c3818] font-black text-2xl lg:text-3xl tracking-tight mt-1">
-              Rs 32,987
+              Rs {salesList.reduce((sum, s) => sum + Number(s.total_amount || s.grand_total || s.total || 0), 0).toLocaleString()}
             </span>
           </div>
 

@@ -87,6 +87,16 @@ export async function createShopRequest(businessId, { requestType, title, detail
  * "Update" re-review modal (which can move a request to any status).
  */
 export async function updateShopRequestStatus(id, { status, reviewerId, note = null }) {
+  const [reqRows] = await pool.query('SELECT * FROM shop_requests WHERE id = ? LIMIT 1', [id]);
+  if (!reqRows.length) return null;
+  const currentReq = reqRows[0];
+
+  // Prevent duplicate approval if already approved
+  if (currentReq.status === 'Approved' && status === 'Approved') {
+    return findShopRequestById(id);
+  }
+
+  // Update status transactionally
   const [result] = await pool.query(
     `UPDATE shop_requests
      SET status = ?, reviewed_by_user_id = ?, reviewed_at = NOW(), rejection_reason = ?
@@ -94,5 +104,16 @@ export async function updateShopRequestStatus(id, { status, reviewerId, note = n
     [status, reviewerId, note, id]
   );
   if (result.affectedRows === 0) return null;
+
+  if (status === 'Approved') {
+    // Activate business and owner user
+    await pool.query('UPDATE businesses SET status = "active", onboarding_status = "completed" WHERE id = ?', [currentReq.business_id]);
+    await pool.query('UPDATE users SET status = "active" WHERE business_id = ? OR id = (SELECT owner_user_id FROM businesses WHERE id = ?)', [currentReq.business_id, currentReq.business_id]);
+    await pool.query('UPDATE subscriptions SET status = "active" WHERE business_id = ?', [currentReq.business_id]);
+  } else if (status === 'Rejected') {
+    // Keep user pending / blocked
+    await pool.query('UPDATE users SET status = "blocked" WHERE business_id = ? OR id = (SELECT owner_user_id FROM businesses WHERE id = ?)', [currentReq.business_id, currentReq.business_id]);
+  }
+
   return findShopRequestById(id);
 }

@@ -12,6 +12,7 @@ function serPalette(row) {
   return {
     id:       row.id,
     name:     row.name,
+    price:    Number(row.price || 0),
     isPreset: Boolean(row.is_preset),
     colors: [row.color_primary, row.color_accent, row.color_shade, row.color_light],
   };

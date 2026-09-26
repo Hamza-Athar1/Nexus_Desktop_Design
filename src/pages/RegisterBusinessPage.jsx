@@ -200,7 +200,9 @@ export default function RegisterBusinessPage() {
   const modulesCost = backupModulesCatalog
     .filter((m) => selectedBackupCodes.includes(m.code))
     .reduce((sum, m) => sum + Number(m.monthly_price), 0);
-  const totalCost = retentionCost + modulesCost;
+  const selectedPalette = palettesCatalog.find((p) => p.id === selectedPaletteId);
+  const themeCost = selectedPalette ? Number(selectedPalette.price || 0) : 0;
+  const totalCost = retentionCost + modulesCost + themeCost;
 
   const handleFinishSetup = async (e) => {
     e.preventDefault();
@@ -528,32 +530,76 @@ export default function RegisterBusinessPage() {
                 })}
               </div>
 
-              {/* Theme Palette Selection */}
+              {/* Visual Theme Palette Selection */}
               {palettesCatalog.length > 0 && (
-                <div className="space-y-3 pt-2">
-                  <h3 className="text-sm font-bold text-[#14391a]">
-                    Select Initial Color Theme (Optional)
-                  </h3>
-                  <div className="flex flex-wrap gap-3">
+                <div className="space-y-4 pt-4">
+                  <div>
+                    <h3 className="text-base font-extrabold text-[#14391a]">
+                      Select Visual Theme
+                    </h3>
+                    <p className="text-xs text-[#14391a]/70">
+                      Choose a theme for your POS interface. Premium themes include additional monthly pricing.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                     {palettesCatalog.map((p) => {
                       const isSel = selectedPaletteId === p.id;
+                      const priceVal = Number(p.price || 0);
+                      const primary = p.colors?.[0] || '#14391a';
+                      const accent = p.colors?.[1] || '#4caf50';
+                      const shade = p.colors?.[2] || '#81c784';
+                      const light = p.colors?.[3] || '#e8f5e9';
+
                       return (
-                        <button
+                        <div
                           key={p.id}
-                          type="button"
                           onClick={() => setSelectedPaletteId(p.id)}
-                          className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 text-xs font-bold transition cursor-pointer ${
+                          className={`rounded-xl border-2 p-4 cursor-pointer transition-all duration-200 flex flex-col justify-between select-none ${
                             isSel
-                              ? 'bg-[#14391a] text-white border-[#14391a]'
-                              : 'bg-white text-[#14391a] border-gray-200 hover:border-[#14391a]/40'
+                              ? 'border-[#14391a] bg-white shadow-md ring-2 ring-[#14391a]/20'
+                              : 'border-gray-200 bg-[#fbfbf6] hover:border-[#14391a]/40 hover:bg-white'
                           }`}
                         >
-                          <span>{p.name}</span>
-                          <div className="flex items-center gap-1">
-                            <span className="w-3 h-3 rounded-full border border-black/20" style={{ backgroundColor: p.color_primary }} />
-                            <span className="w-3 h-3 rounded-full border border-black/20" style={{ backgroundColor: p.color_accent }} />
+                          <div className="space-y-3">
+                            {/* Visual Preview Header */}
+                            <div className="rounded-lg p-2.5 border border-black/10 flex gap-2 items-center" style={{ backgroundColor: light }}>
+                              <div className="w-5 h-12 rounded flex flex-col justify-between p-1" style={{ backgroundColor: primary }}>
+                                <div className="w-full h-1.5 rounded bg-white/40" />
+                                <div className="w-full h-1.5 rounded bg-white/40" />
+                              </div>
+                              <div className="flex-1 flex flex-col gap-1.5">
+                                <div className="h-3 rounded w-3/4" style={{ backgroundColor: shade }} />
+                                <div className="flex gap-1">
+                                  <div className="h-4 rounded-md flex-1 text-[8px] font-black text-white flex items-center justify-center" style={{ backgroundColor: accent }}>
+                                    POS
+                                  </div>
+                                  <div className="h-4 rounded-md w-1/3" style={{ backgroundColor: primary }} />
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Info */}
+                            <div>
+                              <div className="flex justify-between items-center">
+                                <span className="font-extrabold text-sm text-[#14391a]">{p.name}</span>
+                                {p.isPreset && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-200 text-gray-700">Preset</span>}
+                              </div>
+                              <span className="text-xs font-bold text-[#8b1e10] block mt-0.5">
+                                {priceVal > 0 ? `+ Rs ${priceVal}/mo` : 'Included Free'}
+                              </span>
+                            </div>
                           </div>
-                        </button>
+
+                          <div className="mt-3 pt-2 border-t border-gray-100 flex items-center justify-between">
+                            <span className="text-[11px] font-bold text-gray-500">
+                              {isSel ? 'Selected' : 'Click to select'}
+                            </span>
+                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSel ? 'border-[#14391a] bg-[#14391a]' : 'border-gray-300'}`}>
+                              {isSel && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                            </div>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
@@ -744,6 +790,10 @@ export default function RegisterBusinessPage() {
                 <div className="flex justify-between text-xs md:text-sm font-semibold">
                   <span>Selected modules</span>
                   <span>Rs {modulesCost}</span>
+                </div>
+                <div className="flex justify-between text-xs md:text-sm font-semibold">
+                  <span>Theme ({selectedPalette?.name || 'Default'})</span>
+                  <span>{themeCost > 0 ? `Rs ${themeCost}` : 'Free'}</span>
                 </div>
                 <div className="w-full h-px bg-[#14391a]/15 my-1" />
                 <div className="flex justify-between text-sm md:text-base font-bold">

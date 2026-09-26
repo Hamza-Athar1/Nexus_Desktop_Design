@@ -31,7 +31,7 @@ import {
 } from '../models/passwordResetModel.js';
 import {
   generateAccessToken,
-  generateRefreshToken,
+  jjreshToken,
   accessTokenCookieOptions,
   refreshTokenCookieOptions,
   refreshExpiresAt,
@@ -145,6 +145,11 @@ export async function login(req, res) {
     await recordLoginAttempt(identifier, false);
     // Deliberately vague — don't reveal whether it was the identifier or password.
     throw new ApiError(401, 'Invalid username or password');
+  }
+
+  if (user.status === 'pending') {
+    await recordLoginAttempt(identifier, false);
+    throw new ApiError(403, 'Your registration request is awaiting Super Admin approval.');
   }
 
   if (user.status === 'suspended' || user.status === 'blocked') {

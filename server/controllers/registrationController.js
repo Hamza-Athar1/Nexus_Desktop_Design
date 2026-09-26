@@ -119,13 +119,19 @@ export async function finishSetup(req, res) {
   const backupModulesPrice = backupModules.reduce((sum, m) => sum + Number(m.monthly_price), 0);
 
   let paletteIdToUse = null;
+  let themePrice = 0;
+  let paletteName = 'Default';
   if (business.paletteId) {
-    const [pRows] = await pool.query('SELECT id FROM pos_palettes WHERE id = ? LIMIT 1', [Number(business.paletteId)]);
+    const [pRows] = await pool.query('SELECT id, name, price FROM pos_palettes WHERE id = ? LIMIT 1', [Number(business.paletteId)]);
     if (!pRows[0]) throw new ApiError(400, 'Unknown or invalid palette');
     paletteIdToUse = Number(business.paletteId);
+    themePrice = Number(pRows[0].price || 0);
+    paletteName = pRows[0].name;
   }
 
-  // ── All validated — create business + subscription together ───────────
+  const totalMonthlyCost = Number(plan.monthly_price) + backupModulesPrice + themePrice;
+
+  // ── All validated — create business + subscription + shop_request together ───
   const result = await withTransaction(async (conn) => {
     const createdBusiness = await createBusiness(conn, {
       ownerUserId: req.user.id,
@@ -140,7 +146,8 @@ export async function finishSetup(req, res) {
       paletteId: paletteIdToUse,
     });
 
-    await conn.query('UPDATE users SET business_id = ? WHERE id = ?', [createdBusiness.id, req.user.id]);
+    // Ensure user has business_id set and status is 'pending' until Super Admin approves
+    await conn.query('UPDATE users SET business_id = ?, status = ? WHERE id = ?', [createdBusiness.id, 'pending', req.user.id]);
 
     const subscriptionId = await createSubscription(conn, {
       businessId: createdBusiness.id,
@@ -149,9 +156,30 @@ export async function finishSetup(req, res) {
       paymentMethod: subscription.paymentMethod,
       planPrice: plan.monthly_price,
       backupModulesPrice,
+      themePrice,
     });
 
     await addSubscriptionBackupModules(conn, subscriptionId, backupModules);
+
+    // Create Approval Request in shop_requests for Super Admin
+    const detailsObj = {
+      planName: plan.name,
+      planCode: plan.code,
+      planPrice: Number(plan.monthly_price),
+      themeName: paletteName,
+      themePrice,
+      backupModulesPrice,
+      totalAmount: totalMonthlyCost,
+      currency: plan.currency,
+      ownerEmail: req.user.email,
+      ownerUsername: req.user.username,
+    };
+
+    await conn.query(
+      `INSERT INTO shop_requests (business_id, request_type, title, details, status)
+       VALUES (?, 'registration', ?, ?, 'Pending')`,
+      [createdBusiness.id, `New Business Registration: ${createdBusiness.name}`, JSON.stringify(detailsObj)]
+    );
 
     return { business: createdBusiness, subscriptionId };
   });
@@ -159,17 +187,18 @@ export async function finishSetup(req, res) {
   await deleteDraftByUser(req.user.id);
 
   return res.status(201).json({
-    message: 'Business setup complete',
+    message: 'Business setup submitted for Super Admin approval',
     business: {
       id: result.business.id,
       name: result.business.name,
       moduleCode: module.code,
-      status: result.business.status,
+      status: 'pending',
       onboardingStatus: result.business.onboarding_status,
     },
     subscription: {
       planCode: plan.code,
-      estimatedMonthlyCost: Number(plan.monthly_price) + backupModulesPrice,
+      estimatedMonthlyCost: totalMonthlyCost,
+      themePrice,
       currency: plan.currency,
     },
   });
