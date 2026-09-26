@@ -27,10 +27,14 @@ function POSClock() {
 }
 
 import { getCustomers } from '../../lib/customerService.js';
+import { useAuth } from '../../context/AuthContext';
 
 export default function POSSystemPage() {
   const navigate = useNavigate();
-  // Real products state
+  const { user } = useAuth();
+  const receiptSettings = user?.receiptSettings || {};
+  const displayShopName = receiptSettings.shopName || user?.businessName || 'Imtiaz Super Market';
+  const displayLogo = receiptSettings.logoUrl || '/Nexus_superadmin.png';
   const [products, setProducts] = useState([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
   const [fetchError, setFetchError] = useState(null);
@@ -304,8 +308,8 @@ export default function POSSystemPage() {
           {/* Logo Brand left */}
           <div className="flex items-center select-none">
             <img 
-              src="/Nexus_superadmin.png" 
-              alt="Nexus Superadmin Logo" 
+              src={displayLogo} 
+              alt="Store Logo" 
               className="w-32 sm:w-40 h-auto object-contain max-h-16 md:max-h-20" 
             />
           </div>
@@ -313,7 +317,7 @@ export default function POSSystemPage() {
           {/* Center Store Title */}
           <div className="flex flex-col items-center">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide text-[#0d3410] text-center uppercase">
-              Imtiaz Super Market
+              {displayShopName}
             </h1>
             <div className="flex gap-1.5 mt-0.5">
               <span className="w-1.5 h-1.5 rounded-full bg-purple-600 animate-ping" />

@@ -1,8 +1,17 @@
 import React from 'react';
 import { X } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 export default function ViewInvoiceModal({ invoice, onClose }) {
+  const { user } = useAuth();
   if (!invoice) return null;
+
+  const receiptSettings = invoice.receiptSettings || user?.receiptSettings || {};
+  const shopName = receiptSettings.shopName || invoice.shop_name || 'Nexus Shop';
+  const shopAddress = receiptSettings.shopAddress || invoice.shop_address || 'Main Branch Address';
+  const logoUrl = receiptSettings.logoUrl || invoice.logo_url || null;
+  const fontSize = receiptSettings.fontSize ? `${receiptSettings.fontSize}px` : '15px';
+  const isUrdu = receiptSettings.language === 'ur';
 
   const invoiceNo = invoice.invoice_number || invoice.invoiceNo || `INV-${invoice.id}`;
   const dateStr = invoice.created_at
@@ -19,6 +28,40 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
   const changeAmount = Number(invoice.change_amount ?? invoice.changeAmount ?? Math.max(0, paidAmount - total));
   const status = invoice.status || 'completed';
 
+  const labels = isUrdu
+    ? {
+        date: 'تاریخ',
+        items: 'آئٹم',
+        itemName: 'آئٹم',
+        qty: 'تعداد',
+        price: 'قیمت',
+        subtotal: 'ذیلی کل',
+        tax: 'ٹیکس',
+        labor: 'مزدوری',
+        total: 'کل رقم',
+        paid: 'ادا شدہ',
+        change: 'بقایا',
+        print: 'انواؤس پرنٹ کریں',
+        noItems: 'کوئی آئٹم نہیں ہے',
+        thankYou: 'ہمارے ساتھ خریداری کا شکریہ',
+      }
+    : {
+        date: 'Date',
+        items: 'Items',
+        itemName: 'ITEM',
+        qty: 'QTY',
+        price: 'PRICE',
+        subtotal: 'Subtotal',
+        tax: 'Tax',
+        labor: 'Labor Charge',
+        total: 'TOTAL',
+        paid: 'Paid Amount',
+        change: 'Change',
+        print: 'Print Invoice',
+        noItems: 'No line items in invoice',
+        thankYou: 'Thank you for shopping with us',
+      };
+
   const handlePrint = () => {
     window.print();
   };
@@ -30,32 +73,44 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
     >
       <div
         className="bg-[#f2edd4] border border-[#0c3818]/30 rounded-2xl sm:rounded-3xl max-w-md w-full overflow-hidden shadow-2xl flex flex-col my-auto animate-in fade-in zoom-in-95 duration-200"
+        dir={isUrdu ? 'rtl' : 'ltr'}
         onClick={(e) => e.stopPropagation()}
       >
         {/* ── Dark Green Top Header ── */}
         <div className="bg-[#0c3818] text-[#efeacb] p-5 sm:p-6 flex flex-col gap-2 relative">
           <button
             onClick={onClose}
-            className="absolute right-4 top-4 text-[#efeacb]/70 hover:text-[#efeacb] p-1 rounded-full hover:bg-white/10 transition cursor-pointer"
+            className={`absolute ${isUrdu ? 'left-4' : 'right-4'} top-4 text-[#efeacb]/70 hover:text-[#efeacb] p-1 rounded-full hover:bg-white/10 transition cursor-pointer`}
             title="Close modal"
           >
             <X size={20} />
           </button>
 
+          {/* Business Logo & Shop Header */}
+          <div className="flex flex-col items-center justify-center text-center pb-2 border-b border-[#efeacb]/20">
+            {logoUrl && (
+              <img src={logoUrl} alt="Shop Logo" className="h-12 w-auto max-w-[140px] object-contain mb-1 rounded bg-white/10 p-1" />
+            )}
+            <h1 className="text-xl sm:text-2xl font-black tracking-wide text-white">{shopName}</h1>
+            {shopAddress && (
+              <p className="text-xs text-[#efeacb]/80 whitespace-pre-line mt-0.5 max-w-[280px]">{shopAddress}</p>
+            )}
+          </div>
+
           {/* Date Line */}
-          <div className="text-xs sm:text-sm font-semibold tracking-wide text-[#efeacb]/90 flex items-center justify-between">
-            <span>Date: {dateStr}</span>
+          <div className="text-xs sm:text-sm font-semibold tracking-wide text-[#efeacb]/90 flex items-center justify-between pt-1">
+            <span>{labels.date}: {dateStr}</span>
             <span className="uppercase text-[10px] font-extrabold px-2 py-0.5 rounded bg-white/10">{status}</span>
           </div>
 
           {/* Invoice Number & Item Count Pill */}
           <div className="flex items-center justify-between mt-1">
-            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
+            <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white" dir="ltr">
               {invoiceNo}
             </h2>
 
             <div className="bg-[#efeacb] text-[#0c3818] font-bold text-xs sm:text-sm px-3.5 py-1.5 rounded-lg shadow-xs select-none">
-              Items: {totalItemsCount}
+              {labels.items}: {totalItemsCount}
             </div>
           </div>
         </div>
@@ -64,9 +119,9 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
         <div className="p-5 sm:p-6 flex flex-col gap-5">
           {/* Item Table Header */}
           <div className="grid grid-cols-12 gap-2 text-sm sm:text-base font-bold text-[#0c3818] pb-2 border-b border-[#0c3818]/15 px-1">
-            <div className="col-span-6 text-left">Item Name</div>
-            <div className="col-span-3 text-center">QTY</div>
-            <div className="col-span-3 text-right">Price</div>
+            <div className={`col-span-6 ${isUrdu ? 'text-right' : 'text-left'}`}>{labels.itemName}</div>
+            <div className="col-span-3 text-center">{labels.qty}</div>
+            <div className={`col-span-3 ${isUrdu ? 'text-left' : 'text-right'}`}>{labels.price}</div>
           </div>
 
           {/* Item Rows List */}
@@ -88,25 +143,25 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
                           <circle cx="12" cy="20" r="3" fill="#fef08a" />
                         </svg>
                       </div>
-                      <span className="font-bold text-[#0c3818] text-sm sm:text-base truncate">
+                      <span className="font-bold text-[#0c3818] truncate" style={{ fontSize }}>
                         {itemName}
                       </span>
                     </div>
 
                     <div className="col-span-3 flex justify-center">
-                      <span className="bg-[#c5caa8] text-[#0c3818] font-bold text-sm sm:text-base px-3.5 py-1 rounded-md shadow-xs min-w-[36px] text-center">
+                      <span className="bg-[#c5caa8] text-[#0c3818] font-bold px-3.5 py-1 rounded-md shadow-xs min-w-[36px] text-center" style={{ fontSize }}>
                         {itemQty}
                       </span>
                     </div>
 
-                    <div className="col-span-3 text-right font-bold text-[#0c3818] text-sm sm:text-base">
+                    <div className={`col-span-3 font-bold text-[#0c3818] ${isUrdu ? 'text-left' : 'text-right'}`} style={{ fontSize }}>
                       Rs {itemPrice * itemQty}
                     </div>
                   </div>
                 );
               })
             ) : (
-              <div className="text-center py-6 text-sm text-gray-500 font-medium">No line items in invoice</div>
+              <div className="text-center py-6 text-sm text-gray-500 font-medium">{labels.noItems}</div>
             )}
           </div>
 
@@ -114,21 +169,21 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
           <div className="border-t border-[#0c3818]/20 pt-4 flex flex-col gap-2.5">
             {/* Subtotal */}
             <div className="flex justify-between items-center text-sm sm:text-base font-bold text-[#0c3818]">
-              <span>Subtotal</span>
-              <span>Rs. {subtotal}</span>
+              <span>{labels.subtotal}</span>
+              <span dir="ltr">Rs. {subtotal}</span>
             </div>
 
             {tax > 0 && (
               <div className="flex justify-between items-center text-sm sm:text-base font-bold text-[#0c3818]">
-                <span>Tax</span>
-                <span>Rs. {tax}</span>
+                <span>{labels.tax}</span>
+                <span dir="ltr">Rs. {tax}</span>
               </div>
             )}
 
             {laborCharge > 0 && (
               <div className="flex justify-between items-center text-sm sm:text-base font-bold text-[#0c3818]">
-                <span>Labor Charge</span>
-                <span>Rs. {laborCharge}</span>
+                <span>{labels.labor}</span>
+                <span dir="ltr">Rs. {laborCharge}</span>
               </div>
             )}
 
@@ -137,34 +192,39 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
 
             {/* Total */}
             <div className="flex justify-between items-center text-base sm:text-lg text-[#8b1e10] font-black">
-              <span>Total</span>
-              <span className="text-xl sm:text-2xl">
+              <span>{labels.total}</span>
+              <span className="text-xl sm:text-2xl" dir="ltr">
                 Rs. {total.toLocaleString('en-IN')}
               </span>
             </div>
 
             {/* Paid Amount */}
             <div className="flex justify-between items-center text-sm sm:text-base font-bold text-[#0c3818]">
-              <span>Paid Amount</span>
-              <span>Rs. {paidAmount}</span>
+              <span>{labels.paid}</span>
+              <span dir="ltr">Rs. {paidAmount}</span>
             </div>
 
             {/* Change */}
             {changeAmount > 0 && (
               <div className="flex justify-between items-center text-sm sm:text-base font-bold text-green-700">
-                <span>Change</span>
-                <span>Rs. {changeAmount}</span>
+                <span>{labels.change}</span>
+                <span dir="ltr">Rs. {changeAmount}</span>
               </div>
             )}
           </div>
 
+          {/* Footer Note */}
+          <div className="text-center text-xs font-semibold text-[#0c3818]/70 pt-2 border-t border-[#0c3818]/10">
+            {labels.thankYou}
+          </div>
+
           {/* ── Print Invoice Button ── */}
-          <div className="flex justify-center pt-3 pb-1">
+          <div className="flex justify-center pt-2 pb-1">
             <button
               onClick={handlePrint}
               className="bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] text-base sm:text-lg font-bold px-8 py-3 rounded-xl shadow-md transition duration-150 cursor-pointer active:scale-95 min-w-[200px]"
             >
-              Print Invoice
+              {labels.print}
             </button>
           </div>
         </div>
@@ -172,3 +232,4 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
     </div>
   );
 }
+

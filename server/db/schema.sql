@@ -917,3 +917,25 @@ CREATE TABLE pos_modules (
   CONSTRAINT fk_pos_modules_palette FOREIGN KEY (palette_id)
     REFERENCES pos_palettes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+-- =====================================================================
+-- SECTION 4e: BUSINESS RECEIPT SETTINGS
+-- Tenant-scoped configuration for receipts (Shop name, address, font size, logo, language)
+-- =====================================================================
+
+CREATE TABLE business_receipt_settings (
+  id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  business_id    BIGINT UNSIGNED NOT NULL,
+  shop_name      VARCHAR(255) NULL,
+  shop_address   TEXT NULL,
+  font_size      INT NOT NULL DEFAULT 15,
+  language       VARCHAR(10) NOT NULL DEFAULT 'en',
+  logo_url       LONGTEXT NULL,
+  created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_business_receipt_settings_business (business_id),
+  CONSTRAINT fk_receipt_settings_business FOREIGN KEY (business_id)
+    REFERENCES businesses(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+

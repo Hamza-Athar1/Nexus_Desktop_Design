@@ -33,20 +33,9 @@ export default function AdminBillingPage() {
     }
   }, [setHeaderDetails, user]);
 
-  // Handle Logo Upload
-  const handleLogoChange = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      setLogoUrl(url);
-    }
-  };
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsMsg, setSettingsMsg] = useState('');
 
-  const handleRemoveLogo = () => {
-    setLogoUrl(null);
-  };
-
-  // ── Theme State ──
   const [themes, setThemes] = useState([]);
   const [savingTheme, setSavingTheme] = useState(false);
   const [themeMsg, setThemeMsg] = useState('');
@@ -54,15 +43,82 @@ export default function AdminBillingPage() {
   const loadThemes = async () => {
     try {
       const { ok, data } = await apiFetchJson('/catalog/themes');
-      if (ok && data.themes) setThemes(data.themes);
+      if (ok && data.themes) {
+        setThemes(data.themes);
+      }
     } catch {
-      // Fallback
+      // ignore
+    }
+  };
+
+  const loadReceiptSettings = async () => {
+    try {
+      const { ok, data } = await apiFetchJson('/business/receipt-settings');
+      if (ok && data.settings) {
+        if (data.settings.shopName) setShopName(data.settings.shopName);
+        if (data.settings.shopAddress) setShopAddress(data.settings.shopAddress);
+        if (data.settings.fontSize) setFontSize(Number(data.settings.fontSize));
+        if (data.settings.language) setReceiptLanguage(data.settings.language === 'ur' ? 'urdu' : 'english');
+        if (data.settings.logoUrl) setLogoUrl(data.settings.logoUrl);
+      }
+    } catch {
+      // ignore
     }
   };
 
   useEffect(() => {
     loadThemes();
+    loadReceiptSettings();
   }, []);
+
+  const handleLogoChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) {
+        setSettingsMsg('Logo file size must be less than 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setLogoUrl(null);
+  };
+
+  const handleSaveReceiptSettings = async () => {
+    setSavingSettings(true);
+    setSettingsMsg('');
+    try {
+      const payload = {
+        shopName: showShopName ? shopName : '',
+        shopAddress: showShopAddress ? shopAddress : '',
+        fontSize: showFontSize ? fontSize : 15,
+        language: showLanguage && receiptLanguage === 'urdu' ? 'ur' : 'en',
+        logoUrl: showLogo ? logoUrl : null,
+      };
+
+      const { ok, data } = await apiFetchJson('/business/receipt-settings', {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+
+      if (ok) {
+        setSettingsMsg('Receipt settings saved successfully!');
+        await refreshUser();
+      } else {
+        setSettingsMsg(data.message || 'Failed to save receipt settings');
+      }
+    } catch {
+      setSettingsMsg('Error connecting to server to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const handlePaletteSelect = async (theme) => {
     if (theme.active) return;
@@ -398,6 +454,23 @@ export default function AdminBillingPage() {
                 <div className="w-13 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#0c3818]"></div>
               </label>
             </div>
+          </div>
+
+          {/* Save Settings Action Button */}
+          <div className="pt-6 flex items-center justify-between gap-4">
+            {settingsMsg && (
+              <span className="text-xs font-black text-[#0c3818] bg-[#efeacb] px-3 py-1.5 rounded-full border border-[#0c3818]/30">
+                {settingsMsg}
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={savingSettings}
+              onClick={handleSaveReceiptSettings}
+              className="ml-auto px-8 py-3 bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] text-sm font-black rounded-xl transition cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
+            >
+              {savingSettings ? 'Saving Settings...' : 'Save Receipt Settings'}
+            </button>
           </div>
 
         </div>

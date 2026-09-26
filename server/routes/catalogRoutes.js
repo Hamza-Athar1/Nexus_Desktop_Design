@@ -27,7 +27,7 @@ router.get('/palettes', asyncHandler(async (req, res) => {
   res.json({ ok: true, palettes });
 }));
 
-router.get('/catalog/themes', verifyToken, requireBusiness, asyncHandler(async (req, res) => {
+router.get('/themes', verifyToken, requireBusiness, asyncHandler(async (req, res) => {
   const themes = await getBusinessThemeCatalog(req.businessId);
   res.json({ ok: true, themes });
 }));

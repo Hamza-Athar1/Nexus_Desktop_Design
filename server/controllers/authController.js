@@ -14,6 +14,7 @@ import {
   updatePasswordHash,
 } from '../models/userModel.js';
 import { findBusinessWithModuleByUser } from '../models/businessModel.js';
+import { getReceiptSettingsByBusiness } from '../models/receiptSettingsModel.js';
 import {
   createSession,
   findActiveSessionByToken,
@@ -42,6 +43,7 @@ const SALT_ROUNDS = 10;
 /** Shapes a DB user row into what the frontend's AuthContext expects. */
 async function toAuthUser(user) {
   const business = await findBusinessWithModuleByUser(user.id);
+  const receiptSettings = business?.id ? await getReceiptSettingsByBusiness(business.id) : null;
   return {
     id: user.id,
     username: user.username,
@@ -52,6 +54,7 @@ async function toAuthUser(user) {
     businessId: business?.id ?? null, // null until the registration wizard finishes — drives frontend routing
     businessName: business?.name ?? null,
     moduleCode: business?.module_code ?? null,
+    receiptSettings,
     palette: business?.resolved_palette_id ? {
       id: business.resolved_palette_id,
       name: business.palette_name,
