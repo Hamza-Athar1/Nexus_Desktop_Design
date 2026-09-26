@@ -140,6 +140,8 @@ export async function finishSetup(req, res) {
       paletteId: paletteIdToUse,
     });
 
+    await conn.query('UPDATE users SET business_id = ? WHERE id = ?', [createdBusiness.id, req.user.id]);
+
     const subscriptionId = await createSubscription(conn, {
       businessId: createdBusiness.id,
       planId: plan.id,
