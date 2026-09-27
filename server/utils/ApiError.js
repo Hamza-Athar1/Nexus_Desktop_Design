@@ -7,10 +7,12 @@ export class ApiError extends Error {
   /**
    * @param {number} status  HTTP status code
    * @param {string} message User-facing message
+   * @param {object} [data]  Optional structured payload
    */
-  constructor(status, message) {
+  constructor(status, message, data = null) {
     super(message);
     this.status = status;
     this.name = 'ApiError';
+    this.data = data;
   }
 }

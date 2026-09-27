@@ -153,14 +153,24 @@ export async function login(req, res) {
   if (user.status === 'pending') {
     await recordLoginAttempt(identifier, false);
     // Retrieve business payment proof status
-    const [bizRows] = await pool.query('SELECT payment_proof_status FROM businesses WHERE owner_user_id = ? OR id = ? LIMIT 1', [user.id, user.business_id]);
-    const proofStatus = bizRows[0]?.payment_proof_status || 'not_submitted';
-    const proofMsg = proofStatus === 'submitted'
+    const [bizRows] = await pool.query('SELECT payment_proof_status, payment_proof_url FROM businesses WHERE owner_user_id = ? OR id = ? LIMIT 1', [user.id, user.business_id]);
+    const proofStatus = bizRows[0]?.payment_proof_status || (bizRows[0]?.payment_proof_url ? 'submitted' : 'not_submitted');
+    console.log('[PENDING LOGIN PAYMENT PROOF]', {
+      userId: user.id,
+      businessId: user.business_id,
+      dbStatus: bizRows[0]?.payment_proof_status,
+      dbUrl: bizRows[0]?.payment_proof_url,
+      resolvedProofStatus: proofStatus,
+    });
+    const proofMsg = (proofStatus === 'submitted' || proofStatus === 'verified')
       ? 'Payment proof status: submitted'
       : 'Payment proof status: not_submitted';
 
     const contactMsg = 'Registration pending approval.\nSuper Admin Support Contact:\nName: Nexus Platform Operations\nEmail: support@nexuspos.com | Phone: +92 300 1234567\n' + proofMsg;
-    throw new ApiError(403, contactMsg);
+    throw new ApiError(403, contactMsg, {
+      registrationStatus: 'pending',
+      paymentProofStatus: proofStatus,
+    });
   }
 
   if (user.status === 'suspended' || user.status === 'blocked') {

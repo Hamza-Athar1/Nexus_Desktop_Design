@@ -27,7 +27,56 @@ async function runRegistrationIntegrationTests() {
 
     console.log(`✅ 1. Owner account created: ${owner.username}`);
 
-    // 2. Call finishSetup with firstStaff & paymentProofUrl
+    // 2a. Call finishSetup WITHOUT paymentProofUrl
+    const mockReqNoProof = {
+      user: owner,
+      body: {
+        business: {
+          businessName: 'No Proof Test Shop',
+          businessTypeCode: 'grocery',
+          location: 'Lahore, Punjab',
+          cityRegion: 'Lahore',
+          shopAddress: 'Shop 2, Test Street',
+          isRegistered: false,
+        },
+        moduleCode: 'grocery',
+        subscription: {
+          planCode: 'retention_6m',
+          platform: 'web_app',
+          paymentMethod: 'card',
+          backupModuleCodes: [],
+        },
+        paymentProofUrl: null,
+      },
+    };
+
+    let noProofResponse = null;
+    const mockResNoProof = {
+      status: (code) => ({
+        json: (data) => {
+          noProofResponse = { code, data };
+        },
+      }),
+    };
+
+    await finishSetup(mockReqNoProof, mockResNoProof);
+    if (noProofResponse?.code !== 201) {
+      throw new Error(`finishSetup without proof failed: ${JSON.stringify(noProofResponse)}`);
+    }
+
+    const noProofBizId = noProofResponse.data.business.id;
+    const [[noProofBizRow]] = await pool.query('SELECT payment_proof_url, payment_proof_status FROM businesses WHERE id = ?', [noProofBizId]);
+    if (noProofBizRow.payment_proof_url !== null || noProofBizRow.payment_proof_status !== 'not_submitted') {
+      throw new Error(`NO-PROOF payment proof DB verification failed: ${JSON.stringify(noProofBizRow)}`);
+    }
+    console.log('✅ 2a. Registration WITHOUT payment proof verified: payment_proof_status="not_submitted", payment_proof_url=null.');
+
+    // Clean up temporary no-proof business
+    await pool.query('DELETE FROM shop_requests WHERE business_id = ?', [noProofBizId]);
+    await pool.query('DELETE FROM subscriptions WHERE business_id = ?', [noProofBizId]);
+    await pool.query('DELETE FROM businesses WHERE id = ?', [noProofBizId]);
+
+    // 2b. Call finishSetup WITH firstStaff & paymentProofUrl
     const mockReq = {
       user: owner,
       body: {
@@ -71,7 +120,7 @@ async function runRegistrationIntegrationTests() {
     }
 
     businessId = finishResponse.data.business.id;
-    console.log(`✅ 2. finishSetup executed successfully. Business #${businessId} created.`);
+    console.log(`✅ 2b. finishSetup WITH proof executed successfully. Business #${businessId} created.`);
 
     // 3. Verify Payment Proof status & URL in DB
     const [[bizRow]] = await pool.query('SELECT payment_proof_url, payment_proof_status FROM businesses WHERE id = ?', [businessId]);

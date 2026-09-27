@@ -155,7 +155,8 @@ export async function finishSetup(req, res) {
   }
 
   // ── Payment Proof Status ─────────────────────────────────────────────
-  const proofStatus = paymentProofUrl ? 'submitted' : 'not_submitted';
+  const normalizedProofUrl = typeof paymentProofUrl === 'string' && paymentProofUrl.trim().length > 0 ? paymentProofUrl.trim() : null;
+  const proofStatus = normalizedProofUrl ? 'submitted' : 'not_submitted';
 
   // ── All validated — create business + subscription + staff + shop_request atomically ───
   const result = await withTransaction(async (conn) => {
@@ -175,7 +176,7 @@ export async function finishSetup(req, res) {
     // Update payment proof URL and status on business row
     await conn.query(
       'UPDATE businesses SET payment_proof_url = ?, payment_proof_status = ? WHERE id = ?',
-      [paymentProofUrl || null, proofStatus, createdBusiness.id]
+      [normalizedProofUrl, proofStatus, createdBusiness.id]
     );
 
     // Ensure user has business_id set and status is 'pending' until Super Admin approves
@@ -224,7 +225,7 @@ export async function finishSetup(req, res) {
       currency: plan.currency,
       ownerEmail: req.user.email,
       ownerUsername: req.user.username,
-      paymentProofUrl: paymentProofUrl || null,
+      paymentProofUrl: normalizedProofUrl,
       paymentProofStatus: proofStatus,
       firstStaffUsername: staffObj?.username || null,
       firstStaffFullName: staffObj?.fullName || null,

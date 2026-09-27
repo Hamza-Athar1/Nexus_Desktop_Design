@@ -22,6 +22,8 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setPendingModalData(null);
+    setErrorMsg('');
 
     if (!username.trim() || !password.trim()) {
       setErrorMsg('Please enter your username and password');
@@ -39,11 +41,11 @@ export default function LoginPage() {
 
       if (!ok) {
         const msg = data.message || 'Invalid username or password';
-        if (msg.includes('Registration pending approval')) {
-          const isSubmitted = msg.includes('status: submitted');
+        if (data.registrationStatus === 'pending' || msg.includes('Registration pending approval')) {
+          const proofStatus = data.paymentProofStatus || (msg.toLowerCase().includes('submitted') && !msg.toLowerCase().includes('not_submitted') ? 'submitted' : 'not_submitted');
           setPendingModalData({
             businessName: username,
-            paymentProofStatus: isSubmitted ? 'submitted' : 'not_submitted',
+            paymentProofStatus: proofStatus,
           });
           setStatus('idle');
           return;

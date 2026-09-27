@@ -384,34 +384,63 @@ export default function SuperAdminUserApprovalsPage() {
                   {/* Payment Proof Verification Box */}
                   <div className="bg-white border border-gray-200 rounded-2xl p-4 space-y-2">
                     <h4 className="font-extrabold text-[#0c3818] uppercase tracking-wider text-xs">Payment Proof Verification</h4>
-                    {detailsObj.paymentProofUrl ? (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-[#137333] bg-[#e6f4ea] px-2.5 py-1 rounded-md border border-[#85c796]">
-                            Payment Proof Submitted — Awaiting Verification
-                          </span>
-                          <a
-                            href={`http://localhost:5000${detailsObj.paymentProofUrl}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-xs font-black text-[#0c3818] underline hover:text-[#155227]"
-                          >
-                            Open Full Proof
-                          </a>
+                    {(() => {
+                      const proofStatus = detailsObj.paymentProofStatus || (detailsObj.paymentProofUrl ? 'submitted' : 'not_submitted');
+                      const proofUrl = detailsObj.paymentProofUrl;
+
+                      if (proofStatus === 'submitted' || (proofUrl && proofStatus !== 'not_submitted')) {
+                        return (
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-[#137333] bg-[#e6f4ea] px-2.5 py-1 rounded-md border border-[#85c796]">
+                                Payment Proof Submitted — Awaiting Verification
+                              </span>
+                              {proofUrl && (
+                                <a
+                                  href={`http://localhost:5000${proofUrl}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs font-black text-[#0c3818] underline hover:text-[#155227]"
+                                >
+                                  Open Full Proof
+                                </a>
+                              )}
+                            </div>
+                            {proofUrl && (
+                              <div className="max-h-48 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center p-2">
+                                <img
+                                  src={`http://localhost:5000${proofUrl}`}
+                                  alt="Payment Proof Screenshot"
+                                  className="max-h-44 object-contain rounded-lg shadow-xs"
+                                />
+                              </div>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      if (proofStatus === 'verified') {
+                        return (
+                          <div className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-200">
+                            ✓ Payment Proof Verified
+                          </div>
+                        );
+                      }
+
+                      if (proofStatus === 'rejected') {
+                        return (
+                          <div className="text-xs font-bold text-red-800 bg-red-50 px-3 py-2 rounded-lg border border-red-200">
+                            ✕ Payment Proof Rejected
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="text-xs font-bold text-[#a68334] bg-[#f6edd2] px-3 py-2 rounded-lg border border-[#dfc480]">
+                          Payment proof not submitted
                         </div>
-                        <div className="max-h-48 overflow-hidden rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center p-2">
-                          <img
-                            src={`http://localhost:5000${detailsObj.paymentProofUrl}`}
-                            alt="Payment Proof Screenshot"
-                            className="max-h-44 object-contain rounded-lg shadow-xs"
-                          />
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="text-xs font-bold text-[#a68334] bg-[#f6edd2] px-3 py-2 rounded-lg border border-[#dfc480]">
-                        Payment proof not submitted
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
 
                   {/* Modal Footer Actions */}

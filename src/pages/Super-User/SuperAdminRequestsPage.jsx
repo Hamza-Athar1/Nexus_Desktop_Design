@@ -758,6 +758,12 @@ export default function SuperAdminRequestsPage() {
                               <span className="font-bold">Rs {parsed.backupModulesPrice}</span>
                             </div>
                           )}
+                          <div className="flex justify-between border-t border-gray-100 pt-1.5">
+                            <span className="text-gray-500">Payment Proof</span>
+                            <span className={`font-bold ${(parsed.paymentProofStatus || (parsed.paymentProofUrl ? 'submitted' : 'not_submitted')) === 'submitted' ? 'text-green-700' : (parsed.paymentProofStatus || (parsed.paymentProofUrl ? 'submitted' : 'not_submitted')) === 'verified' ? 'text-emerald-700' : (parsed.paymentProofStatus || (parsed.paymentProofUrl ? 'submitted' : 'not_submitted')) === 'rejected' ? 'text-red-700' : 'text-amber-700'}`}>
+                              {(parsed.paymentProofStatus || (parsed.paymentProofUrl ? 'submitted' : 'not_submitted')) === 'submitted' ? 'Submitted' : (parsed.paymentProofStatus || (parsed.paymentProofUrl ? 'submitted' : 'not_submitted')) === 'verified' ? 'Verified' : (parsed.paymentProofStatus || (parsed.paymentProofUrl ? 'submitted' : 'not_submitted')) === 'rejected' ? 'Rejected' : 'Not Submitted'}
+                            </span>
+                          </div>
                           <div className="border-t border-gray-200 pt-1.5 flex justify-between text-sm font-black text-[#0c3818]">
                             <span>Total Amount</span>
                             <span>Rs {parsed.totalAmount}</span>

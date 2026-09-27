@@ -7,7 +7,7 @@ import { ApiError } from '../utils/ApiError.js';
 // eslint-disable-next-line no-unused-vars
 export function errorHandler(err, req, res, next) {
   if (err instanceof ApiError) {
-    return res.status(err.status).json({ message: err.message });
+    return res.status(err.status).json({ message: err.message, ...(err.data && typeof err.data === 'object' ? err.data : {}) });
   }
 
   // MySQL duplicate-key / constraint errors — surface something readable

@@ -58,7 +58,7 @@ export default function RegisterBusinessPage() {
   const [pendingModalData, setPendingModalData] = useState(null);
 
   // Step 4 Form State (Payment Proof & First Staff)
-  const [_proofFile, setProofFile] = useState(null);
+  const [proofFile, setProofFile] = useState(null);
   const [proofPreviewUrl, setProofPreviewUrl] = useState('');
   const [uploadingProof, setUploadingProof] = useState(false);
   const [uploadedProofUrl, setUploadedProofUrl] = useState('');
@@ -92,9 +92,8 @@ export default function RegisterBusinessPage() {
 
     setUploadingProof(true);
     try {
-      const res = await fetch('http://localhost:5000/api/registration/upload-proof', {
+      const res = await apiFetch('/registration/upload-proof', {
         method: 'POST',
-        credentials: 'include',
         body: formData,
       });
       const data = await res.json();
@@ -108,6 +107,13 @@ export default function RegisterBusinessPage() {
     } finally {
       setUploadingProof(false);
     }
+  };
+
+  const handleRemoveProof = () => {
+    setProofFile(null);
+    setProofPreviewUrl('');
+    setUploadedProofUrl('');
+    setErrorMsg('');
   };
 
   // ── Already onboarded? Don't let them redo the wizard. ──────────────────
@@ -271,6 +277,25 @@ export default function RegisterBusinessPage() {
     setErrorMsg('');
     setSubmitting(true);
     try {
+      let finalProofUrl = uploadedProofUrl;
+      if (!finalProofUrl && proofFile) {
+        try {
+          const formData = new FormData();
+          formData.append('proofFile', proofFile);
+          const uploadRes = await apiFetch('/registration/upload-proof', {
+            method: 'POST',
+            body: formData,
+          });
+          if (uploadRes.ok) {
+            const uploadData = await uploadRes.json();
+            finalProofUrl = uploadData.proofUrl;
+            setUploadedProofUrl(uploadData.proofUrl);
+          }
+        } catch {
+          // Continue if upload failed, finish handler will error or process as null
+        }
+      }
+
       const { ok, data } = await apiFetchJson('/registration/finish', {
         method: 'POST',
         body: JSON.stringify({
@@ -290,7 +315,7 @@ export default function RegisterBusinessPage() {
           },
           moduleCode: selectedModule,
           subscription: { planCode, platform, paymentMethod, backupModuleCodes: selectedBackupCodes },
-          paymentProofUrl: uploadedProofUrl || null,
+          paymentProofUrl: finalProofUrl || null,
           firstStaff: firstStaffForm.username && firstStaffForm.password ? {
             username: firstStaffForm.username,
             fullName: firstStaffForm.fullName,
@@ -310,7 +335,7 @@ export default function RegisterBusinessPage() {
       await refreshUser();
       setPendingModalData({
         businessName: businessForm.businessName,
-        paymentProofStatus: data?.business?.paymentProofStatus || (uploadedProofUrl ? 'submitted' : 'not_submitted'),
+        paymentProofStatus: data?.business?.paymentProofStatus || 'not_submitted',
       });
       setSubmitting(false);
     } catch {
@@ -1015,6 +1040,15 @@ export default function RegisterBusinessPage() {
                       <span className="text-xs font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded border border-green-200">
                         ✓ Proof Uploaded Successfully
                       </span>
+                    )}
+                    {(proofFile || uploadedProofUrl || proofPreviewUrl) && (
+                      <button
+                        type="button"
+                        onClick={handleRemoveProof}
+                        className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-bold rounded-lg border border-red-200 transition cursor-pointer"
+                      >
+                        Remove Proof
+                      </button>
                     )}
                   </div>
 
