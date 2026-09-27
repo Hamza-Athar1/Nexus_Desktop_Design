@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   GitPullRequest,
@@ -7,52 +8,14 @@ import {
   CreditCard,
   UserCircle,
   Palette,
-  ArrowLeft,
-  LogOut,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
 import { apiFetchJson } from '../../lib/api';
-
-const NAV_ITEMS = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'users', label: 'User Management', icon: Users },
-  { id: 'approvals', label: 'User Approvals', icon: UserCheck, hasBadge: true },
-  { id: 'billing', label: 'Billing', icon: Receipt },
-  { id: 'payment', label: 'Payment', icon: CreditCard },
-  { id: 'requests', label: 'Requests', icon: GitPullRequest },
-  { id: 'profile', label: 'Settings', icon: UserCircle },
-  { id: 'pos', label: 'Theme Management', icon: Palette },
-];
-
-function NavItem({ icon: Icon, label, active, onClick, badgeCount }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full flex items-center justify-between px-4 py-3 rounded-full text-left transition duration-200 ${active
-        ? 'bg-[#eae2bf] text-[#0c3818] font-bold shadow-sm'
-        : 'text-[#a2bc90] hover:bg-[#114720]/40 hover:text-[#eae2bf]'
-        }`}
-    >
-      <div className="flex items-center gap-3">
-        <Icon size={20} className={active ? 'text-[#0c3818]' : 'text-[#a2bc90]'} />
-        <span className="text-sm tracking-wide">{label}</span>
-      </div>
-      {typeof badgeCount === 'number' && badgeCount > 0 && (
-        <span className={`px-2 py-0.5 rounded-full text-xs font-black ${active ? 'bg-[#0c3818] text-[#efeacb]' : 'bg-[#e5a024] text-black'}`}>
-          {badgeCount}
-        </span>
-      )}
-    </button>
-  );
-}
+import { SidebarContainer, NavSectionGroup, NavItem } from '../BaseSidebar';
 
 export default function SuperAdminSidebar({ isOpen, onClose, activeTab, onTabChange }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
   const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
 
   useEffect(() => {
@@ -96,50 +59,71 @@ export default function SuperAdminSidebar({ isOpen, onClose, activeTab, onTabCha
   };
 
   return (
-    <aside
-      className={`fixed inset-y-0 left-0 z-50 w-72 flex flex-col transition-transform duration-300 lg:static ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
-        }`}
-    >
+    <SidebarContainer isOpen={isOpen} brandName="Nexus Platform" roleTag="Super Admin">
+      {/* Overview */}
+      <NavSectionGroup title="Overview">
+        <NavItem
+          icon={LayoutDashboard}
+          label="Dashboard"
+          active={currentActiveTab === 'dashboard'}
+          onClick={() => handleNav('dashboard')}
+        />
+      </NavSectionGroup>
 
-      {/* Dark Green Sidebar Navigation Area */}
-      <div className="bg-[#0c3818] flex-1 p-5 flex flex-col gap-6 overflow-y-auto">
-        {/* Top ellipsis and back arrow */}
-        <div className="flex flex-col gap-2 items-start">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-2.5 px-4.5 py-2 rounded-full border border-[#efeacb]/15 bg-[#efeacb]/10 text-[#a2bc90] hover:text-[#efeacb] hover:bg-[#efeacb]/20 transition-all duration-200 cursor-pointer text-xs font-black uppercase tracking-wider hover:-translate-x-0.5 active:scale-[0.98] select-none"
-          >
-            <ArrowLeft size={15} />
-            <span>Go Back</span>
-          </button>
-        </div>
+      {/* User & Shop Management */}
+      <NavSectionGroup title="Management">
+        <NavItem
+          icon={Users}
+          label="User Management"
+          active={currentActiveTab === 'users'}
+          onClick={() => handleNav('users')}
+        />
+        <NavItem
+          icon={UserCheck}
+          label="User Approvals"
+          active={currentActiveTab === 'approvals'}
+          badgeCount={pendingApprovalsCount}
+          onClick={() => handleNav('approvals')}
+        />
+      </NavSectionGroup>
 
-        {/* Navigation Items */}
-        <nav className="flex flex-col gap-2">
-          {NAV_ITEMS.map((item) => (
-            <NavItem
-              key={item.id}
-              icon={item.icon}
-              label={item.label}
-              active={currentActiveTab === item.id}
-              badgeCount={item.hasBadge ? pendingApprovalsCount : undefined}
-              onClick={() => handleNav(item.id)}
-            />
-          ))}
-        </nav>
+      {/* Finance & Billing */}
+      <NavSectionGroup title="Finance">
+        <NavItem
+          icon={Receipt}
+          label="Billing"
+          active={currentActiveTab === 'billing'}
+          onClick={() => handleNav('billing')}
+        />
+        <NavItem
+          icon={CreditCard}
+          label="Payment"
+          active={currentActiveTab === 'payment'}
+          onClick={() => handleNav('payment')}
+        />
+        <NavItem
+          icon={GitPullRequest}
+          label="Requests"
+          active={currentActiveTab === 'requests'}
+          onClick={() => handleNav('requests')}
+        />
+      </NavSectionGroup>
 
-        {/* Logout */}
-        <div className="mt-auto pt-4 border-t border-[#efeacb]/10">
-          <button
-            type="button"
-            onClick={logout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-full text-left transition duration-200 text-[#f4a98a] hover:bg-[#5c1a1a]/40 hover:text-[#f9c4af] active:scale-[0.98] cursor-pointer"
-          >
-            <LogOut size={20} className="text-[#f4a98a]" />
-            <span className="text-sm tracking-wide">Logout</span>
-          </button>
-        </div>
-      </div>
-    </aside>
+      {/* System & Design */}
+      <NavSectionGroup title="System">
+        <NavItem
+          icon={UserCircle}
+          label="Settings & Profile"
+          active={currentActiveTab === 'profile'}
+          onClick={() => handleNav('profile')}
+        />
+        <NavItem
+          icon={Palette}
+          label="Theme Management"
+          active={currentActiveTab === 'pos'}
+          onClick={() => handleNav('pos')}
+        />
+      </NavSectionGroup>
+    </SidebarContainer>
   );
 }

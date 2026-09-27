@@ -14,7 +14,7 @@ import SuspendShopModal from '../../components/Super-User/SuspendShopModal';
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(isoDate) {
-  if (!isoDate) return '—';
+  if (!isoDate) return 'Failed';
   const d = new Date(isoDate);
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
