@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { X, Edit2 } from 'lucide-react';
+import { X, Edit2, Eye, EyeOff } from 'lucide-react';
 
 export default function EditStaffModal({ isOpen, onClose, onSave, staff }) {
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [status, setStatus] = useState('active');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -12,9 +14,10 @@ export default function EditStaffModal({ isOpen, onClose, onSave, staff }) {
   useEffect(() => {
     if (staff) {
       setUsername(staff.username || '');
-      setEmail(staff.email || '');
-      setPhone(staff.phone || '');
+      setNewPassword('');
+      setConfirmPassword('');
       setStatus(staff.status || 'active');
+      setError('');
     }
   }, [staff]);
 
@@ -24,20 +27,32 @@ export default function EditStaffModal({ isOpen, onClose, onSave, staff }) {
     e.preventDefault();
     setError('');
 
-    const cleanPhone = phone.trim().replace(/[\s-]/g, '');
-    if (!cleanPhone || !/^\d{11}$/.test(cleanPhone)) {
-      setError('Phone number must be exactly 11 digits (e.g. 03001234567).');
+    if (!username.trim()) {
+      setError('Username is required.');
       return;
+    }
+
+    if (newPassword || confirmPassword) {
+      if (newPassword.length < 6) {
+        setError('New password must be at least 6 characters.');
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setError('New password and confirm password do not match.');
+        return;
+      }
     }
 
     try {
       setLoading(true);
-      await onSave(staff.id, {
+      const payload = {
         username: username.trim(),
-        email: email.trim(),
-        phone: cleanPhone,
         status,
-      });
+      };
+      if (newPassword) {
+        payload.password = newPassword;
+      }
+      await onSave(staff.id, payload);
       onClose();
     } catch (err) {
       setError(err.message || 'Failed to update staff account');
@@ -89,29 +104,45 @@ export default function EditStaffModal({ isOpen, onClose, onSave, staff }) {
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-black text-[#0c3818]">Email Address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl border border-[#0c3818]/20 bg-white font-bold text-[#0c3818] text-sm focus:outline-hidden focus:border-[#0c3818]"
-            />
+            <label className="text-xs font-black text-[#0c3818]">
+              New Password <span className="text-gray-400 font-normal">(Leave blank to keep unchanged)</span>
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="w-full px-4 py-2.5 pr-10 rounded-xl border border-[#0c3818]/20 bg-white font-bold text-[#0c3818] text-sm focus:outline-hidden focus:border-[#0c3818]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0c3818]/50 hover:text-[#0c3818] cursor-pointer"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-black text-[#0c3818]">
-              Phone Number<span className="text-red-500 ml-0.5">*</span>
-            </label>
-            <input
-              type="text"
-              required
-              maxLength={13}
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. 03001234567"
-              className="w-full px-4 py-2.5 rounded-xl border border-[#0c3818]/20 bg-white font-bold text-[#0c3818] text-sm focus:outline-hidden focus:border-[#0c3818]"
-            />
+            <label className="text-xs font-black text-[#0c3818]">Confirm New Password</label>
+            <div className="relative">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Re-enter new password"
+                className="w-full px-4 py-2.5 pr-10 rounded-xl border border-[#0c3818]/20 bg-white font-bold text-[#0c3818] text-sm focus:outline-hidden focus:border-[#0c3818]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#0c3818]/50 hover:text-[#0c3818] cursor-pointer"
+              >
+                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <div className="flex flex-col gap-1.5">

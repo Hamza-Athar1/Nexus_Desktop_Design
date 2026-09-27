@@ -293,8 +293,6 @@ export default function AdminUserPage() {
               <thead>
                 <tr className="border-b border-[#0c3818]/15 text-xs font-black text-[#0c3818]/70 uppercase tracking-wider">
                   <th className="pb-3 px-3">Username</th>
-                  <th className="pb-3 px-3">Email</th>
-                  <th className="pb-3 px-3">Phone</th>
                   <th className="pb-3 px-3">Role</th>
                   <th className="pb-3 px-3">Status</th>
                   <th className="pb-3 px-3 text-right">Actions</th>
@@ -304,8 +302,6 @@ export default function AdminUserPage() {
                 {staffList.map((staff) => (
                   <tr key={staff.id} className="hover:bg-[#efeacb]/40 transition">
                     <td className="py-3.5 px-3 font-black text-[#0c3818]">{staff.username}</td>
-                    <td className="py-3.5 px-3">{staff.email}</td>
-                    <td className="py-3.5 px-3">{staff.phone || '—'}</td>
                     <td className="py-3.5 px-3">
                       <span className="bg-[#0c3818]/10 text-[#0c3818] px-2.5 py-1 rounded-md text-[11px] font-black uppercase">
                         Cashier Staff

@@ -36,7 +36,7 @@ export async function createStaffMember(businessId, { username, email, phone, pa
   return findStaffById(businessId, result.insertId);
 }
 
-export async function updateStaffMember(businessId, staffId, { username, email, phone, status }) {
+export async function updateStaffMember(businessId, staffId, { username, email, phone, passwordHash, status }) {
   const updates = [];
   const params = [];
 
@@ -51,6 +51,10 @@ export async function updateStaffMember(businessId, staffId, { username, email, 
   if (phone !== undefined) {
     updates.push('phone = ?');
     params.push(phone);
+  }
+  if (passwordHash !== undefined) {
+    updates.push('password_hash = ?');
+    params.push(passwordHash);
   }
   if (status !== undefined) {
     updates.push('status = ?');

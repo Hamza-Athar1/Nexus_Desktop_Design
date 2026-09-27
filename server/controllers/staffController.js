@@ -21,22 +21,18 @@ export async function getStaff(req, res) {
 export async function postStaff(req, res) {
   const { username, email, phone, password } = req.body;
 
-  if (!username?.trim() || !email?.trim() || !password) {
-    throw new ApiError(400, 'Username, email, and password are required');
-  }
-  if (!/\S+@\S+\.\S+/.test(email)) {
-    throw new ApiError(400, 'A valid email is required');
+  if (!username?.trim() || !password) {
+    throw new ApiError(400, 'Username and password are required');
   }
   if (password.length < 6) {
     throw new ApiError(400, 'Password must be at least 6 characters');
   }
 
-  const cleanPhone = phone?.trim() ? phone.trim().replace(/[\s-]/g, '') : '';
-  if (!cleanPhone || !/^\d{11}$/.test(cleanPhone)) {
-    throw new ApiError(400, 'Phone number must be exactly 11 digits');
-  }
+  const cleanUsername = username.trim().toLowerCase();
+  const staffEmail = email?.trim() || `${cleanUsername}_${Date.now()}@staff.local`;
+  const cleanPhone = phone?.trim() ? phone.trim().replace(/[\s-]/g, '') : '00000000000';
 
-  if (await findUserByEmail(email.trim())) {
+  if (email?.trim() && await findUserByEmail(email.trim())) {
     throw new ApiError(409, 'An account with this email already exists');
   }
   if (await findUserByUsername(username.trim())) {
@@ -46,7 +42,7 @@ export async function postStaff(req, res) {
   const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
   const staff = await createStaffMember(req.businessId, {
     username: username.trim(),
-    email: email.trim(),
+    email: staffEmail,
     phone: cleanPhone,
     passwordHash,
   });
@@ -57,7 +53,7 @@ export async function postStaff(req, res) {
 /** PUT /api/staff/:id — update staff user */
 export async function putStaff(req, res) {
   const { id } = req.params;
-  const { username, email, phone, status } = req.body;
+  const { username, email, phone, password, status } = req.body;
 
   const existing = await findStaffById(req.businessId, id);
   if (!existing) {
@@ -65,11 +61,8 @@ export async function putStaff(req, res) {
   }
 
   let cleanPhone;
-  if (phone !== undefined) {
-    cleanPhone = phone?.trim() ? phone.trim().replace(/[\s-]/g, '') : '';
-    if (!cleanPhone || !/^\d{11}$/.test(cleanPhone)) {
-      throw new ApiError(400, 'Phone number must be exactly 11 digits');
-    }
+  if (phone !== undefined && phone !== null && phone.trim() !== '') {
+    cleanPhone = phone.trim().replace(/[\s-]/g, '');
   }
 
   if (email && email.trim() !== existing.email) {
@@ -86,10 +79,18 @@ export async function putStaff(req, res) {
     }
   }
 
+  let passwordHash;
+  if (password && password.length >= 6) {
+    passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+  } else if (password && password.length < 6) {
+    throw new ApiError(400, 'Password must be at least 6 characters');
+  }
+
   const updated = await updateStaffMember(req.businessId, id, {
     username: username?.trim(),
     email: email?.trim(),
     phone: cleanPhone,
+    passwordHash,
     status,
   });
 
