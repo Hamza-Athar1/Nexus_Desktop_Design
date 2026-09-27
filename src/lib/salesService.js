@@ -31,6 +31,9 @@ export async function getSales(params = {}) {
   if (params.limit) query.append('limit', params.limit);
   if (params.status) query.append('status', params.status);
   if (params.date) query.append('date', params.date);
+  if (params.startDate) query.append('startDate', params.startDate);
+  if (params.endDate) query.append('endDate', params.endDate);
+  if (params.search) query.append('search', params.search);
 
   const queryString = query.toString();
   const path = `/sales${queryString ? `?${queryString}` : ''}`;

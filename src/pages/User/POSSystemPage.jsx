@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Trash2, Barcode } from 'lucide-react';
+import { Search, Trash2, Barcode, RotateCcw } from 'lucide-react';
 import { apiFetchJson } from '../../lib/api.js';
 import { createSale } from '../../lib/salesService.js';
 import { scanBarcodeApi } from '../../lib/inventoryService.js';
 import ViewInvoiceModal from '../../components/Admin/ViewInvoiceModal.jsx';
 import BarcodeScannerModal from '../../components/BarcodeScannerModal.jsx';
+import CashierReturnModal from '../../components/User/CashierReturnModal.jsx';
 
 function POSClock() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -76,6 +77,7 @@ export default function POSSystemPage() {
   const [scanLaserActive, setScanLaserActive] = useState(false);
   const [lastScannedItem, setLastScannedItem] = useState(null);
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [barcodeScanError, setBarcodeScanError] = useState(null);
   const [barcodeScanSuccess, setBarcodeScanSuccess] = useState(null);
   const [manualBarcode, setManualBarcode] = useState('');
@@ -397,11 +399,18 @@ export default function POSSystemPage() {
             </div>
           </div>
 
-          {/* Right Clock and Login */}
-          <div className="flex items-center gap-4">
+          {/* Right Clock, Returns and Login */}
+          <div className="flex items-center gap-3">
             <div className="text-right hidden md:block">
               <POSClock />
             </div>
+            <button
+              onClick={() => setIsReturnModalOpen(true)}
+              className="bg-amber-800 text-[#efe9c4] hover:bg-amber-900 text-xs font-extrabold px-4 py-2.5 rounded-full transition-all duration-200 tracking-wider cursor-pointer active:scale-95 shadow-md flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              RETURNS
+            </button>
             <button
               onClick={() => navigate('/admin-login')}
               className="text-[#efe9c4] text-xs font-extrabold px-4 py-2.5 rounded-full transition-all duration-200 tracking-wider cursor-pointer active:scale-95 shadow-md"
@@ -780,6 +789,13 @@ export default function POSSystemPage() {
         onScan={(scannedCode) => {
           handleBarcodeLookup(scannedCode);
         }}
+      />
+
+      {/* Cashier Invoice Return Modal */}
+      <CashierReturnModal
+        isOpen={isReturnModalOpen}
+        onClose={() => setIsReturnModalOpen(false)}
+        onReturnSuccess={() => fetchProducts()}
       />
     </div>
   );

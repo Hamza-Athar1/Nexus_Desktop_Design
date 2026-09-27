@@ -156,8 +156,8 @@ export async function login(req, res) {
     const [bizRows] = await pool.query('SELECT payment_proof_status FROM businesses WHERE owner_user_id = ? OR id = ? LIMIT 1', [user.id, user.business_id]);
     const proofStatus = bizRows[0]?.payment_proof_status || 'not_submitted';
     const proofMsg = proofStatus === 'submitted'
-      ? 'Payment proof submitted — awaiting verification.'
-      : 'Payment proof not submitted.';
+      ? 'Payment proof status: submitted'
+      : 'Payment proof status: not_submitted';
 
     const contactMsg = 'Registration pending approval.\nSuper Admin Support Contact:\nName: Nexus Platform Operations\nEmail: support@nexuspos.com | Phone: +92 300 1234567\n' + proofMsg;
     throw new ApiError(403, contactMsg);

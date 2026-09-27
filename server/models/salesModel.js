@@ -320,7 +320,13 @@ export async function findSaleDetailById(businessId, saleId) {
   const sale = sales[0];
 
   const [items] = await pool.query(
-    `SELECT si.*, p.sku, p.barcode
+    `SELECT si.*, p.sku, p.barcode,
+            COALESCE((
+              SELECT SUM(ri.quantity)
+              FROM refund_items ri
+              JOIN refunds r ON r.id = ri.refund_id
+              WHERE ri.sale_item_id = si.id
+            ), 0) AS returned_quantity
      FROM sale_items si
      LEFT JOIN products p ON p.id = si.product_id
      WHERE si.sale_id = ?`,

@@ -46,10 +46,10 @@ export default function AdminLoginPage() {
       if (!ok) {
         const msg = data.message || 'Invalid username or password';
         if (msg.includes('Registration pending approval')) {
-          const proofSubmitted = msg.includes('submitted');
+          const isSubmitted = msg.includes('status: submitted');
           setPendingModalData({
             businessName: username,
-            paymentProofStatus: proofSubmitted ? 'submitted' : 'not_submitted',
+            paymentProofStatus: isSubmitted ? 'submitted' : 'not_submitted',
           });
           setStatus('idle');
           return;
