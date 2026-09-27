@@ -24,10 +24,6 @@ export default function AdminChangePasswordModal({ isOpen, onClose, onSave }) {
       setError('Please enter your new password.');
       return;
     }
-    if (newPassword.length < 8 || newPassword.length > 20) {
-      setError('Password must be 8 to 20 characters long.');
-      return;
-    }
     if (newPassword !== confirmPassword) {
       setError('New passwords do not match.');
       return;
@@ -142,14 +138,6 @@ export default function AdminChangePasswordModal({ isOpen, onClose, onSave }) {
                 {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
-          </div>
-
-          {/* Password Format Alert Box matching Screenshot 4 */}
-          <div className="bg-[#fde8e4] text-[#8b1e10] border border-[#f8b4ab] p-3 sm:p-3.5 rounded-xl text-xs font-bold text-left flex flex-col gap-1">
-            <span className="font-extrabold underline">Password format:</span>
-            <span>• 8 to 20 characters long</span>
-            <span>• Contain at least one number or special character</span>
-            <span>• Not match username or current password</span>
           </div>
 
           {error && (

@@ -24,9 +24,6 @@ export async function postStaff(req, res) {
   if (!username?.trim() || !password) {
     throw new ApiError(400, 'Username and password are required');
   }
-  if (password.length < 6) {
-    throw new ApiError(400, 'Password must be at least 6 characters');
-  }
 
   const cleanUsername = username.trim().toLowerCase();
   const staffEmail = email?.trim() || `${cleanUsername}_${Date.now()}@staff.local`;

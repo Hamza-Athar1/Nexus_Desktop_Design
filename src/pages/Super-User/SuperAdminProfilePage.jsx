@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import { User, Shield, Check } from 'lucide-react';
+import { User, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { apiFetchJson } from '../../lib/api';
 
@@ -16,7 +16,6 @@ function Toggle({ checked, onChange }) {
     </button>
   );
 }
-
 
 // ── Feedback banner ───────────────────────────────────────────────────────────
 function Banner({ msg, type }) {
@@ -58,8 +57,6 @@ export default function SuperAdminProfilePage() {
   const [prefAnnouncements, setPrefAnnounce]  = useState(true);
   const [prefMsg, setPrefMsg]                 = useState({ text: '', type: '' });
 
-
-
   // ── Load profile ──────────────────────────────────────────────────────────
   const loadProfile = useCallback(async () => {
     const { ok, data } = await apiFetchJson('/profile/me');
@@ -78,11 +75,6 @@ export default function SuperAdminProfilePage() {
   }, []);
 
   useEffect(() => { loadProfile(); }, [loadProfile]);
-
-  // ── Password validation ───────────────────────────────────────────────────
-  const hasMinLength      = newPw.length >= 8;
-  const hasUppercase      = /[A-Z]/.test(newPw);
-  const hasNumberOrSpec   = /[0-9^$@!%*?&]/.test(newPw);
 
   // ── Handlers ──────────────────────────────────────────────────────────────
   const handleSaveProfile = async (e) => {
@@ -113,9 +105,6 @@ export default function SuperAdminProfilePage() {
 
   const handleUpdatePassword = async (e) => {
     e.preventDefault();
-    if (!hasMinLength || !hasUppercase || !hasNumberOrSpec) {
-      setPwMsg({ text: 'Password does not meet requirements.', type: 'error' }); return;
-    }
     if (newPw !== confirmPw) {
       setPwMsg({ text: 'Passwords do not match.', type: 'error' }); return;
     }
@@ -154,8 +143,6 @@ export default function SuperAdminProfilePage() {
     setPrefMsg({ text: ok ? 'Preferences saved.' : 'Save failed.', type: ok ? 'success' : 'error' });
     setTimeout(() => setPrefMsg({ text: '', type: '' }), 3000);
   };
-
-
 
   // ── Tab styling ───────────────────────────────────────────────────────────
   const tabCls = (key) =>
@@ -260,7 +247,7 @@ export default function SuperAdminProfilePage() {
           <div className="bg-[#fcfbfa] border border-[#14391a]/15 rounded-[20px] p-6.5 flex flex-col gap-5">
             <div>
               <h2 className="text-[20px] font-black text-[#14391a] leading-none mb-1">Change Password</h2>
-              <p className="text-sm text-[#14391a]/70 font-semibold mt-1.5">Ensure your account is using a strong password</p>
+              <p className="text-sm text-[#14391a]/70 font-semibold mt-1.5">Ensure your account is using a password of your choice</p>
             </div>
             <Banner msg={pwMsg.text} type={pwMsg.type} />
             <form onSubmit={handleUpdatePassword} className="flex flex-col gap-4">
@@ -282,22 +269,6 @@ export default function SuperAdminProfilePage() {
                 <input type="password" placeholder="············" value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
                   autoComplete="new-password"
                   className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50 placeholder-[#14391a]/40" />
-              </div>
-              {/* Requirements */}
-              <div className="bg-[#faf8ed] rounded-[12px] p-4 flex flex-col gap-2">
-                <span className="text-xs font-extrabold text-[#14391a]/85">Password must contain:</span>
-                {[
-                  [hasMinLength,    'At least 8 characters'],
-                  [hasUppercase,    'One uppercase letter'],
-                  [hasNumberOrSpec, 'One number or special character'],
-                ].map(([met, label]) => (
-                  <div key={label} className="flex items-center gap-2 text-xs font-bold">
-                    <span className={`p-0.5 rounded-full flex items-center justify-center transition-colors ${met ? 'bg-[#cbebc7] text-[#14391a]' : 'bg-gray-200 text-gray-400'}`}>
-                      <Check size={12} strokeWidth={3} />
-                    </span>
-                    <span className={met ? 'text-[#14391a]' : 'text-[#14391a]/60'}>{label}</span>
-                  </div>
-                ))}
               </div>
               <button type="submit"
                 className="w-full mt-2 px-10 py-3.5 bg-[#113819] hover:bg-[#14391a] text-white text-[15px] font-extrabold rounded-[12px] transition cursor-pointer shadow-sm">
@@ -376,7 +347,6 @@ export default function SuperAdminProfilePage() {
           </div>
         </div>
       )}
-
 
     </div>
   );

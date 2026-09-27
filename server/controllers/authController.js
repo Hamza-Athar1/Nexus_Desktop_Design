@@ -99,9 +99,6 @@ export async function signup(req, res) {
   if (!/\S+@\S+\.\S+/.test(email)) {
     throw new ApiError(400, 'A valid email is required');
   }
-  if (password.length < 6) {
-    throw new ApiError(400, 'Password must be at least 6 characters');
-  }
 
   if (await findUserByEmail(email.trim())) {
     throw new ApiError(409, 'An account with this email already exists');
@@ -259,9 +256,6 @@ export async function resetPassword(req, res) {
   const { token, password } = req.body;
   if (!token || !password) {
     throw new ApiError(400, 'Token and new password are required');
-  }
-  if (password.length < 6) {
-    throw new ApiError(400, 'Password must be at least 6 characters');
   }
 
   const reset = await findValidPasswordReset(token);

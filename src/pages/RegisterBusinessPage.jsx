@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Syringe, ShoppingCart, Monitor, Cookie, Utensils, Store, Shirt } from 'lucide-react';
 import { apiFetch, apiFetchJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import RegistrationPendingModal from '../components/RegistrationPendingModal';
 
 /** Maps `modules.icon` (a plain string from the catalog) to a lucide component. */
 const MODULE_ICONS = {
@@ -54,6 +55,7 @@ export default function RegisterBusinessPage() {
   const [selectedBackupCodes, setSelectedBackupCodes] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [pendingModalData, setPendingModalData] = useState(null);
 
   // Step 4 Form State (Payment Proof & First Staff)
   const [_proofFile, setProofFile] = useState(null);
@@ -304,9 +306,13 @@ export default function RegisterBusinessPage() {
       }
 
       // Pulls the freshly created businessId into AuthContext so
-      // ProtectedRoute/dashboard checks see onboarding as complete.
+      // ProtectedRoute checks see business setup as finished.
       await refreshUser();
-      navigate('/dashboard');
+      setPendingModalData({
+        businessName: businessForm.businessName,
+        paymentProofStatus: data?.business?.paymentProofStatus || (uploadedProofUrl ? 'submitted' : 'not_submitted'),
+      });
+      setSubmitting(false);
     } catch {
       setErrorMsg('Unable to reach the server. Please try again.');
       setSubmitting(false);
@@ -1062,7 +1068,7 @@ export default function RegisterBusinessPage() {
                     <label className="text-xs font-bold text-[#14391a]">Staff Password</label>
                     <input
                       type={firstStaffForm.showPassword ? 'text' : 'password'}
-                      placeholder="At least 6 characters"
+                      placeholder="Enter password"
                       value={firstStaffForm.password}
                       onChange={(e) => setFirstStaffForm((prev) => ({ ...prev, password: e.target.value }))}
                       className="w-full px-3.5 py-2 rounded-lg border border-gray-200 text-xs md:text-sm outline-none focus:border-[#14391a]"
@@ -1139,6 +1145,16 @@ export default function RegisterBusinessPage() {
 
         </div>
       </div>
+
+      {/* Registration Success & Super Admin Pending Review Modal */}
+      <RegistrationPendingModal
+        isOpen={Boolean(pendingModalData)}
+        registrationData={pendingModalData}
+        onClose={() => {
+          setPendingModalData(null);
+          navigate('/admin-login');
+        }}
+      />
     </div>
   );
 }

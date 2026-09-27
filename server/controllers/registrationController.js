@@ -141,9 +141,6 @@ export async function finishSetup(req, res) {
   // ── First Staff Member (Optional) ────────────────────────────────────
   let staffObj = null;
   if (firstStaff && firstStaff.username?.trim() && firstStaff.password) {
-    if (firstStaff.password.length < 6) {
-      throw new ApiError(400, 'First staff password must be at least 6 characters');
-    }
     const [existingUser] = await pool.query('SELECT id FROM users WHERE username = ? LIMIT 1', [firstStaff.username.trim()]);
     if (existingUser.length > 0) {
       throw new ApiError(409, 'Staff username is already taken');

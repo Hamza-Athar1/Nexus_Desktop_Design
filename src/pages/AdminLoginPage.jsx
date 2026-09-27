@@ -4,6 +4,7 @@ import { apiFetchJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { roleHome } from '../lib/roleRedirects';
 import { Check, ArrowRight, ArrowLeft } from 'lucide-react';
+import RegistrationPendingModal from '../components/RegistrationPendingModal';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
@@ -22,6 +23,7 @@ export default function AdminLoginPage() {
   const [status, setStatus] = useState('idle'); // 'idle' | 'loading' | 'error'
   const [errorMsg, setErrorMsg] = useState('Invalid username or password');
   const [resetSuccessMsg, setResetSuccessMsg] = useState('');
+  const [pendingModalData, setPendingModalData] = useState(null);
 
   // Handle Login Submit
   const handleLoginSubmit = async (e) => {
@@ -42,7 +44,17 @@ export default function AdminLoginPage() {
       });
 
       if (!ok) {
-        setErrorMsg(data.message || 'Invalid username or password');
+        const msg = data.message || 'Invalid username or password';
+        if (msg.includes('Registration pending approval')) {
+          const proofSubmitted = msg.includes('submitted');
+          setPendingModalData({
+            businessName: username,
+            paymentProofStatus: proofSubmitted ? 'submitted' : 'not_submitted',
+          });
+          setStatus('idle');
+          return;
+        }
+        setErrorMsg(msg);
         setStatus('error');
         return;
       }
@@ -320,6 +332,13 @@ export default function AdminLoginPage() {
           </div>
         </div>
       )}
+
+      {/* Registration Pending Review & Support Details Modal Box */}
+      <RegistrationPendingModal
+        isOpen={Boolean(pendingModalData)}
+        registrationData={pendingModalData}
+        onClose={() => setPendingModalData(null)}
+      />
     </div>
   );
 }
