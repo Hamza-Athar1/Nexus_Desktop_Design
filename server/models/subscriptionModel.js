@@ -19,16 +19,17 @@ export async function createSubscription(conn, {
   platform,
   paymentMethod,
   planPrice,
-  backupModulesPrice,
+  backupModulesPrice = 0,
+  themePrice = 0,
   currency = 'PKR',
 }) {
-  const estimatedMonthlyCost = Number(planPrice) + Number(backupModulesPrice);
+  const estimatedMonthlyCost = Number(planPrice) + Number(backupModulesPrice) + Number(themePrice);
   const [result] = await conn.query(
     `INSERT INTO subscriptions
        (business_id, plan_id, platform, payment_method, plan_price,
-        backup_modules_price, estimated_monthly_cost, currency)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-    [businessId, planId, platform, paymentMethod, planPrice, backupModulesPrice, estimatedMonthlyCost, currency]
+        backup_modules_price, theme_price, estimated_monthly_cost, currency)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [businessId, planId, platform, paymentMethod, planPrice, backupModulesPrice, themePrice, estimatedMonthlyCost, currency]
   );
   return result.insertId;
 }

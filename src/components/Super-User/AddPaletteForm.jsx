@@ -70,18 +70,36 @@ const hsvToHex = (h, s, v) => {
   return rgbToHex(rgb.r, rgb.g, rgb.b);
 };
 
-export default function AddPaletteForm({ onCancel, onAdd }) {
-  const [name, setName] = useState('');
-  const [primary, setPrimary] = useState('#7022b4');
-  const [accent, setAccent] = useState('#c44aff');
-  const [deep, setDeep] = useState('#f176ff');
-  const [light, setLight] = useState('#f1beff');
+export default function AddPaletteForm({ initialData, onCancel, onAdd }) {
+  const [name, setName] = useState(initialData?.name || '');
+  const [price, setPrice] = useState(initialData?.price ? initialData.price.toLocaleString() : '');
+  const [primary, setPrimary] = useState(initialData?.colors?.[0] || initialData?.colorPrimary || '#7022b4');
+  const [accent, setAccent] = useState(initialData?.colors?.[1] || initialData?.colorAccent || '#c44aff');
+  const [deep, setDeep] = useState(initialData?.colors?.[2] || initialData?.colorShade || '#f176ff');
+  const [light, setLight] = useState(initialData?.colors?.[3] || initialData?.colorLight || '#f1beff');
+  const [error, setError] = useState('');
 
   // Currently selected block for custom picker popover
-  const [activeBlock, setActiveBlock] = useState(null); // 'primary' | 'accent' | 'deep' | 'light' | null
+  const [activeBlock, setActiveBlock] = useState('primary');
   const [hsv, setHsv] = useState({ h: 270, s: 80, v: 70 });
   const [isDraggingSpectrum, setIsDraggingSpectrum] = useState(false);
   const [isDraggingHue, setIsDraggingHue] = useState(false);
+
+  useEffect(() => {
+    if (initialData) {
+      setName(initialData.name || '');
+      setPrice(initialData.price ? initialData.price.toLocaleString() : '');
+      const p = initialData.colors?.[0] || initialData.colorPrimary || '#7022b4';
+      const a = initialData.colors?.[1] || initialData.colorAccent || '#c44aff';
+      const d = initialData.colors?.[2] || initialData.colorShade || '#f176ff';
+      const l = initialData.colors?.[3] || initialData.colorLight || '#f1beff';
+      setPrimary(p);
+      setAccent(a);
+      setDeep(d);
+      setLight(l);
+      setHsv(hexToHsv(p));
+    }
+  }, [initialData]);
 
   const spectrumRef = useRef(null);
   const hueSliderRef = useRef(null);
@@ -182,14 +200,21 @@ export default function AddPaletteForm({ onCancel, onAdd }) {
   };
 
   const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!name.trim()) return;
+    if (e) e.preventDefault();
+    if (!name.trim()) {
+      setError('Theme name is required. Please assign a name before adding the theme.');
+      return;
+    }
+    setError('');
+    const numericPrice = Number(price.toString().replace(/,/g, '')) || 0;
     onAdd({
       name: name.trim(),
+      price: numericPrice,
       // colors[0] = Primary, colors[1] = Accent, colors[2] = Light, colors[3] = Deep
       colors: [primary, accent, light, deep],
     });
-    setName(''); // Reset name field
+    setName('');
+    setPrice('');
   };
 
   const activeHex = activeBlock === 'primary' ? primary : activeBlock === 'accent' ? accent : activeBlock === 'deep' ? deep : light;
@@ -198,72 +223,266 @@ export default function AddPaletteForm({ onCancel, onAdd }) {
   return (
     <div className="relative bg-[#fcfbfa] border border-[#14391a]/30 rounded-[20px] p-5.5 flex flex-col gap-4.5 mt-2">
       <div className="flex flex-col gap-4">
-        {/* Name Input */}
+        {/* Error Alert Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-300 rounded-xl p-3 flex items-center justify-between text-red-700 text-xs font-bold animate-in fade-in duration-200">
+            <span>{error}</span>
+            <button type="button" onClick={() => setError('')} className="text-red-500 hover:text-red-800 font-black ml-2 cursor-pointer">
+              ✕
+            </button>
+          </div>
+        )}
+
+        {/* Inputs Row: Name + Price */}
+        <div className="flex flex-wrap sm:flex-nowrap gap-3">
+          <div className="w-full sm:w-2/3">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => {
+                setName(e.target.value);
+                if (error && e.target.value.trim()) setError('');
+              }}
+              placeholder="Palette name e.g. Emerald Aurora"
+              className={`w-full bg-[#fcfbfa] border text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none ${
+                error ? 'border-red-500 ring-1 ring-red-500' : 'border-[#14391a]/35 focus:border-[#14391a]/50'
+              }`}
+            />
+          </div>
+          <div className="w-full sm:w-1/3 flex items-center bg-[#fcfbfa] border border-[#14391a]/35 rounded-[12px] focus-within:border-[#14391a]/50 overflow-hidden px-4">
+            <span className="text-[#14391a]/70 font-semibold text-sm mr-1 select-none">Rs</span>
+            <input
+              type="text"
+              value={price}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^\d]/g, '');
+                setPrice(v ? Number(v).toLocaleString() : '');
+              }}
+              placeholder="0 (Free)"
+              className="flex-1 bg-transparent border-0 text-[#14391a] py-3 text-sm font-semibold outline-none focus:ring-0"
+            />
+          </div>
+        </div>
+
+        {/* Color Swatches Row with Native Color Pickers */}
         <div>
-          <input
-            type="text"
-            required
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Palette name e.g Aurora"
-            className="w-full bg-[#fcfbfa] border border-[#14391a]/35 text-[#14391a] px-4 py-3 text-sm font-semibold rounded-[12px] focus:outline-none focus:border-[#14391a]/50"
-          />
+          <span className="block text-xs font-bold text-[#14391a]/70 mb-2">
+            Click any color swatch below to pick colors and view its UI application:
+          </span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Primary Color Block */}
+            <div className={`p-3 rounded-xl border flex flex-col gap-1.5 transition cursor-pointer ${
+              activeBlock === 'primary' ? 'border-[#14391a] bg-[#eae3c1]/50 ring-2 ring-[#14391a]/40 shadow-xs' : 'border-[#14391a]/20 bg-[#fcfbfa] hover:border-[#14391a]/40'
+            }`} onClick={() => handleSelectBlock('primary')}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#14391a]">Primary</span>
+                <input
+                  type="color"
+                  value={primary}
+                  onChange={(e) => {
+                    setPrimary(e.target.value);
+                    if (activeBlock === 'primary') setHsv(hexToHsv(e.target.value));
+                  }}
+                  className="w-6 h-6 rounded border-0 cursor-pointer p-0 bg-transparent"
+                />
+              </div>
+              <div className="h-7 rounded-lg border border-black/10 shadow-inner flex items-center justify-center text-[11px] font-mono font-bold text-white drop-shadow-md" style={{ backgroundColor: primary }}>
+                {primary}
+              </div>
+              <span className="text-[10px] font-semibold text-[#14391a]/80 leading-tight">
+                Used for main headers, navbar titles & active tabs (`--color-primary`)
+              </span>
+            </div>
+
+            {/* Accent Color Block */}
+            <div className={`p-3 rounded-xl border flex flex-col gap-1.5 transition cursor-pointer ${
+              activeBlock === 'accent' ? 'border-[#14391a] bg-[#eae3c1]/50 ring-2 ring-[#14391a]/40 shadow-xs' : 'border-[#14391a]/20 bg-[#fcfbfa] hover:border-[#14391a]/40'
+            }`} onClick={() => handleSelectBlock('accent')}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#14391a]">Accent</span>
+                <input
+                  type="color"
+                  value={accent}
+                  onChange={(e) => {
+                    setAccent(e.target.value);
+                    if (activeBlock === 'accent') setHsv(hexToHsv(e.target.value));
+                  }}
+                  className="w-6 h-6 rounded border-0 cursor-pointer p-0 bg-transparent"
+                />
+              </div>
+              <div className="h-7 rounded-lg border border-black/10 shadow-inner flex items-center justify-center text-[11px] font-mono font-bold text-white drop-shadow-md" style={{ backgroundColor: accent }}>
+                {accent}
+              </div>
+              <span className="text-[10px] font-semibold text-[#14391a]/80 leading-tight">
+                Used for primary buttons, action highlights & badges (`--color-accent`)
+              </span>
+            </div>
+
+            {/* Deep Color Block */}
+            <div className={`p-3 rounded-xl border flex flex-col gap-1.5 transition cursor-pointer ${
+              activeBlock === 'deep' ? 'border-[#14391a] bg-[#eae3c1]/50 ring-2 ring-[#14391a]/40 shadow-xs' : 'border-[#14391a]/20 bg-[#fcfbfa] hover:border-[#14391a]/40'
+            }`} onClick={() => handleSelectBlock('deep')}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#14391a]">Deep / Shade</span>
+                <input
+                  type="color"
+                  value={deep}
+                  onChange={(e) => {
+                    setDeep(e.target.value);
+                    if (activeBlock === 'deep') setHsv(hexToHsv(e.target.value));
+                  }}
+                  className="w-6 h-6 rounded border-0 cursor-pointer p-0 bg-transparent"
+                />
+              </div>
+              <div className="h-7 rounded-lg border border-black/10 shadow-inner flex items-center justify-center text-[11px] font-mono font-bold text-white drop-shadow-md" style={{ backgroundColor: deep }}>
+                {deep}
+              </div>
+              <span className="text-[10px] font-semibold text-[#14391a]/80 leading-tight">
+                Used for dark card backgrounds, sidebars & dark accents (`--color-shade`)
+              </span>
+            </div>
+
+            {/* Light Color Block */}
+            <div className={`p-3 rounded-xl border flex flex-col gap-1.5 transition cursor-pointer ${
+              activeBlock === 'light' ? 'border-[#14391a] bg-[#eae3c1]/50 ring-2 ring-[#14391a]/40 shadow-xs' : 'border-[#14391a]/20 bg-[#fcfbfa] hover:border-[#14391a]/40'
+            }`} onClick={() => handleSelectBlock('light')}>
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-black text-[#14391a]">Light</span>
+                <input
+                  type="color"
+                  value={light}
+                  onChange={(e) => {
+                    setLight(e.target.value);
+                    if (activeBlock === 'light') setHsv(hexToHsv(e.target.value));
+                  }}
+                  className="w-6 h-6 rounded border-0 cursor-pointer p-0 bg-transparent"
+                />
+              </div>
+              <div className="h-7 rounded-lg border border-black/10 shadow-inner flex items-center justify-center text-[11px] font-mono font-bold text-white drop-shadow-md" style={{ backgroundColor: light }}>
+                {light}
+              </div>
+              <span className="text-[10px] font-semibold text-[#14391a]/80 leading-tight">
+                Used for light container backgrounds, tables & subtles (`--color-light`)
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Color Blocks Row */}
-        <div className="flex items-center gap-2 sm:gap-4">
-          {/* Primary Color Block */}
-          <div className="flex flex-col items-center gap-1.5 flex-1">
-            <button
-              type="button"
-              onClick={() => handleSelectBlock('primary')}
-              className={`w-full h-11 rounded-[8px] border cursor-pointer shadow-xs transition hover:scale-102 ${
-                activeBlock === 'primary' ? 'border-[#14391a] ring-2 ring-[#14391a]/35' : 'border-[#14391a]/20'
-              }`}
-              style={{ backgroundColor: primary }}
-            />
-            <span className="text-[11px] font-extrabold text-[#14391a]/70">Primary</span>
-          </div>
+        {/* Embedded Interactive Color Spectrum & Range Selection Window */}
+        {activeBlock && (
+          <div className="bg-[#faf8ed] border border-[#14391a]/30 rounded-2xl p-4 shadow-sm flex flex-col gap-3.5 select-none">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-[#14391a]/15 pb-2 gap-2">
+              <div className="flex items-center gap-2">
+                <span className="w-3.5 h-3.5 rounded-full border border-black/20 shadow-xs" style={{ backgroundColor: activeHex }} />
+                <span className="text-xs font-black capitalize text-[#14391a]">
+                  Selected: {activeBlock === 'deep' ? 'Deep / Shade' : activeBlock} Color
+                </span>
+              </div>
+              <div className="bg-[#efeacb] px-3 py-1 rounded-lg border border-[#bfbc9b] text-[11px] font-bold text-[#14391a]">
+                Applied to: {
+                  activeBlock === 'primary' ? 'Main Headers, Titles & Navigation' :
+                  activeBlock === 'accent' ? 'Buttons, Action Highlights & Badges' :
+                  activeBlock === 'deep' ? 'Dark Cards, Sidebars & Borders' :
+                  'Light Page Backgrounds & Table Containers'
+                }
+              </div>
+            </div>
 
-          {/* Accent Color Block */}
-          <div className="flex flex-col items-center gap-1.5 flex-1">
-            <button
-              type="button"
-              onClick={() => handleSelectBlock('accent')}
-              className={`w-full h-11 rounded-[8px] border cursor-pointer shadow-xs transition hover:scale-102 ${
-                activeBlock === 'accent' ? 'border-[#14391a] ring-2 ring-[#14391a]/35' : 'border-[#14391a]/20'
-              }`}
-              style={{ backgroundColor: accent }}
-            />
-            <span className="text-[11px] font-extrabold text-[#14391a]/70">Accent</span>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+              {/* Interactive Spectrum Box */}
+              <div className="md:col-span-8 flex flex-col gap-2">
+                <span className="text-[11px] font-bold text-[#14391a]/70">Color Spectrum & Saturation Range (Click or Drag)</span>
+                <div 
+                  ref={spectrumRef}
+                  onMouseDown={(e) => {
+                    setIsDraggingSpectrum(true);
+                    handleSpectrumMove(e.clientX, e.clientY);
+                  }}
+                  className="h-28 rounded-xl border border-[#14391a]/20 shadow-inner relative overflow-hidden cursor-crosshair"
+                  style={{ 
+                    backgroundImage: `
+                      linear-gradient(to top, #000, transparent), 
+                      linear-gradient(to right, #fff, transparent),
+                      linear-gradient(to right, hsl(${hsv.h}, 100%, 50%), hsl(${hsv.h}, 100%, 50%))
+                    `,
+                    backgroundBlendMode: 'multiply, normal, normal'
+                  }}
+                >
+                  <div 
+                    className="w-4 h-4 rounded-full border-2 border-white absolute shadow-md shrink-0 pointer-events-none -ml-2 -mt-2 transition-all duration-75"
+                    style={{ 
+                      left: `${hsv.s}%`, 
+                      top: `${100 - hsv.v}%` 
+                    }}
+                  />
+                </div>
 
-          {/* Deep Color Block */}
-          <div className="flex flex-col items-center gap-1.5 flex-1">
-            <button
-              type="button"
-              onClick={() => handleSelectBlock('deep')}
-              className={`w-full h-11 rounded-[8px] border cursor-pointer shadow-xs transition hover:scale-102 ${
-                activeBlock === 'deep' ? 'border-[#14391a] ring-2 ring-[#14391a]/35' : 'border-[#14391a]/20'
-              }`}
-              style={{ backgroundColor: deep }}
-            />
-            <span className="text-[11px] font-extrabold text-[#14391a]/70">Deep</span>
-          </div>
+                {/* Hue Slider */}
+                <div className="flex flex-col gap-1 mt-1">
+                  <span className="text-[11px] font-bold text-[#14391a]/70">Hue Range Slider (0° - 360°)</span>
+                  <div 
+                    ref={hueSliderRef}
+                    onMouseDown={(e) => {
+                      setIsDraggingHue(true);
+                      handleHueMove(e.clientX);
+                    }}
+                    className="h-4 rounded-full border border-[#14391a]/20 relative cursor-pointer"
+                    style={{ 
+                      backgroundImage: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)'
+                    }}
+                  >
+                    <div 
+                      className="w-4 h-4 rounded-full border-2 border-white bg-white shadow-md absolute top-1/2 -translate-y-1/2 -ml-2 shrink-0 pointer-events-none"
+                      style={{ 
+                        left: `${(hsv.h / 360) * 100}%` 
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
 
-          {/* Light Color Block */}
-          <div className="flex flex-col items-center gap-1.5 flex-1">
-            <button
-              type="button"
-              onClick={() => handleSelectBlock('light')}
-              className={`w-full h-11 rounded-[8px] border cursor-pointer shadow-xs transition hover:scale-102 ${
-                activeBlock === 'light' ? 'border-[#14391a] ring-2 ring-[#14391a]/35' : 'border-[#14391a]/20'
-              }`}
-              style={{ backgroundColor: light }}
-            />
-            <span className="text-[11px] font-extrabold text-[#14391a]/70">Light</span>
+              {/* RGB Controls */}
+              <div className="md:col-span-4 flex flex-col gap-2">
+                <span className="text-[11px] font-bold text-[#14391a]/70">RGB Channels</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="flex flex-col items-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max="255"
+                      value={activeRgb.r}
+                      onChange={(e) => handleRgbChange('r', e.target.value)}
+                      className="w-full bg-white border border-[#14391a]/30 text-center py-2 text-xs font-bold rounded-lg"
+                    />
+                    <span className="text-[10px] font-black text-gray-500 mt-1">R</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max="255"
+                      value={activeRgb.g}
+                      onChange={(e) => handleRgbChange('g', e.target.value)}
+                      className="w-full bg-white border border-[#14391a]/30 text-center py-2 text-xs font-bold rounded-lg"
+                    />
+                    <span className="text-[10px] font-black text-gray-500 mt-1">G</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <input
+                      type="number"
+                      min="0"
+                      max="255"
+                      value={activeRgb.b}
+                      onChange={(e) => handleRgbChange('b', e.target.value)}
+                      className="w-full bg-white border border-[#14391a]/30 text-center py-2 text-xs font-bold rounded-lg"
+                    />
+                    <span className="text-[10px] font-black text-gray-500 mt-1">B</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex items-center justify-end gap-2.5 mt-2">
@@ -283,133 +502,6 @@ export default function AddPaletteForm({ onCancel, onAdd }) {
           </button>
         </div>
       </div>
-
-      {/* Self-Contained Color Picker Popover (Inline on mobile, side-by-side on desktop) */}
-      {activeBlock && (
-        <div className="relative lg:absolute lg:left-full lg:top-0 lg:ml-4 mt-3 lg:mt-0 z-50 bg-[#faf8ed] border border-[#14391a]/35 rounded-[18px] p-4 shadow-xl w-full lg:w-[260px] flex flex-col gap-3.5 select-none animate-in fade-in duration-150">
-          
-          {/* Header Title */}
-          <div className="flex items-center justify-between border-b border-[#14391a]/10 pb-1.5">
-            <span className="text-[12px] font-black capitalize text-[#14391a]">
-              {activeBlock} Color Picker
-            </span>
-            <button
-              type="button"
-              onClick={() => setActiveBlock(null)}
-              className="text-xs font-bold text-gray-500 hover:text-gray-800"
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Color Preview & HEX code */}
-          <div className="rounded-[12px] border border-[#14391a]/15 bg-[#fcfbfa] p-2.5 flex items-center gap-3">
-            <div 
-              className="w-10 h-10 rounded-[8px] border border-[#14391a]/10 shrink-0" 
-              style={{ backgroundColor: activeHex }}
-            />
-            <div className="flex flex-col">
-              <span className="text-[11px] font-bold text-gray-400">HEX Code</span>
-              <span className="text-[13px] font-black uppercase text-[#14391a]">{activeHex}</span>
-            </div>
-            <span className="ml-auto text-[10px] font-bold text-gray-400 italic">Drag picker</span>
-          </div>
-
-          {/* Interactive Gradient Spectrum box */}
-          <div 
-            ref={spectrumRef}
-            onMouseDown={(e) => {
-              setIsDraggingSpectrum(true);
-              handleSpectrumMove(e.clientX, e.clientY);
-            }}
-            className="h-24 rounded-[12px] border border-[#14391a]/15 shadow-inner relative overflow-hidden cursor-crosshair"
-            style={{ 
-              backgroundImage: `
-                linear-gradient(to top, #000, transparent), 
-                linear-gradient(to right, #fff, transparent),
-                linear-gradient(to right, hsl(${hsv.h}, 100%, 50%), hsl(${hsv.h}, 100%, 50%))
-              `,
-              backgroundBlendMode: 'multiply, normal, normal'
-            }}
-          >
-            {/* Draggable Circle cursor handle */}
-            <div 
-              className="w-4 h-4 rounded-full border-2 border-white absolute shadow-md shrink-0 pointer-events-none -ml-2 -mt-2 transition-all duration-75"
-              style={{ 
-                left: `${hsv.s}%`, 
-                top: `${100 - hsv.v}%` 
-              }}
-            />
-          </div>
-
-          {/* Hue Slider (rainbow bar) */}
-          <div className="flex flex-col gap-1.5">
-            <div 
-              ref={hueSliderRef}
-              onMouseDown={(e) => {
-                setIsDraggingHue(true);
-                handleHueMove(e.clientX);
-              }}
-              className="h-3.5 rounded-full border border-[#14391a]/15 relative cursor-pointer"
-              style={{ 
-                backgroundImage: 'linear-gradient(to right, #ff0000, #ffff00, #00ff00, #00ffff, #0000ff, #ff00ff, #ff0000)'
-              }}
-            >
-              {/* Slider thumb handle */}
-              <div 
-                className="w-4 h-4 rounded-full border-2 border-white bg-white shadow-md absolute top-1/2 -translate-y-1/2 -ml-2 shrink-0 pointer-events-none"
-                style={{ 
-                  left: `${(hsv.h / 360) * 100}%` 
-                }}
-              />
-            </div>
-          </div>
-
-          {/* RGB Input Fields Row */}
-          <div>
-            <div className="grid grid-cols-3 gap-2">
-              {/* R Input */}
-              <div className="flex flex-col items-center">
-                <input
-                  type="number"
-                  min="0"
-                  max="255"
-                  value={activeRgb.r}
-                  onChange={(e) => handleRgbChange('r', e.target.value)}
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/25 text-center py-1.5 text-xs font-bold rounded-[8px] focus:outline-none"
-                />
-                <span className="text-[10px] font-extrabold text-gray-400 mt-1">R</span>
-              </div>
-
-              {/* G Input */}
-              <div className="flex flex-col items-center">
-                <input
-                  type="number"
-                  min="0"
-                  max="255"
-                  value={activeRgb.g}
-                  onChange={(e) => handleRgbChange('g', e.target.value)}
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/25 text-center py-1.5 text-xs font-bold rounded-[8px] focus:outline-none"
-                />
-                <span className="text-[10px] font-extrabold text-gray-400 mt-1">G</span>
-              </div>
-
-              {/* B Input */}
-              <div className="flex flex-col items-center">
-                <input
-                  type="number"
-                  min="0"
-                  max="255"
-                  value={activeRgb.b}
-                  onChange={(e) => handleRgbChange('b', e.target.value)}
-                  className="w-full bg-[#fcfbfa] border border-[#14391a]/25 text-center py-1.5 text-xs font-bold rounded-[8px] focus:outline-none"
-                />
-                <span className="text-[10px] font-extrabold text-gray-400 mt-1">B</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

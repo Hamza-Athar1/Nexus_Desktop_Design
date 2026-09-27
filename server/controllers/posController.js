@@ -1,6 +1,6 @@
 import { ApiError } from '../utils/ApiError.js';
 import {
-  listPalettes, createPalette, deletePalette,
+  listPalettes, createPalette, updatePalette, deletePalette,
   listPosModules, getPosStats, createPosModule, updatePosModule, deletePosModule,
 } from '../models/posModel.js';
 
@@ -21,6 +21,22 @@ export async function postPaletteHandler(req, res) {
     name: name.trim(), colorPrimary, colorAccent, colorShade, colorLight,
   });
   res.status(201).json({ ok: true, palette });
+}
+
+export async function patchPaletteHandler(req, res) {
+  const id = Number(req.params.id);
+  const { name, colorPrimary, colorAccent, colorShade, colorLight, price } = req.body;
+  if (name !== undefined && !name.trim()) throw new ApiError(400, 'Palette name cannot be empty');
+
+  const palette = await updatePalette(id, {
+    name: name !== undefined ? name.trim() : undefined,
+    colorPrimary,
+    colorAccent,
+    colorShade,
+    colorLight,
+    price: price !== undefined ? Number(price) : undefined,
+  });
+  res.json({ ok: true, palette });
 }
 
 export async function deletePaletteHandler(req, res) {

@@ -13,13 +13,18 @@ import userManagementRoutes from './routes/userManagementRoutes.js';
 import billingRoutes from './routes/billingRoutes.js';
 import profileRoutes from './routes/profileRoutes.js';
 import posRoutes from './routes/posRoutes.js';
+import staffRoutes from './routes/staffRoutes.js';
+import salesRoutes from './routes/salesRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
+import path from 'path';
 export const app = express();
 
 // ── Core middleware ─────────────────────────────────────
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(
   cors({
     origin: process.env.CLIENT_URL, // Vite dev server, e.g. http://localhost:5173
@@ -41,6 +46,9 @@ app.use('/api', billingRoutes);   // must precede business-scoped routers
 app.use('/api', profileRoutes);   // must precede business-scoped routers
 app.use('/api', posRoutes);        // must precede business-scoped routers
 app.use('/api', userManagementRoutes);
+app.use('/api', staffRoutes);
+app.use('/api', salesRoutes);
+app.use('/api', reportRoutes);
 app.use('/api', inventoryRoutes);
 app.use('/api', categoryRoutes);
 app.use('/api', supplierRoutes);

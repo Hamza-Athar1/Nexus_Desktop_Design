@@ -5,6 +5,7 @@ import {
   createInvoice,
   listPayments,
   getPaymentModuleStats,
+  getDashboardAnalytics,
 } from '../models/billingModel.js';
 import { ApiError } from '../utils/ApiError.js';
 
@@ -121,4 +122,9 @@ export async function getModuleStats(req, res) {
   if (!moduleCode) throw new ApiError(400, 'moduleCode query param is required');
   const stats = await getPaymentModuleStats(moduleCode);
   res.json({ ok: true, stats });
+}
+
+export async function getDashboardAnalyticsHandler(req, res) {
+  const data = await getDashboardAnalytics();
+  res.json({ ok: true, data });
 }

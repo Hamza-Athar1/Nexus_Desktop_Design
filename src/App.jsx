@@ -27,10 +27,12 @@ import AdminProfitReportPage  from './pages/Admin/AdminProfitReportPage';
 import AdminStockReportPage   from './pages/Admin/AdminStockReportPage';
 import AdminUserPage          from './pages/Admin/AdminUserPage';
 import AdminBillingPage       from './pages/Admin/AdminBillingPage';
+import AdminRequestsPage      from './pages/Admin/AdminRequestsPage';
 import SuperAdminDashboardPage from './pages/Super-User/SuperAdminDashboardPage';
 import SuperAdminLayout from './pages/Super-User/SuperAdminLayout';
 import SuperAdminRequestsPage from './pages/Super-User/SuperAdminRequestsPage';
 import SuperAdminUserManagementPage from './pages/Super-User/SuperAdminUserManagementPage';
+import SuperAdminUserApprovalsPage from './pages/Super-User/SuperAdminUserApprovalsPage';
 import SuperAdminBillingPage from './pages/Super-User/SuperAdminBillingPage';
 import SuperAdminPaymentPage from './pages/Super-User/SuperAdminPaymentPage';
 import SuperAdminProfilePage from './pages/Super-User/SuperAdminProfilePage';
@@ -72,6 +74,7 @@ export default function App() {
           <Route path="reports/profile" element={<AdminProfitReportPage />} />
           <Route path="reports/stock" element={<AdminStockReportPage />} />
           <Route path="user" element={<AdminUserPage />} />
+          <Route path="requests" element={<AdminRequestsPage />} />
           <Route path="billing" element={<AdminBillingPage />} />
         </Route>
       </Route>
@@ -80,6 +83,7 @@ export default function App() {
       <Route element={<RoleRoute allowedRoles={['super_admin']} />}>
         <Route path="/super-admin" element={<SuperAdminLayout />}>
           <Route index element={<SuperAdminDashboardPage />} />
+          <Route path="approvals" element={<SuperAdminUserApprovalsPage />} />
           <Route path="requests" element={<SuperAdminRequestsPage />} />
           <Route path="users" element={<SuperAdminUserManagementPage />} />
           <Route path="activate/:shopId" element={<SuperAdminActivateAccountPage />} />

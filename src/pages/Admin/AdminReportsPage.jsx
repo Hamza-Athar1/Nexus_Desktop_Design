@@ -3,12 +3,17 @@ import { useOutletContext, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { TrendingUp, BarChart3, PieChart, Activity, ArrowLeft } from 'lucide-react';
 
+import { getSales } from '../../lib/salesService.js';
+import { getInventoryItems } from '../../lib/inventoryService.js';
+
 export default function AdminReportsPage() {
   const { setHeaderDetails } = useOutletContext() || {};
   const { user } = useAuth();
   const navigate = useNavigate();
 
   const [activeReportDetail, setActiveReportDetail] = useState(null);
+  const [salesData, setSalesData] = useState([]);
+  const [itemsData, setItemsData] = useState([]);
 
   useEffect(() => {
     if (setHeaderDetails) {
@@ -18,6 +23,29 @@ export default function AdminReportsPage() {
       });
     }
   }, [setHeaderDetails, user]);
+
+  useEffect(() => {
+    async function loadMetrics() {
+      try {
+        const [salesRes, prodRes] = await Promise.all([getSales(), getInventoryItems()]);
+        if (salesRes.ok && Array.isArray(salesRes.data?.sales)) {
+          setSalesData(salesRes.data.sales);
+        }
+        if (prodRes.ok && Array.isArray(prodRes.data?.items)) {
+          setItemsData(prodRes.data.items);
+        }
+      } catch {
+        // Fallback to initial
+      }
+    }
+    loadMetrics();
+  }, []);
+
+  const totalRev = salesData.reduce((acc, s) => acc + Number(s.total_amount || 0), 0);
+  const activeProdCount = itemsData.length;
+  const lowStockCount = itemsData.filter((i) => Number(i.stock_qty ?? i.stock_quantity ?? 0) <= Number(i.reorder_level || 0)).length;
+  const totalStockUnits = itemsData.reduce((acc, i) => acc + Number(i.stock_qty ?? i.stock_quantity ?? 0), 0);
+  const estProfit = salesData.reduce((acc, s) => acc + (Number(s.total_amount || 0) * 0.25), 0);
 
   const reportCards = [
     {
@@ -29,8 +57,8 @@ export default function AdminReportsPage() {
       path: '/admin/reports/sales',
       description: 'View daily, weekly, and monthly sales trends, order volumes, and revenue distribution.',
       stats: [
-        { label: 'Total Revenue', value: 'PKR 3,289,987' },
-        { label: 'Avg Daily Sales', value: 'PKR 109,666' },
+        { label: 'Total Revenue', value: `PKR ${totalRev.toLocaleString()}` },
+        { label: 'Completed Orders', value: `${salesData.length} sales` },
       ],
     },
     {
@@ -42,8 +70,8 @@ export default function AdminReportsPage() {
       path: '/admin/reports/product',
       description: 'Track top-performing items, sales by category, stock velocity, and product returns.',
       stats: [
-        { label: 'Top Seller', value: 'Cooking Oil 1L' },
-        { label: 'Active Products', value: '95 items' },
+        { label: 'Active Products', value: `${activeProdCount} items` },
+        { label: 'Low Stock Alert', value: `${lowStockCount} items` },
       ],
     },
     {
@@ -55,8 +83,8 @@ export default function AdminReportsPage() {
       path: '/admin/reports/stock',
       description: 'Monitor current inventory levels, low-stock warnings, and restock forecasts.',
       stats: [
-        { label: 'Low Stock Items', value: '12 items' },
-        { label: 'Total In-Stock', value: '1,420 units' },
+        { label: 'Low Stock Items', value: `${lowStockCount} items` },
+        { label: 'Total In-Stock', value: `${totalStockUnits} units` },
       ],
     },
     {
@@ -68,8 +96,8 @@ export default function AdminReportsPage() {
       path: '/admin/reports/profit',
       description: 'Analyze net margin percentage, total profit breakdown, and store cost deductions.',
       stats: [
-        { label: 'Net Profit Margin', value: '24.5%' },
-        { label: 'Est. Net Income', value: 'PKR 805,000' },
+        { label: 'Est. Net Income', value: `PKR ${estProfit.toLocaleString()}` },
+        { label: 'Total Revenue', value: `PKR ${totalRev.toLocaleString()}` },
       ],
     },
   ];

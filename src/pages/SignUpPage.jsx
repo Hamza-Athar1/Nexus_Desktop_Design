@@ -249,7 +249,7 @@ export default function SignUpPage() {
                   <input
                     id="su-password"
                     type={showPass ? 'text' : 'password'}
-                    placeholder="At least 8 characters"
+                    placeholder="Enter password"
                     value={form.password}
                     onChange={set('password')}
                     disabled={isLoading}

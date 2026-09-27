@@ -4,7 +4,7 @@ export default function ShopDetailsModal({ selectedShop, onClose }) {
   const s = selectedShop;
 
   function fmtDate(iso) {
-    if (!iso) return '—';
+    if (!iso) return 'Failed';
     return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
   }
 

@@ -19,23 +19,8 @@ import {
   CartesianGrid,
 } from 'recharts';
 
-const SALES_CHART_DATA = [
-  { name: '17 Jun', sales: 22000 },
-  { name: '18 Jun', sales: 10000 },
-  { name: '19 Jun', sales: 32000 },
-  { name: '20 Jun', sales: 46000 },
-  { name: '21 Jun', sales: 37000 },
-  { name: '22 Jun', sales: 25000 },
-  { name: '23 Jun', sales: 45000 },
-];
-
-const RECENT_SALES = [
-  { invoiceNo: 'INV-00080', date: '23 June 2026', amount: 'Rs. 2450' },
-  { invoiceNo: 'INV-00081', date: '23 June 2026', amount: 'Rs. 7898' },
-  { invoiceNo: 'INV-00082', date: '22 June 2026', amount: 'Rs. 3697' },
-  { invoiceNo: 'INV-00083', date: '21 June 2026', amount: 'Rs. 5587' },
-  { invoiceNo: 'INV-00084', date: '21 June 2026', amount: 'Rs. 9990' },
-];
+import { getSales } from '../../lib/salesService.js';
+import { getSalesOverviewReport } from '../../lib/reportService.js';
 
 export default function AdminSalesReportPage() {
   const { setHeaderDetails } = useOutletContext() || {};
@@ -46,6 +31,9 @@ export default function AdminSalesReportPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [salesList, setSalesList] = useState([]);
+  const [salesChartData, setSalesChartData] = useState([]);
+  const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (setHeaderDetails) {
@@ -56,38 +44,75 @@ export default function AdminSalesReportPage() {
     }
   }, [setHeaderDetails, user]);
 
+  useEffect(() => {
+    async function loadSales() {
+      setIsLoading(true);
+      try {
+        const [res, overviewRes] = await Promise.all([getSales(), getSalesOverviewReport()]);
+        if (res.ok && Array.isArray(res.data?.sales)) {
+          setSalesList(res.data.sales);
+        }
+        if (overviewRes.ok && Array.isArray(overviewRes.data?.salesOverview)) {
+          setSalesChartData(overviewRes.data.salesOverview);
+        }
+      } catch {
+        setSalesList([]);
+        setSalesChartData([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadSales();
+  }, []);
+
+  const totalSalesRevenue = useMemo(() => {
+    return salesList.reduce((acc, s) => acc + Number(s.total_amount || 0), 0);
+  }, [salesList]);
+
+  const totalOrdersCount = salesList.length;
+
+  const avgOrderVal = totalOrdersCount > 0 ? (totalSalesRevenue / totalOrdersCount) : 0;
+
+  const recentSalesFormatted = useMemo(() => {
+    return salesList.map((s) => ({
+      invoiceNo: s.invoice_number || `INV-${s.id}`,
+      date: new Date(s.sold_at || s.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      amount: `Rs. ${Number(s.total_amount).toLocaleString()}`,
+    }));
+  }, [salesList]);
+
   const metricsData = [
     {
       label: 'TOTAL SALES',
-      value: 'Rs 991,800',
+      value: `Rs ${totalSalesRevenue.toLocaleString()}`,
       icon: TrendingUp,
       iconBg: 'bg-[#fde8e4] text-[#8b1e10]',
-      statusPill: { text: '+14.2%', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
+      statusPill: { text: 'Live Total', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
     },
     {
       label: 'TOTAL ORDERS',
-      value: '826',
+      value: `${totalOrdersCount}`,
       icon: ShoppingCart,
       iconBg: 'bg-[#fef7df] text-[#c28e0e]',
-      statusPill: { text: '+8.5%', bg: 'bg-[#fef7df] text-[#c28e0e] border-[#fde047]' },
+      statusPill: { text: 'Completed', bg: 'bg-[#fef7df] text-[#c28e0e] border-[#fde047]' },
     },
     {
       label: 'AVG ORDER VALUE',
-      value: 'Rs. 2200.36',
+      value: `Rs. ${avgOrderVal.toFixed(2)}`,
       icon: BarChart3,
       iconBg: 'bg-[#fef3d6] text-[#b45309]',
-      statusPill: { text: '+3.1%', bg: 'bg-[#fef3d6] text-[#b45309] border-[#fde047]' },
+      statusPill: { text: 'Authoritative', bg: 'bg-[#fef3d6] text-[#b45309] border-[#fde047]' },
     },
     {
-      label: 'TOTAL ITEMS SOLD',
-      value: '1245',
+      label: 'TOTAL TRANSACTIONS',
+      value: `${totalOrdersCount}`,
       icon: Activity,
       iconBg: 'bg-[#fde8e4] text-[#8b1e10]',
-      statusPill: { text: '+18.7%', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
+      statusPill: { text: 'Business Scoped', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
     },
   ];
 
-  const memoizedChartData = useMemo(() => SALES_CHART_DATA, []);
+  const memoizedChartData = salesChartData;
 
   return (
     <div className="flex flex-col gap-6 w-full pb-12">
@@ -278,15 +303,23 @@ export default function AdminSalesReportPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#0c3818]/15">
-                  {RECENT_SALES.map((sale, i) => (
-                    <tr key={i} className="text-[#0c3818] text-sm font-bold hover:bg-[#efeacb]/40 transition">
-                      <td className="py-4 pr-2 font-black tracking-tight">{sale.invoiceNo}</td>
-                      <td className="py-4 px-2 text-[#0c3818]/85">{sale.date}</td>
-                      <td className="py-4 pl-2 text-right font-black text-[#0c3818]">
-                        {sale.amount}
+                  {recentSalesFormatted.length > 0 ? (
+                    recentSalesFormatted.map((sale, i) => (
+                      <tr key={i} className="text-[#0c3818] text-sm font-bold hover:bg-[#efeacb]/40 transition">
+                        <td className="py-4 pr-2 font-black tracking-tight">{sale.invoiceNo}</td>
+                        <td className="py-4 px-2 text-[#0c3818]/85">{sale.date}</td>
+                        <td className="py-4 pl-2 text-right font-black text-[#0c3818]">
+                          {sale.amount}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-xs text-gray-400 font-semibold">
+                        No sales recorded yet
                       </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

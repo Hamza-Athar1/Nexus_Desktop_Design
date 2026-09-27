@@ -2,30 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { TrendingUp, ShoppingCart } from 'lucide-react';
+import { getSales } from '../../lib/salesService.js';
 
 export default function AdminSalesPage() {
   const { setHeaderDetails } = useOutletContext() || {};
   const { user } = useAuth();
 
-  // Initial sales metrics state (with realistic default values matching screen reference)
-  const [salesMetrics] = useState({
-    today: {
-      totalSales: 32987,
-      totalInvoices: 98,
-    },
-    yesterday: {
-      totalSales: 50456,
-      totalInvoices: 155,
-    },
-    thisWeek: {
-      totalSales: 991800,
-      totalInvoices: 685,
-    },
-    thisMonth: {
-      totalSales: 3289987,
-      totalInvoices: 2200,
-    },
+  const [salesMetrics, setSalesMetrics] = useState({
+    today: { totalSales: 0, totalInvoices: 0 },
+    yesterday: { totalSales: 0, totalInvoices: 0 },
+    thisWeek: { totalSales: 0, totalInvoices: 0 },
+    thisMonth: { totalSales: 0, totalInvoices: 0 },
   });
+  const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (setHeaderDetails) {
@@ -35,6 +24,65 @@ export default function AdminSalesPage() {
       });
     }
   }, [setHeaderDetails, user]);
+
+  useEffect(() => {
+    async function loadMetrics() {
+      setIsLoading(true);
+      try {
+        const res = await getSales();
+        if (res.ok && Array.isArray(res.data?.sales)) {
+          const sales = res.data.sales;
+          const now = new Date();
+          const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          const yesterdayStart = new Date(todayStart);
+          yesterdayStart.setDate(yesterdayStart.getDate() - 1);
+          const weekStart = new Date(todayStart);
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+          const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+          let todaySales = 0, todayInvoices = 0;
+          let yestSales = 0, yestInvoices = 0;
+          let weekSales = 0, weekInvoices = 0;
+          let monthSales = 0, monthInvoices = 0;
+
+          sales.forEach((s) => {
+            const sDate = s.created_at ? new Date(s.created_at) : new Date();
+            const amt = Number(s.total_amount ?? s.amount ?? 0);
+
+            if (sDate >= todayStart) {
+              todaySales += amt;
+              todayInvoices += 1;
+            } else if (sDate >= yesterdayStart && sDate < todayStart) {
+              yestSales += amt;
+              yestInvoices += 1;
+            }
+
+            if (sDate >= weekStart) {
+              weekSales += amt;
+              weekInvoices += 1;
+            }
+
+            if (sDate >= monthStart) {
+              monthSales += amt;
+              monthInvoices += 1;
+            }
+          });
+
+          setSalesMetrics({
+            today: { totalSales: todaySales, totalInvoices: todayInvoices },
+            yesterday: { totalSales: yestSales, totalInvoices: yestInvoices },
+            thisWeek: { totalSales: weekSales, totalInvoices: weekInvoices },
+            thisMonth: { totalSales: monthSales, totalInvoices: monthInvoices },
+          });
+        }
+      } catch {
+        // keep defaults if error
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadMetrics();
+  }, []);
 
   // Helper to format currency
   const formatCurrency = (val) => {

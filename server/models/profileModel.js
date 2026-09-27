@@ -62,7 +62,7 @@ export async function verifyAndChangePassword(userId, { currentPassword, newPass
 
   const hash = await bcrypt.hash(newPassword, 10);
   await pool.query(
-    `UPDATE users SET password_hash = ?, updated_at = NOW() WHERE id = ?`,
+    `UPDATE users SET password_hash = ?, must_change_password = 0, updated_at = NOW() WHERE id = ?`,
     [hash, userId]
   );
 

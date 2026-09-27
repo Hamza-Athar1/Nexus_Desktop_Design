@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import {
   Search,
   ChevronDown,
@@ -41,89 +42,129 @@ export function getCategoryIcon(category, size = 24) {
   }
 }
 
-const INITIAL_CATEGORIES = [
-  { id: 1, name: 'Grocery & Dairy' },
-  { id: 2, name: 'Home & Essentials' },
-  { id: 3, name: 'Meat & Fish' },
-  { id: 4, name: 'Beverages' },
-  { id: 5, name: 'Snacks' },
-];
+function ProductImageOrIcon({ image, category, size = 20 }) {
+  const [imgError, setImgError] = useState(false);
 
-const INITIAL_SUBCATEGORIES = [
-  { id: 1, name: 'Oil & Ghee' },
-  { id: 2, name: 'Milk & Eggs' },
-  { id: 3, name: 'Bread & Buns' },
-  { id: 4, name: 'Rice & Flour' },
-  { id: 5, name: 'Cheese & Butter' },
-];
+  if (image && !imgError) {
+    return (
+      <img
+        src={image}
+        alt=""
+        className="w-full h-full object-contain"
+        onError={() => setImgError(true)}
+      />
+    );
+  }
 
-const INITIAL_PRODUCTS = [
-  {
-    id: 1,
-    name: 'Cooking Oil 1L',
-    price: '1,100',
-    stock: 45,
-    status: 'Active',
-    category: 'Grocery & Dairy',
-    subcategory: 'Oil & Ghee',
-    image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=80&auto=format&fit=crop&q=60',
-  },
-  {
-    id: 2,
-    name: 'Lewis Bread',
-    price: '400',
-    stock: 35,
-    status: 'Active',
-    category: 'Grocery & Dairy',
-    subcategory: 'Bread & Buns',
-    image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=80&auto=format&fit=crop&q=60',
-  },
-  {
-    id: 3,
-    name: 'Rice 5Kg',
-    price: '3,500',
-    stock: 0,
-    status: 'Out of Stock',
-    category: 'Grocery & Dairy',
-    subcategory: 'Rice & Flour',
-    image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=80&auto=format&fit=crop&q=60',
-  },
-  {
-    id: 4,
-    name: 'Olpers Milk 1L',
-    price: '320',
-    stock: 40,
-    status: 'Active',
-    category: 'Grocery & Dairy',
-    subcategory: 'Milk & Eggs',
-    image: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=80&auto=format&fit=crop&q=60',
-  },
-];
+  return (
+    <div className="w-full h-full flex items-center justify-center bg-[#efeacb]/40 text-[#0c3818]">
+      {getCategoryIcon(category, size)}
+    </div>
+  );
+}
+
+
+import { apiFetchJson } from '../../lib/api';
+import {
+  getInventoryItems,
+  createInventoryItem,
+  updateInventoryItem,
+  deleteInventoryItem,
+} from '../../lib/inventoryService.js';
 
 export default function AdminProductsPage() {
   const { setHeaderDetails } = useOutletContext() || {};
+  const { user } = useAuth();
 
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: 'IMTIAZ SUPER MARKET',
+        title: user?.businessName?.toUpperCase() || 'IMTIAZ SUPER MARKET',
         subtitle: null,
       });
     }
-  }, [setHeaderDetails]);
+  }, [setHeaderDetails, user]);
 
   // Categories & Subcategories State
-  const [categories, setCategories] = useState(INITIAL_CATEGORIES);
-  const [selectedCategory, setSelectedCategory] = useState('Grocery & Dairy');
-  const [subcategories, setSubcategories] = useState(INITIAL_SUBCATEGORIES);
-  const [selectedSubcategory, setSelectedSubcategory] = useState('Oil & Ghee');
+  const [categories, setCategories] = useState([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [categoriesError, setCategoriesError] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [subcategories, setSubcategories] = useState([]);
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
 
-  // Products State
-  const [products, setProducts] = useState(INITIAL_PRODUCTS);
+  // Products State & Fetching
+  const [products, setProducts] = useState([]);
+  const [_isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('All Status');
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+
+  const fetchProductsList = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const res = await getInventoryItems();
+      if (res.ok && Array.isArray(res.data?.items)) {
+        const mapped = res.data.items.map((item) => {
+          const stock = Number(item.stock_qty ?? item.stock_quantity ?? 0);
+          const reorder = Number(item.reorder_level || 0);
+          let status = 'Active';
+          if (!item.is_active || stock === 0) status = 'Out of Stock';
+          else if (stock <= reorder) status = 'Low Stock';
+
+          return {
+            id: item.id,
+            name: item.name,
+            price: String(item.price ?? item.sale_price ?? 0),
+            stock: stock,
+            status,
+            category: item.category || 'General',
+            subcategory: 'General',
+            image: item.image || item.image_url || null,
+          };
+        });
+        setProducts(mapped);
+      } else {
+        setProducts([]);
+      }
+    } catch {
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchCategoriesList = useCallback(async () => {
+    setCategoriesLoading(true);
+    setCategoriesError(null);
+    try {
+      const { ok, data } = await apiFetchJson('/categories');
+      if (ok && Array.isArray(data?.categories)) {
+        setCategories(data.categories);
+        if (data.categories.length > 0) {
+          if (!selectedCategory || !data.categories.some(c => c.name === selectedCategory)) {
+            setSelectedCategory(data.categories[0].name);
+          }
+        } else {
+          setSelectedCategory('');
+        }
+      } else {
+        setCategories([]);
+        setSelectedCategory('');
+      }
+    } catch {
+      setCategoriesError('Unable to load categories.');
+      setCategories([]);
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, [selectedCategory]);
+
+  useEffect(() => {
+    fetchProductsList();
+    fetchCategoriesList();
+  }, [fetchProductsList, fetchCategoriesList]);
 
   // Category Edit/Delete Popover & Modal State
   const [catMenuOpenId, setCatMenuOpenId] = useState(null);
@@ -154,27 +195,57 @@ export default function AdminProductsPage() {
   }, [products, searchQuery, selectedStatus, selectedCategory]);
 
   // ── Category Handlers ─────────────────────────────────────────────────────
-  const handleAddCategory = (newCat) => {
-    const created = { id: Date.now(), name: newCat.name };
-    setCategories((prev) => [...prev, created]);
-    setSelectedCategory(created.name);
-  };
-
-  const handleSaveEditCategory = (id, newName) => {
-    setCategories((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, name: newName } : c))
-    );
-    if (selectedCategory === categories.find((c) => c.id === id)?.name) {
-      setSelectedCategory(newName);
+  const handleAddCategory = async (newCat) => {
+    try {
+      const { ok, data } = await apiFetchJson('/categories', {
+        method: 'POST',
+        body: JSON.stringify({ name: newCat.name }),
+      });
+      if (ok && data.category) {
+        setCategories((prev) => [...prev, data.category]);
+        setSelectedCategory(data.category.name);
+      } else {
+        alert(data?.message || 'Failed to create category');
+      }
+    } catch {
+      alert('Network error creating category');
     }
   };
 
-  const handleDeleteCategory = (id) => {
-    const target = categories.find((c) => c.id === id);
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-    if (selectedCategory === target?.name) {
-      const remaining = categories.filter((c) => c.id !== id);
-      setSelectedCategory(remaining[0]?.name || '');
+  const handleSaveEditCategory = async (id, newName) => {
+    try {
+      const { ok } = await apiFetchJson(`/categories/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ name: newName }),
+      });
+      if (ok) {
+        setCategories((prev) =>
+          prev.map((c) => (c.id === id ? { ...c, name: newName } : c))
+        );
+        if (selectedCategory === categories.find((c) => c.id === id)?.name) {
+          setSelectedCategory(newName);
+        }
+      }
+    } catch {
+      alert('Failed to update category');
+    }
+  };
+
+  const handleDeleteCategory = async (id) => {
+    try {
+      const { ok } = await apiFetchJson(`/categories/${id}`, {
+        method: 'DELETE',
+      });
+      if (ok) {
+        const target = categories.find((c) => c.id === id);
+        setCategories((prev) => prev.filter((c) => c.id !== id));
+        if (selectedCategory === target?.name) {
+          const remaining = categories.filter((c) => c.id !== id);
+          setSelectedCategory(remaining[0]?.name || '');
+        }
+      }
+    } catch {
+      alert('Failed to delete category');
     }
   };
 
@@ -204,31 +275,77 @@ export default function AdminProductsPage() {
   };
 
   // ── Product Handlers ──────────────────────────────────────────────────────
-  const handleSaveNewProduct = (newProdData) => {
-    const newProduct = {
-      id: Date.now(),
-      name: newProdData.name || 'New Product',
-      price: newProdData.sellingPrice || '0',
-      stock: Number(newProdData.stockQuantity) || 0,
-      status: Number(newProdData.stockQuantity) === 0 ? 'Out of Stock' : (Number(newProdData.stockQuantity) <= Number(newProdData.minStockLevel) ? 'Low Stock' : 'Active'),
-      category: newProdData.category || selectedCategory || 'Grocery & Dairy',
-      subcategory: selectedSubcategory || 'General',
-      image: newProdData.imagePreview || 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=80&auto=format&fit=crop&q=60',
-    };
-    setProducts([newProduct, ...products]);
-    setIsAddingProduct(false);
+  const handleSaveNewProduct = async (newProdData) => {
+    try {
+      const payload = {
+        name: newProdData.name || 'New Product',
+        sku: newProdData.sku || undefined,
+        barcode: newProdData.barcode || undefined,
+        category: newProdData.category || undefined,
+        price: Number(newProdData.sellingPrice) || 0,
+        stockQty: Number(newProdData.stockQuantity) || 0,
+        reorderLevel: Number(newProdData.minStockLevel) || 0,
+        unit: newProdData.unit || 'pcs',
+        taxRate: Number(newProdData.taxRate) || 0,
+        moduleSpecificFields: {
+          cost_price: Number(newProdData.purchasePrice ?? newProdData.costPrice ?? 0),
+          ...(newProdData.moduleSpecificFields || {}),
+        },
+        variants: newProdData.variants || [],
+      };
+
+      const res = await createInventoryItem(payload);
+      if (!res.ok) {
+        alert(`Failed to create product: ${res.data?.message || 'Server error'}`);
+        return;
+      }
+      fetchProductsList();
+      setIsAddingProduct(false);
+    } catch (err) {
+      alert(`Error creating product: ${err.message}`);
+    }
   };
 
-  const handleSaveEditedProduct = (updatedProd) => {
-    setProducts((prev) =>
-      prev.map((p) => (p.id === updatedProd.id ? updatedProd : p))
-    );
+  const handleSaveEditedProduct = async (updatedProd) => {
+    try {
+      const payload = {
+        name: updatedProd.name,
+        price: Number(updatedProd.price),
+        stockQty: Number(updatedProd.stock),
+        category: updatedProd.category,
+        unit: updatedProd.unit,
+        sku: updatedProd.sku,
+        barcode: updatedProd.barcode,
+        moduleSpecificFields: updatedProd.moduleSpecificFields || {},
+        variants: updatedProd.variants || [],
+      };
+
+      const res = await updateInventoryItem(updatedProd.id, payload);
+      if (!res.ok) {
+        alert(`Failed to update product: ${res.data?.message || 'Server error'}`);
+        return;
+      }
+      fetchProductsList();
+      setEditingProduct(null);
+    } catch (err) {
+      alert(`Error updating product: ${err.message}`);
+    }
   };
 
-  const confirmDeleteProduct = () => {
+  const confirmDeleteProduct = async () => {
     if (productToDelete) {
-      setProducts((prev) => prev.filter((p) => p.id !== productToDelete.id));
-      setProductToDelete(null);
+      try {
+        const res = await deleteInventoryItem(productToDelete.id);
+        if (!res.ok) {
+          alert(`Failed to delete product: ${res.data?.message || 'Server error'}`);
+          return;
+        }
+        fetchProductsList();
+      } catch (err) {
+        alert(`Error deleting product: ${err.message}`);
+      } finally {
+        setProductToDelete(null);
+      }
     }
   };
 
@@ -348,53 +465,69 @@ export default function AdminProductsPage() {
 
         {/* Category Pills Row (Scrollable on Mobile, Wrap on Desktop) */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 pt-1 sm:pb-0 sm:flex-wrap scrollbar-none max-w-full">
-          {categories.map((cat) => {
-            const isSelected = selectedCategory === cat.name;
-            const isMenuOpen = catMenuOpenId === cat.id;
+          {categoriesLoading ? (
+            <span className="text-xs font-semibold text-[#0c3818]/60 italic py-2">Loading categories...</span>
+          ) : categoriesError ? (
+            <span className="text-xs font-bold text-red-600 py-2">{categoriesError}</span>
+          ) : categories.length === 0 ? (
+            <div className="flex items-center gap-2 py-1">
+              <span className="text-xs font-semibold text-[#0c3818]/60">No categories created yet.</span>
+              <button
+                type="button"
+                onClick={() => setIsAddCatModalOpen(true)}
+                className="text-xs font-bold text-[#0c3818] underline hover:text-[#114720]"
+              >
+                Create category
+              </button>
+            </div>
+          ) : (
+            categories.map((cat) => {
+              const isSelected = selectedCategory === cat.name;
+              const isMenuOpen = catMenuOpenId === cat.id;
 
-            return (
-              <div key={cat.id} className="relative shrink-0">
-                <div
-                  onClick={() => setSelectedCategory(cat.name)}
-                  className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition duration-200 cursor-pointer border ${
-                    isSelected
-                      ? 'bg-[#0c3818] text-[#efeacb] border-[#0c3818] shadow-sm'
-                      : 'bg-[#efeacb] text-[#0c3818] border-[#0c3818]/20 hover:bg-[#e4ddb6]'
-                  }`}
-                >
-                  {/* Checkmark badge when active */}
-                  {isSelected && (
-                    <div className="w-4 h-4 rounded-full bg-[#efeacb] text-[#0c3818] flex items-center justify-center shadow-2xs shrink-0">
-                      <Check size={11} strokeWidth={3} />
-                    </div>
-                  )}
-
-                  <span className="whitespace-nowrap">{cat.name}</span>
-
-                  {/* Edit Pencil Button */}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setCatMenuOpenId(isMenuOpen ? null : cat.id);
-                    }}
-                    className={`p-1 rounded-md border transition cursor-pointer shrink-0 ${
-                      isSelected
-                        ? 'bg-[#efeacb]/20 text-[#efeacb] border-[#efeacb]/30 hover:bg-[#efeacb] hover:text-[#0c3818]'
-                        : 'bg-[#0c3818]/10 text-[#0c3818] border-[#0c3818]/20 hover:bg-[#0c3818] hover:text-[#efeacb]'
-                    }`}
-                    title="Category options"
-                  >
-                    <Edit2 size={12} />
-                  </button>
-                </div>
-
-                {/* Category Actions Popover */}
-                {isMenuOpen && (
+              return (
+                <div key={cat.id} className="relative shrink-0">
                   <div
-                    className="absolute left-0 top-full mt-1.5 bg-[#fbf9f0] border border-[#0c3818]/25 rounded-xl shadow-xl z-40 py-1 min-w-[140px] text-xs font-bold animate-in fade-in zoom-in-95 duration-100"
-                    onMouseLeave={() => setCatMenuOpenId(null)}
+                    onClick={() => setSelectedCategory(cat.name)}
+                    className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition duration-200 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-[#0c3818] text-[#efeacb] border-[#0c3818] shadow-sm'
+                        : 'bg-[#efeacb] text-[#0c3818] border-[#0c3818]/20 hover:bg-[#e4ddb6]'
+                    }`}
                   >
+                    {/* Checkmark badge when active */}
+                    {isSelected && (
+                      <div className="w-4 h-4 rounded-full bg-[#efeacb] text-[#0c3818] flex items-center justify-center shadow-2xs shrink-0">
+                        <Check size={11} strokeWidth={3} />
+                      </div>
+                    )}
+
+                    <span className="whitespace-nowrap">{cat.name}</span>
+
+                    {/* Edit Pencil Button */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setCatMenuOpenId(isMenuOpen ? null : cat.id);
+                      }}
+                      className={`p-1 rounded-md border transition cursor-pointer shrink-0 ${
+                        isSelected
+                          ? 'bg-[#efeacb]/20 text-[#efeacb] border-[#efeacb]/30 hover:bg-[#efeacb] hover:text-[#0c3818]'
+                          : 'bg-[#0c3818]/10 text-[#0c3818] border-[#0c3818]/20 hover:bg-[#0c3818] hover:text-[#efeacb]'
+                      }`}
+                      title="Category options"
+                    >
+                      <Edit2 size={12} />
+                    </button>
+                  </div>
+
+                  {/* Category Actions Popover */}
+                  {isMenuOpen && (
+                    <div
+                      className="absolute left-0 top-full mt-1.5 bg-[#fbf9f0] border border-[#0c3818]/25 rounded-xl shadow-xl z-40 py-1 min-w-[140px] text-xs font-bold animate-in fade-in zoom-in-95 duration-100"
+                      onMouseLeave={() => setCatMenuOpenId(null)}
+                    >
                     <button
                       type="button"
                       onClick={() => {
@@ -421,7 +554,7 @@ export default function AdminProductsPage() {
                 )}
               </div>
             );
-          })}
+          }))}
         </div>
       </div>
 
@@ -597,15 +730,7 @@ export default function AdminProductsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-white border border-[#0c3818]/15 overflow-hidden flex items-center justify-center p-1 shrink-0">
-                    <img
-                      src={p.image}
-                      alt={p.name}
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        e.target.onerror = null;
-                        e.target.style.display = 'none';
-                      }}
-                    />
+                    <ProductImageOrIcon image={p.image} category={p.category} size={22} />
                   </div>
                   <div>
                     <h4 className="font-extrabold text-sm text-[#0c3818]">{p.name}</h4>
@@ -673,15 +798,7 @@ export default function AdminProductsPage() {
                     {/* Image Column */}
                     <td className="py-3 px-6">
                       <div className="w-10 h-10 flex items-center justify-center rounded-lg bg-white border border-[#0c3818]/15 overflow-hidden shadow-2xs">
-                        <img
-                          src={p.image}
-                          alt={p.name}
-                          className="w-full h-full object-contain p-0.5"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.style.display = 'none';
-                          }}
-                        />
+                        <ProductImageOrIcon image={p.image} category={p.category} size={18} />
                       </div>
                     </td>
 

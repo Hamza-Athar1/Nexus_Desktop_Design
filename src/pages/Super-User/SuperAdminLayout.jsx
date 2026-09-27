@@ -38,10 +38,8 @@ export default function SuperAdminLayout() {
             <Menu size={22} />
           </button>
 
-          {/* Desktop Logo */}
-          <div className="hidden lg:flex items-center justify-center w-72 h-full py-1">
-            <img src="/Nexus_superadmin.png" alt="Nexus Logo" className="h-28 w-auto object-contain" />
-          </div>
+          {/* Desktop spacer to align title */}
+          <div className="hidden lg:block w-72 shrink-0" />
 
           {/* Mobile Title */}
           <span className="lg:hidden font-serif font-black text-[#0c3818] tracking-tight text-xs sm:text-sm truncate max-w-[110px] sm:max-w-none">

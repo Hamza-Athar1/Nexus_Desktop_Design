@@ -40,11 +40,13 @@ export default function SuperAdminActivateAccountPage() {
 
   // POS configuration
   const [posCount, setPosCount] = useState(shop?.posPurchased || 1);
-  const [posTerminals, setPosTerminals] = useState([
-    { id: 'pos_1', name: 'Main Counter Register', active: true },
-    { id: 'pos_2', name: 'Express Checkout POS', active: false },
-    { id: 'pos_3', name: 'Backoffice / Secondary POS', active: false },
-  ]);
+  const [posTerminals, setPosTerminals] = useState(() =>
+    Array.from({ length: Math.max(shop?.posPurchased || 1, 3) }, (_, i) => ({
+      id: `pos_${i + 1}`,
+      name: i === 0 ? 'Main Counter Register' : `POS Terminal #${i + 1}`,
+      active: i < (shop?.posPurchased || 1),
+    }))
+  );
 
   // Backup Modules state
   const [selectedBackups, setSelectedBackups] = useState({

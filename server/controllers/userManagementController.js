@@ -106,3 +106,41 @@ export async function deleteShop(req, res) {
   if (!deleted) throw new ApiError(404, 'Shop not found');
   res.json({ deleted: true });
 }
+
+/** POST /api/admin/shops/:id/reset-password */
+export async function resetAdminPassword(req, res) {
+  const id = Number(req.params.id);
+  if (!id || isNaN(id)) throw new ApiError(400, 'Invalid business ID');
+
+  const shop = await findBusinessById(id);
+  if (!shop) throw new ApiError(404, 'Business not found');
+
+  if (!shop.ownerUserId) {
+    throw new ApiError(404, 'Business owner account not found');
+  }
+
+  const { pool } = await import('../config/db.js');
+  const [[ownerUser]] = await pool.query('SELECT id, username, role FROM users WHERE id = ? LIMIT 1', [shop.ownerUserId]);
+  if (!ownerUser) {
+    throw new ApiError(404, 'Business owner user account does not exist');
+  }
+
+  // Generate secure temporary password
+  const tempPassword = 'Nx-' + Math.random().toString(36).slice(-8) + '!';
+  const passwordHash = await import('bcrypt').then(b => b.default.hash(tempPassword, 10));
+
+  await pool.query(
+    'UPDATE users SET password_hash = ?, must_change_password = 1, updated_at = NOW() WHERE id = ?',
+    [passwordHash, ownerUser.id]
+  );
+
+  // Revoke active sessions for target owner to ensure re-login with temporary password
+  await pool.query('DELETE FROM sessions WHERE user_id = ?', [ownerUser.id]);
+
+  res.json({
+    message: 'Temporary password generated successfully.',
+    temporaryPassword: tempPassword,
+    ownerUsername: ownerUser.username || shop.ownerUsername || shop.owner || shop.ownerEmail,
+  });
+}
+

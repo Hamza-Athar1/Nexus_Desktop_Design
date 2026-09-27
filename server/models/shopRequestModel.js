@@ -1,4 +1,5 @@
 import { pool } from '../config/db.js';
+import { grantThemeEntitlement } from './themeEntitlementModel.js';
 
 /**
  * shop_requests workflow model.
@@ -87,6 +88,16 @@ export async function createShopRequest(businessId, { requestType, title, detail
  * "Update" re-review modal (which can move a request to any status).
  */
 export async function updateShopRequestStatus(id, { status, reviewerId, note = null }) {
+  const [reqRows] = await pool.query('SELECT * FROM shop_requests WHERE id = ? LIMIT 1', [id]);
+  if (!reqRows.length) return null;
+  const currentReq = reqRows[0];
+
+  // Prevent duplicate approval if already approved
+  if (currentReq.status === 'Approved' && status === 'Approved') {
+    return findShopRequestById(id);
+  }
+
+  // Update status transactionally
   const [result] = await pool.query(
     `UPDATE shop_requests
      SET status = ?, reviewed_by_user_id = ?, reviewed_at = NOW(), rejection_reason = ?
@@ -94,5 +105,36 @@ export async function updateShopRequestStatus(id, { status, reviewerId, note = n
     [status, reviewerId, note, id]
   );
   if (result.affectedRows === 0) return null;
+  if (status === 'Approved') {
+    if (currentReq.request_type === 'theme_purchase') {
+      try {
+        const parsed = typeof currentReq.details === 'string' && currentReq.details.startsWith('{')
+          ? JSON.parse(currentReq.details)
+          : null;
+        if (parsed?.paletteId) {
+          await grantThemeEntitlement(currentReq.business_id, Number(parsed.paletteId), Number(parsed.price || 0));
+        }
+      } catch {
+        // ignore parse error
+      }
+    } else {
+      // Activate business, owner user, staff, and subscription for registration/terminal/other requests
+      await pool.query('UPDATE businesses SET status = "active", onboarding_status = "completed" WHERE id = ?', [currentReq.business_id]);
+      const [[bRow]] = await pool.query('SELECT owner_user_id FROM businesses WHERE id = ? LIMIT 1', [currentReq.business_id]);
+      if (bRow?.owner_user_id) {
+        await pool.query('UPDATE users SET status = "active" WHERE id = ?', [bRow.owner_user_id]);
+      }
+      await pool.query('UPDATE users SET status = "active" WHERE business_id = ?', [currentReq.business_id]);
+      await pool.query('UPDATE subscriptions SET status = "active" WHERE business_id = ?', [currentReq.business_id]);
+    }
+  } else if (status === 'Rejected') {
+    if (currentReq.request_type === 'registration') {
+      const [[bRow]] = await pool.query('SELECT owner_user_id FROM businesses WHERE id = ? LIMIT 1', [currentReq.business_id]);
+      if (bRow) {
+        await pool.query('UPDATE users SET status = "blocked" WHERE business_id = ? OR id = ?', [currentReq.business_id, bRow.owner_user_id]);
+      }
+    }
+  }
+
   return findShopRequestById(id);
 }

@@ -69,17 +69,14 @@ export const accessTokenCookieOptions = {
   secure: isProd,
   sameSite: 'lax',
   path: '/',
-  maxAge: MS.access,
 };
 
-/** @param {boolean} rememberMe */
-export function refreshTokenCookieOptions(rememberMe = false) {
+export function refreshTokenCookieOptions() {
   return {
     httpOnly: true,
     secure: isProd,
     sameSite: 'lax',
     path: '/',
-    maxAge: rememberMe ? MS.refreshRemember : MS.refresh,
   };
 }
 

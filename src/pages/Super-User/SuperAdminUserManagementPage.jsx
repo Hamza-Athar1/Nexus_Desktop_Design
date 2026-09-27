@@ -14,7 +14,7 @@ import SuspendShopModal from '../../components/Super-User/SuspendShopModal';
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(isoDate) {
-  if (!isoDate) return '—';
+  if (!isoDate) return 'Failed';
   const d = new Date(isoDate);
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
@@ -31,10 +31,10 @@ export default function SuperAdminUserManagementPage() {
     if (setHeaderDetails) {
       setHeaderDetails({
         title: 'User Management',
-        subtitle: loading ? '…' : `${shops.length} registered shops`
+        subtitle: null,
       });
     }
-  }, [loading, shops.length, setHeaderDetails]);
+  }, [setHeaderDetails]);
 
   const [loadError,    setLoadError]    = useState('');
   const [actionError,  setActionError]  = useState('');
@@ -50,6 +50,17 @@ export default function SuperAdminUserManagementPage() {
   const [blockingShop,  setBlockingShop]  = useState(null);
   const [deletingShop,  setDeletingShop]  = useState(null);
   const [suspendingShop,setSuspendingShop]= useState(null);
+  const [tempPasswordResult, setTempPasswordResult] = useState(null);
+
+  const handleResetPassword = async (shop) => {
+    setActionError('');
+    const { ok, data } = await apiFetchJson(`/admin/shops/${shop.id}/reset-password`, { method: 'POST' });
+    if (ok) {
+      setTempPasswordResult(data);
+    } else {
+      setActionError(data?.message || 'Password reset failed.');
+    }
+  };
 
   // ── Data loading ─────────────────────────────────────────────────────────
   const loadShops = useCallback(async () => {
@@ -303,6 +314,7 @@ export default function SuperAdminUserManagementPage() {
                             <div className="absolute right-0 top-full mt-1 w-48 bg-[#fdfdf7] border border-[#c8c2a3] rounded-2xl shadow-xl z-50 p-2 flex flex-col gap-0.5">
                               {[
                                 { label: 'Edit shop info',  onClick: () => { setEditingShop(row);   setActiveDropdownId(null); } },
+                                { label: 'Reset password',  onClick: () => { handleResetPassword(row); setActiveDropdownId(null); } },
                                 { label: 'Extend due date', onClick: () => { setExtendingShop(row); setActiveDropdownId(null); } },
                                 { label: 'Activity log',    onClick: () => { setActivityShop(row);  setActiveDropdownId(null); } },
                                 { label: 'Message owner',   onClick: () => { setMessagingShop(row); setActiveDropdownId(null); } },
@@ -447,6 +459,40 @@ export default function SuperAdminUserManagementPage() {
         onClose={() => setDeletingShop(null)}
         onDelete={handleDeleteShop}
       />
+
+      {/* Temporary Password Result Modal */}
+      {tempPasswordResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
+          <div className="bg-white border border-[#0c3818]/20 rounded-2xl w-full max-w-md p-6 shadow-xl flex flex-col gap-4">
+            <h3 className="text-lg font-bold text-[#0c3818]">Password Reset Successful</h3>
+            <p className="text-xs text-gray-600">
+              A temporary password has been generated for owner <strong className="text-[#0c3818]">{tempPasswordResult.ownerUsername}</strong>. Copy and share it securely:
+            </p>
+            <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl flex items-center justify-between">
+              <span className="font-mono text-sm font-bold text-amber-900 select-all">
+                {tempPasswordResult.temporaryPassword}
+              </span>
+              <button
+                type="button"
+                onClick={() => navigator.clipboard.writeText(tempPasswordResult.temporaryPassword)}
+                className="text-xs font-bold px-3 py-1.5 bg-amber-200 text-amber-900 rounded-lg hover:bg-amber-300 transition cursor-pointer"
+              >
+                Copy
+              </button>
+            </div>
+            <p className="text-[11px] text-gray-400">
+              This credential will not be shown again. The user will be required to change password on login.
+            </p>
+            <button
+              type="button"
+              onClick={() => setTempPasswordResult(null)}
+              className="mt-2 w-full py-2.5 bg-[#0c3818] text-white font-bold text-xs rounded-xl hover:bg-[#124b22] transition cursor-pointer"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

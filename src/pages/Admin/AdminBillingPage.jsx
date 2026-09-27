@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetchJson } from '../../lib/api';
 import { Plus, Upload, Trash2 } from 'lucide-react';
 
 export default function AdminBillingPage() {
   const { setHeaderDetails } = useOutletContext() || {};
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   // ── Form State ──
-  const [shopName, setShopName] = useState(user?.businessName || 'Imtiaz Super Market');
+  const [shopName, setShopName] = useState(user?.businessName || 'My Store');
   const [showShopName, setShowShopName] = useState(true);
 
-  const [shopAddress, setShopAddress] = useState('Shop 12, Dolmen Mall, Karachi');
+  const [shopAddress, setShopAddress] = useState('Main Branch Address');
   const [showShopAddress, setShowShopAddress] = useState(true);
 
   const [fontSize, setFontSize] = useState(15);
@@ -26,18 +27,62 @@ export default function AdminBillingPage() {
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: user?.businessName?.toUpperCase() || 'IMTIAZ SUPER MARKET',
+        title: user?.businessName?.toUpperCase() || 'MY STORE',
         subtitle: null,
       });
     }
   }, [setHeaderDetails, user]);
 
-  // Handle Logo Upload
+  const [savingSettings, setSavingSettings] = useState(false);
+  const [settingsMsg, setSettingsMsg] = useState('');
+
+  const [themes, setThemes] = useState([]);
+  const [savingTheme, setSavingTheme] = useState(false);
+  const [themeMsg, setThemeMsg] = useState('');
+
+  const loadThemes = async () => {
+    try {
+      const { ok, data } = await apiFetchJson('/catalog/themes');
+      if (ok && data.themes) {
+        setThemes(data.themes);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  const loadReceiptSettings = async () => {
+    try {
+      const { ok, data } = await apiFetchJson('/business/receipt-settings');
+      if (ok && data.settings) {
+        if (data.settings.shopName) setShopName(data.settings.shopName);
+        if (data.settings.shopAddress) setShopAddress(data.settings.shopAddress);
+        if (data.settings.fontSize) setFontSize(Number(data.settings.fontSize));
+        if (data.settings.language) setReceiptLanguage(data.settings.language === 'ur' ? 'urdu' : 'english');
+        if (data.settings.logoUrl) setLogoUrl(data.settings.logoUrl);
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    loadThemes();
+    loadReceiptSettings();
+  }, []);
+
   const handleLogoChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      const url = URL.createObjectURL(file);
-      setLogoUrl(url);
+      if (file.size > 2 * 1024 * 1024) {
+        setSettingsMsg('Logo file size must be less than 2MB');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoUrl(reader.result);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -45,15 +90,101 @@ export default function AdminBillingPage() {
     setLogoUrl(null);
   };
 
+  const handleSaveReceiptSettings = async () => {
+    setSavingSettings(true);
+    setSettingsMsg('');
+    try {
+      const payload = {
+        shopName: showShopName ? shopName : '',
+        shopAddress: showShopAddress ? shopAddress : '',
+        fontSize: showFontSize ? fontSize : 15,
+        language: showLanguage && receiptLanguage === 'urdu' ? 'ur' : 'en',
+        logoUrl: showLogo ? logoUrl : null,
+      };
+
+      const { ok, data } = await apiFetchJson('/business/receipt-settings', {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+      });
+
+      if (ok) {
+        setSettingsMsg('Receipt settings saved successfully!');
+        await refreshUser();
+      } else {
+        setSettingsMsg(data.message || 'Failed to save receipt settings');
+      }
+    } catch {
+      setSettingsMsg('Error connecting to server to save settings');
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handlePaletteSelect = async (theme) => {
+    if (theme.active) return;
+
+    if (!theme.owned) {
+      if (theme.pending) {
+        setThemeMsg(`A request for ${theme.name} is already pending approval.`);
+        return;
+      }
+      // Trigger Purchase Request
+      setSavingTheme(true);
+      setThemeMsg('');
+      try {
+        const { ok, data } = await apiFetchJson('/requests', {
+          method: 'POST',
+          body: JSON.stringify({
+            requestType: 'theme_purchase',
+            paletteId: theme.id,
+            details: `Requesting theme: ${theme.name} (Rs ${theme.price})`,
+          }),
+        });
+        if (ok) {
+          setThemeMsg(`Requested ${theme.name}! Pending Super Admin approval.`);
+          await loadThemes();
+        } else {
+          setThemeMsg(data.message || 'Failed to submit theme purchase request');
+        }
+      } catch {
+        setThemeMsg('Failed to submit theme purchase request');
+      } finally {
+        setSavingTheme(false);
+      }
+      return;
+    }
+
+    // Is Owned - Apply Theme
+    setSavingTheme(true);
+    setThemeMsg('');
+    try {
+      const { ok, data } = await apiFetchJson('/profile/theme', {
+        method: 'PATCH',
+        body: JSON.stringify({ paletteId: theme.id }),
+      });
+      if (ok) {
+        setThemeMsg('Theme updated!');
+        await refreshUser();
+        await loadThemes();
+      } else {
+        setThemeMsg(data.message || 'Failed to update theme');
+      }
+    } catch {
+      setThemeMsg('Failed to update theme');
+    } finally {
+      setSavingTheme(false);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6 w-full pb-12">
       {/* ── Page Header ── */}
       <div>
         <h1 className="text-3xl lg:text-4xl font-black text-[#0c3818] tracking-tight">
-          Billing Details
+          Billing Details & Themes
         </h1>
         <p className="text-base sm:text-lg font-bold text-[#607455] mt-1">
-          Turn an option off if the counter doesnt need it - the preview updates live
+          Manage receipt preferences, active tenant theme, and shop theme entitlements.
         </p>
       </div>
 
@@ -61,6 +192,72 @@ export default function AdminBillingPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* ── LEFT SECTION: Billing Settings Form ── */}
         <div className="lg:col-span-7 border-2 border-[#0c3818]/25 rounded-2xl md:rounded-3xl bg-[#f9f7ea]/90 backdrop-blur-xs shadow-xs p-6 md:p-8 flex flex-col divide-y divide-[#0c3818]/15">
+          
+          {/* Item 0: Business Theme Store & Entitlements */}
+          <div className="pb-6 flex flex-col gap-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-[#0c3818]">Shop Theme Catalogue</h3>
+                <p className="text-sm font-bold text-[#607455]">Select an owned theme to apply, or request additional themes for your shop</p>
+              </div>
+              {themeMsg && <span className="text-xs font-extrabold text-[#0c3818] bg-[#efeacb] px-3 py-1 rounded-full border border-[#0c3818]/30">{themeMsg}</span>}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-1">
+              {themes.map((t) => {
+                return (
+                  <div
+                    key={t.id}
+                    className={`p-4 rounded-2xl border-2 flex flex-col justify-between gap-3 transition-all ${
+                      t.active
+                        ? 'border-[#0c3818] bg-[#0c3818]/10 ring-2 ring-[#0c3818]/20'
+                        : t.owned
+                        ? 'border-[#0c3818]/30 bg-white'
+                        : 'border-dashed border-[#0c3818]/40 bg-white/70'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-black text-[#0c3818]">{t.name}</span>
+                        {t.active && <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#0c3818] text-[#efeacb]">Active</span>}
+                        {t.owned && !t.active && <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-[#e6ecce] text-[#0c3818]">Owned</span>}
+                        {t.pending && <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-amber-300">Pending</span>}
+                      </div>
+                      <span className="text-xs font-bold text-[#607455]">
+                        {t.price > 0 ? `Rs ${t.price}` : 'Free'}
+                      </span>
+                    </div>
+
+                    {/* Color Swatch Bar */}
+                    <div className="flex items-center gap-1.5 h-6 rounded-lg overflow-hidden border border-black/10 p-1 bg-neutral-100">
+                      <span className="flex-1 h-full rounded" style={{ backgroundColor: t.colorPrimary }} title="Primary" />
+                      <span className="flex-1 h-full rounded" style={{ backgroundColor: t.colorAccent }} title="Accent" />
+                      <span className="flex-1 h-full rounded" style={{ backgroundColor: t.colorShade }} title="Shade" />
+                      <span className="flex-1 h-full rounded" style={{ backgroundColor: t.colorLight }} title="Light" />
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                      type="button"
+                      disabled={savingTheme || t.active || t.pending}
+                      onClick={() => handlePaletteSelect(t)}
+                      className={`w-full py-2 px-3 rounded-xl text-xs font-black transition cursor-pointer ${
+                        t.active
+                          ? 'bg-transparent text-[#0c3818] cursor-default'
+                          : t.owned
+                          ? 'bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] shadow-xs'
+                          : t.pending
+                          ? 'bg-amber-100 text-amber-800 border border-amber-300 cursor-not-allowed font-extrabold'
+                          : 'bg-[#efeacb] hover:bg-[#e4ddbd] text-[#0c3818] border border-[#0c3818]/40'
+                      }`}
+                    >
+                      {t.active ? 'Currently Active' : t.owned ? 'Apply Theme' : t.pending ? 'Pending Approval' : `Purchase (Rs ${t.price})`}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
           
           {/* Item 1: Shop name on bill */}
           <div className="pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -257,6 +454,23 @@ export default function AdminBillingPage() {
                 <div className="w-13 h-7 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#0c3818]"></div>
               </label>
             </div>
+          </div>
+
+          {/* Save Settings Action Button */}
+          <div className="pt-6 flex items-center justify-between gap-4">
+            {settingsMsg && (
+              <span className="text-xs font-black text-[#0c3818] bg-[#efeacb] px-3 py-1.5 rounded-full border border-[#0c3818]/30">
+                {settingsMsg}
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={savingSettings}
+              onClick={handleSaveReceiptSettings}
+              className="ml-auto px-8 py-3 bg-[#0c3818] hover:bg-[#114720] text-[#efeacb] text-sm font-black rounded-xl transition cursor-pointer shadow-md active:scale-95 disabled:opacity-50"
+            >
+              {savingSettings ? 'Saving Settings...' : 'Save Receipt Settings'}
+            </button>
           </div>
 
         </div>

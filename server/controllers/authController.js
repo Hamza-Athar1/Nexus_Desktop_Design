@@ -2,18 +2,19 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { ApiError } from '../utils/ApiError.js';
-import { withTransaction } from '../config/db.js';
+import { pool, withTransaction } from '../config/db.js';
 import { findOAuthAccount, createOAuthAccount } from '../models/oauthModel.js';
 import {
   findUserByEmail,
   findUserByUsername,
   findUserByIdentifier,
   findUserById,
-  findBusinessIdForOwner,
   createUser,
   updateLastLogin,
   updatePasswordHash,
 } from '../models/userModel.js';
+import { findBusinessWithModuleByUser } from '../models/businessModel.js';
+import { getReceiptSettingsByBusiness } from '../models/receiptSettingsModel.js';
 import {
   createSession,
   findActiveSessionByToken,
@@ -41,7 +42,8 @@ const SALT_ROUNDS = 10;
 
 /** Shapes a DB user row into what the frontend's AuthContext expects. */
 async function toAuthUser(user) {
-  const businessId = await findBusinessIdForOwner(user.id);
+  const business = await findBusinessWithModuleByUser(user.id);
+  const receiptSettings = business?.id ? await getReceiptSettingsByBusiness(business.id) : null;
   return {
     id: user.id,
     username: user.username,
@@ -49,7 +51,21 @@ async function toAuthUser(user) {
     phone: user.phone,
     role: user.role, // 'super_admin' | 'admin' | 'user'
     status: user.status,
-    businessId, // null until the registration wizard finishes — drives frontend routing
+    mustChangePassword: Boolean(user.must_change_password),
+    posLayout: user.pos_layout || 'grid',
+    businessId: business?.id ?? null, // null until the registration wizard finishes — drives frontend routing
+    businessName: business?.name ?? null,
+    moduleCode: business?.module_code ?? null,
+    receiptSettings,
+    palette: business?.resolved_palette_id ? {
+      id: business.resolved_palette_id,
+      name: business.palette_name,
+      colorPrimary: business.color_primary,
+      colorAccent: business.color_accent,
+      colorShade: business.color_shade,
+      colorLight: business.color_light,
+      colors: [business.color_primary, business.color_accent, business.color_shade, business.color_light],
+    } : null,
   };
 }
 
@@ -82,9 +98,6 @@ export async function signup(req, res) {
   }
   if (!/\S+@\S+\.\S+/.test(email)) {
     throw new ApiError(400, 'A valid email is required');
-  }
-  if (password.length < 6) {
-    throw new ApiError(400, 'Password must be at least 6 characters');
   }
 
   if (await findUserByEmail(email.trim())) {
@@ -135,6 +148,19 @@ export async function login(req, res) {
     await recordLoginAttempt(identifier, false);
     // Deliberately vague — don't reveal whether it was the identifier or password.
     throw new ApiError(401, 'Invalid username or password');
+  }
+
+  if (user.status === 'pending') {
+    await recordLoginAttempt(identifier, false);
+    // Retrieve business payment proof status
+    const [bizRows] = await pool.query('SELECT payment_proof_status FROM businesses WHERE owner_user_id = ? OR id = ? LIMIT 1', [user.id, user.business_id]);
+    const proofStatus = bizRows[0]?.payment_proof_status || 'not_submitted';
+    const proofMsg = proofStatus === 'submitted'
+      ? 'Payment proof status: submitted'
+      : 'Payment proof status: not_submitted';
+
+    const contactMsg = 'Registration pending approval.\nSuper Admin Support Contact:\nName: Nexus Platform Operations\nEmail: support@nexuspos.com | Phone: +92 300 1234567\n' + proofMsg;
+    throw new ApiError(403, contactMsg);
   }
 
   if (user.status === 'suspended' || user.status === 'blocked') {
@@ -231,9 +257,6 @@ export async function resetPassword(req, res) {
   if (!token || !password) {
     throw new ApiError(400, 'Token and new password are required');
   }
-  if (password.length < 6) {
-    throw new ApiError(400, 'Password must be at least 6 characters');
-  }
 
   const reset = await findValidPasswordReset(token);
   if (!reset) {
@@ -256,7 +279,7 @@ export async function googleLogin(req, res) {
   }
 
   const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-  
+
   let payload;
   try {
     const ticket = await client.verifyIdToken({
@@ -270,7 +293,7 @@ export async function googleLogin(req, res) {
   }
 
   const { sub: googleUserId, email, email_verified } = payload;
-  
+
   if (!email) {
     throw new ApiError(400, 'Email address not provided by Google account');
   }
@@ -288,7 +311,7 @@ export async function googleLogin(req, res) {
   } else {
     // 2. Check if a user with that email already exists
     user = await findUserByEmail(email);
-    
+
     if (user) {
       // Security check: Never automatically link Google OAuth to a super_admin account
       if (user.role === 'super_admin') {

@@ -55,6 +55,7 @@ function serializeBusiness(row) {
     status: row.status,
     statusReason: row.status_reason ?? null,
     owner: name,
+    ownerUsername: row.owner_username,
     ownerEmail: row.owner_email ?? null,
     ownerPhone: row.owner_phone ?? null,
     shopAddress: row.shop_address ?? null,

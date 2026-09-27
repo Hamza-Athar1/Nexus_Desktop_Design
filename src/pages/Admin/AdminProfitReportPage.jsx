@@ -21,23 +21,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 
-const PROFIT_BAR_DATA = [
-  { name: 'Jan', profit: 420000 },
-  { name: 'Feb', profit: 180000 },
-  { name: 'Mar', profit: 600000 },
-  { name: 'Apr', profit: 920000 },
-  { name: 'May', profit: 720000 },
-  { name: 'Jun', profit: 500000 },
-];
-
-const REVENUE_VS_PROFIT_DATA = [
-  { name: 'Jan', profit: 750000, revenue: 340000 },
-  { name: 'Feb', profit: 580000, revenue: 340000 },
-  { name: 'Mar', profit: 400000, revenue: 230000 },
-  { name: 'Apr', profit: 660000, revenue: 370000 },
-  { name: 'May', profit: 820000, revenue: 640000 },
-  { name: 'Jun', profit: 920000, revenue: 550000 },
-];
+import { getProfitAnalysisReport } from '../../lib/reportService.js';
 
 export default function AdminProfitReportPage() {
   const { setHeaderDetails } = useOutletContext() || {};
@@ -47,6 +31,8 @@ export default function AdminProfitReportPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [profitAnalysisData, setProfitAnalysisData] = useState([]);
+  const [_isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (setHeaderDetails) {
@@ -57,39 +43,71 @@ export default function AdminProfitReportPage() {
     }
   }, [setHeaderDetails, user]);
 
+  useEffect(() => {
+    async function loadData() {
+      setIsLoading(true);
+      try {
+        const params = { period: selectedPeriod, startDate, endDate };
+        const profitRes = await getProfitAnalysisReport(params);
+        if (profitRes.ok && Array.isArray(profitRes.data?.profitAnalysis)) {
+          setProfitAnalysisData(profitRes.data.profitAnalysis);
+        }
+      } catch {
+        setProfitAnalysisData([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadData();
+  }, [selectedPeriod, startDate, endDate]);
+
+  const totalRevenue = useMemo(() => {
+    return profitAnalysisData.reduce((sum, p) => sum + Number(p.revenue || 0), 0);
+  }, [profitAnalysisData]);
+
+  const totalCost = useMemo(() => {
+    return profitAnalysisData.reduce((sum, p) => sum + Number(p.cost || 0), 0);
+  }, [profitAnalysisData]);
+
+  const totalProfit = useMemo(() => {
+    return profitAnalysisData.reduce((sum, p) => sum + Number(p.profit || 0), 0);
+  }, [profitAnalysisData]);
+
+  const profitMarginPercent = totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(2) : '0.00';
+
   const metricsData = [
     {
       label: 'TOTAL REVENUE',
-      value: 'Rs 991,8987',
+      value: `Rs ${totalRevenue.toLocaleString()}`,
       icon: TrendingUp,
       iconBg: 'bg-[#fde8e4] text-[#8b1e10]',
-      statusPill: { text: '+22.4%', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
+      statusPill: { text: 'Live Sales', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
     },
     {
       label: 'TOTAL COST',
-      value: 'Rs. 9873694',
+      value: `Rs ${totalCost.toFixed(2)}`,
       icon: ShoppingCart,
       iconBg: 'bg-[#fef7df] text-[#c28e0e]',
-      statusPill: { text: 'Controlled', bg: 'bg-[#fef7df] text-[#c28e0e] border-[#fde047]' },
+      statusPill: { text: 'Item COGS', bg: 'bg-[#fef7df] text-[#c28e0e] border-[#fde047]' },
     },
     {
       label: 'TOTAL PROFIT',
-      value: '2105489',
+      value: `Rs ${totalProfit.toFixed(2)}`,
       icon: BarChart3,
       iconBg: 'bg-[#fef3d6] text-[#b45309]',
-      statusPill: { text: '+16.8%', bg: 'bg-[#fef3d6] text-[#b45309] border-[#fde047]' },
+      statusPill: { text: 'Net Margin', bg: 'bg-[#fef3d6] text-[#b45309] border-[#fde047]' },
     },
     {
       label: 'PROFIT MARGIN',
-      value: '23.80%',
+      value: `${profitMarginPercent}%`,
       icon: Activity,
       iconBg: 'bg-[#fde8e4] text-[#8b1e10]',
-      statusPill: { text: 'Healthy', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
+      statusPill: { text: 'Calculated', bg: 'bg-[#fde8e4] text-[#8b1e10] border-[#f8b4ab]' },
     },
   ];
 
-  const memoizedBarData = useMemo(() => PROFIT_BAR_DATA, []);
-  const memoizedLineData = useMemo(() => REVENUE_VS_PROFIT_DATA, []);
+  const memoizedBarData = profitAnalysisData;
+  const memoizedLineData = profitAnalysisData;
 
   return (
     <div className="flex flex-col gap-6 w-full pb-12">

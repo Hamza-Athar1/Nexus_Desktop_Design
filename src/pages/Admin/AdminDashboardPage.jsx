@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getCategoryIcon } from './AdminProductsPage';
@@ -19,36 +19,84 @@ import {
   Tooltip,
   CartesianGrid,
 } from 'recharts';
-
-// Mock data for the AreaChart
-const SALES_OVERVIEW_DATA = [
-  { name: '17 aug', sales: 15 },
-  { name: '18 aug', sales: 17 },
-  { name: '19 aug', sales: 22 },
-  { name: '20 aug', sales: 25 },
-  { name: '21 aug', sales: 34 },
-  { name: '22 aug', sales: 40 },
-];
-
-const RECENT_SALES = [
-  { invoice: 'INV-00026', date: '23 Aug 2026', amount: 'Rs 3,500' },
-  { invoice: 'INV-00026', date: '23 Aug 2026', amount: 'Rs 1,700' },
-  { invoice: 'INV-00026', date: '20 Aug 2026', amount: 'Rs 2,470' },
-  { invoice: 'INV-00026', date: '18 Aug 2026', amount: 'Rs 4,500' },
-];
+import { getSales } from '../../lib/salesService.js';
+import { getInventoryItems } from '../../lib/inventoryService.js';
+import { getSalesOverviewReport, getTopProductsReport } from '../../lib/reportService.js';
 
 export default function AdminDashboardPage() {
   const { setHeaderDetails } = useOutletContext() || {};
   const { user } = useAuth();
-  
+
+  const [salesList, setSalesList] = useState([]);
+  const [productList, setProductList] = useState([]);
+  const [salesOverviewData, setSalesOverviewData] = useState([]);
+  const [topProductsList, setTopProductsList] = useState([]);
+  const [_isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: user?.businessName || 'Imtiaz Super Market',
-        subtitle: 'Store Analytics & Management Summary'
+        title: user?.businessName?.toUpperCase() || 'DASHBOARD',
+        subtitle: null,
       });
     }
   }, [setHeaderDetails, user]);
+
+  useEffect(() => {
+    async function loadMetrics() {
+      setIsLoading(true);
+      try {
+        const [salesRes, prodRes, overviewRes, topProdRes] = await Promise.all([
+          getSales(),
+          getInventoryItems(),
+          getSalesOverviewReport(),
+          getTopProductsReport(),
+        ]);
+        if (salesRes.ok && Array.isArray(salesRes.data?.sales)) {
+          setSalesList(salesRes.data.sales);
+        }
+        if (prodRes.ok && Array.isArray(prodRes.data?.items)) {
+          setProductList(prodRes.data.items);
+        }
+        if (overviewRes.ok && Array.isArray(overviewRes.data?.salesOverview)) {
+          setSalesOverviewData(overviewRes.data.salesOverview);
+        }
+        if (topProdRes.ok && Array.isArray(topProdRes.data?.topProducts)) {
+          setTopProductsList(topProdRes.data.topProducts);
+        }
+      } catch {
+        // Fallback to empty state
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    loadMetrics();
+  }, []);
+
+  // Compute live dashboard metrics from database records
+  const totalSalesRevenue = useMemo(() => {
+    return salesList.reduce((sum, s) => sum + Number(s.total_amount || 0), 0);
+  }, [salesList]);
+
+  const totalOrdersCount = salesList.length;
+
+  const totalProductsCount = productList.length;
+
+  const lowStockCount = useMemo(() => {
+    return productList.filter((p) => {
+      const stock = Number(p.stock_qty ?? p.stock_quantity ?? 0);
+      const reorder = Number(p.reorder_level || 0);
+      return stock <= reorder;
+    }).length;
+  }, [productList]);
+
+  const recentSalesList = useMemo(() => {
+    return salesList.slice(0, 5).map((s) => ({
+      invoice: s.invoice_number || `INV-${s.id}`,
+      date: new Date(s.sold_at || s.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+      amount: `Rs ${Number(s.total_amount).toLocaleString()}`,
+    }));
+  }, [salesList]);
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('This week');
@@ -65,10 +113,10 @@ export default function AdminDashboardPage() {
               Total Sales
             </span>
             <h3 className="text-3xl font-black text-white tracking-tight leading-none">
-              Rs 28,785
+              Rs {totalSalesRevenue.toLocaleString()}
             </h3>
             <span className="text-xs font-semibold text-[#a2bc90]/70 mt-1">
-              +5% <span className="opacity-60 font-normal">from yesterday</span>
+              Live Store Total
             </span>
           </div>
           <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
@@ -85,10 +133,10 @@ export default function AdminDashboardPage() {
               Total Orders
             </span>
             <h3 className="text-3xl font-black text-white tracking-tight leading-none">
-              30
+              {totalOrdersCount}
             </h3>
             <span className="text-xs font-semibold text-[#a2bc90]/70 mt-1">
-              -2% <span className="opacity-60 font-normal">from yesterday</span>
+              Completed Transactions
             </span>
           </div>
           <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
@@ -105,11 +153,11 @@ export default function AdminDashboardPage() {
               Total Products
             </span>
             <h3 className="text-3xl font-black text-white tracking-tight leading-none">
-              95
+              {totalProductsCount}
             </h3>
-            <button className="text-xs font-extrabold text-[#efeacb] underline mt-1 hover:text-white transition block text-left cursor-pointer">
-              View Products
-            </button>
+            <span className="text-xs font-semibold text-[#a2bc90]/70 mt-1">
+              Active Inventory
+            </span>
           </div>
           <div className="flex-1 h-[1px] bg-gradient-to-r from-[#2e5c38]/50 via-[#2e5c38]/20 to-transparent mx-2 hidden xl:block" />
           {/* 3D Inset Icon Badge */}
@@ -125,7 +173,7 @@ export default function AdminDashboardPage() {
               Low Stock Items
             </span>
             <h3 className="text-3xl font-black text-[#e5432d] tracking-tight leading-none">
-              12
+              {lowStockCount}
             </h3>
             <button className="text-xs font-extrabold text-[#efeacb] underline mt-1 hover:text-white transition block text-left cursor-pointer">
               View Items
@@ -182,7 +230,7 @@ export default function AdminDashboardPage() {
           {/* Area Chart Container */}
           <div className="h-[220px] w-full text-xs">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={SALES_OVERVIEW_DATA} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+              <AreaChart data={salesOverviewData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="salesGrad" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#0c3818" stopOpacity={0.25} />
@@ -204,13 +252,13 @@ export default function AdminDashboardPage() {
                   labelStyle={{ fontWeight: 'bold', color: '#0c3818' }}
                   itemStyle={{ color: '#0c3818', fontWeight: 'bold' }}
                 />
-                <Area 
-                  type="monotone" 
-                  dataKey="sales" 
-                  stroke="#0c3818" 
-                  strokeWidth={3} 
-                  fillOpacity={1} 
-                  fill="url(#salesGrad)" 
+                <Area
+                  type="monotone"
+                  dataKey="sales"
+                  stroke="#0c3818"
+                  strokeWidth={3}
+                  fillOpacity={1}
+                  fill="url(#salesGrad)"
                   activeDot={{ r: 6, fill: '#0c3818', stroke: '#efeacb', strokeWidth: 2 }}
                 />
               </AreaChart>
@@ -224,24 +272,26 @@ export default function AdminDashboardPage() {
             </h4>
 
             <div className="flex flex-col gap-3">
-              {[
-                { name: 'Cooking Oil 1L', sold: 45, category: 'Spices' },
-                { name: 'Lewis Bread', sold: 36, category: 'Frozen Items' },
-                { name: 'Ramen Noodles', sold: 28, category: 'Noodles' },
-              ].map((prod, i) => (
-                <div key={i} className="flex items-center justify-between border-b border-[#bfbc9b]/15 pb-2 last:border-0 last:pb-0">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-[#efeacb]/40 flex items-center justify-center border border-[#bfbc9b]/35">
-                      {getCategoryIcon(prod.category, 20)}
+              {topProductsList.length > 0 ? (
+                topProductsList.slice(0, 5).map((prod, i) => (
+                  <div key={i} className="flex items-center justify-between border-b border-[#bfbc9b]/15 pb-2 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-[#efeacb]/40 flex items-center justify-center border border-[#bfbc9b]/35">
+                        {getCategoryIcon(prod.category, 20)}
+                      </div>
+                      <span className="text-sm font-extrabold text-[#0c3818]">{prod.name}</span>
                     </div>
-                    <span className="text-sm font-extrabold text-[#0c3818]">{prod.name}</span>
+                    <div className="text-right">
+                      <span className="text-base font-black text-[#0c3818] block">{prod.sales ?? prod.sold ?? 0}</span>
+                      <span className="text-[9px] font-bold text-[#607455]/80 uppercase tracking-widest">Qty Sold</span>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <span className="text-base font-black text-[#0c3818] block">{prod.sold}</span>
-                    <span className="text-[9px] font-bold text-[#607455]/80 uppercase tracking-widest">Qty Sold</span>
-                  </div>
+                ))
+              ) : (
+                <div className="py-4 text-center text-xs text-gray-400 font-semibold">
+                  No top selling products recorded yet
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -263,13 +313,21 @@ export default function AdminDashboardPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#bfbc9b]/25">
-                  {RECENT_SALES.map((sale, i) => (
-                    <tr key={i} className="text-[#0c3818] text-sm font-bold">
-                      <td className="py-4.5 pr-4">{sale.invoice}</td>
-                      <td className="py-4.5 px-4">{sale.date}</td>
-                      <td className="py-4.5 pl-4 text-right font-black">{sale.amount}</td>
+                  {recentSalesList.length > 0 ? (
+                    recentSalesList.map((sale, i) => (
+                      <tr key={i} className="text-[#0c3818] text-sm font-bold">
+                        <td className="py-4.5 pr-4">{sale.invoice}</td>
+                        <td className="py-4.5 px-4">{sale.date}</td>
+                        <td className="py-4.5 pl-4 text-right font-black">{sale.amount}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={3} className="py-8 text-center text-xs text-gray-400 font-semibold">
+                        No sales recorded yet
+                      </td>
                     </tr>
-                  ))}
+                  )}
                 </tbody>
               </table>
             </div>

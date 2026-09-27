@@ -108,8 +108,15 @@ export async function apiFetch(path, options = {}, retry = true) {
   // Happy path — return immediately.
   if (response.ok) return response;
 
-  // ── Token-expired path ────────────────────────────────────────────────────
-  if (response.status === 401 && retry) {
+  // ── Token-expired path (bypass authentication endpoints) ──────────────────
+  const isAuthEndpoint =
+    path.startsWith('/auth/login') ||
+    path.startsWith('/auth/signup') ||
+    path.startsWith('/auth/refresh') ||
+    path.startsWith('/auth/forgot-password') ||
+    path.startsWith('/auth/reset-password');
+
+  if (response.status === 401 && retry && !isAuthEndpoint) {
     try {
       await refreshAccessToken();
       // Retry the original request exactly once (retry = false prevents loops).

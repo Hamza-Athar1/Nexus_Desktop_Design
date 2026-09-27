@@ -95,9 +95,12 @@ CREATE TABLE users (
   pref_billing_updates  TINYINT(1)   NOT NULL DEFAULT 1,
   pref_announcements    TINYINT(1)   NOT NULL DEFAULT 1,
   password_hash       VARCHAR(255) NULL,     -- NULL when the account is OAuth-only
+  must_change_password TINYINT(1)   NOT NULL DEFAULT 0,
+  pos_layout          VARCHAR(50)  NOT NULL DEFAULT 'grid',
   role                ENUM('super_admin','admin','user') NOT NULL DEFAULT 'admin',
   status              ENUM('pending','active','suspended','blocked') NOT NULL DEFAULT 'pending',
   city_region         VARCHAR(96)  NULL,     -- captured on the Account form
+  business_id         BIGINT UNSIGNED NULL,  -- null for admin/super_admin; set for role='user' staff
   email_verified_at   TIMESTAMP    NULL,
   last_login_at       TIMESTAMP    NULL,
   created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -220,6 +223,9 @@ CREATE TABLE businesses (
   bill_due_date       DATE NULL,           -- "Expires" column in User Management
   last_paid_at        DATE NULL,           -- "Last Paid" column in User Management
   status_reason       VARCHAR(255) NULL,   -- reason recorded when status changed,
+  palette_id          BIGINT UNSIGNED NULL,
+  payment_proof_url   VARCHAR(255) NULL,
+  payment_proof_status ENUM('not_submitted','submitted','verified','rejected') NOT NULL DEFAULT 'not_submitted',
   terms_accepted_at   TIMESTAMP    NULL,
   created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -233,10 +239,16 @@ CREATE TABLE businesses (
     REFERENCES modules(id),
   CONSTRAINT fk_businesses_type FOREIGN KEY (business_type_id)
     REFERENCES business_types(id),
+  CONSTRAINT fk_businesses_palette FOREIGN KEY (palette_id)
+    REFERENCES pos_palettes(id) ON DELETE SET NULL,
   -- A registered business must supply an NIC.
   CONSTRAINT chk_businesses_nic
     CHECK (is_registered = 0 OR nic_number IS NOT NULL)
 ) ENGINE=InnoDB;
+
+ALTER TABLE users
+  ADD CONSTRAINT fk_users_business FOREIGN KEY (business_id)
+    REFERENCES businesses(id) ON DELETE SET NULL;
 
 -- =====================================================================
 -- SECTION 4: SUBSCRIPTION / BACKUP & PLAN
@@ -498,6 +510,28 @@ CREATE TABLE clothing_products (
     REFERENCES products(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- Product Variants for Multi-Variant Verticals (e.g. Clothing Size/Color matrix)
+CREATE TABLE product_variants (
+  id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  product_id          BIGINT UNSIGNED NOT NULL,
+  sku                 VARCHAR(64)  NULL,
+  barcode             VARCHAR(64)  NULL,
+  size                VARCHAR(32)  NULL,
+  color               VARCHAR(32)  NULL,
+  cost_price          DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  sale_price          DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+  stock_quantity      DECIMAL(12,3) NOT NULL DEFAULT 0.000,
+  is_active           TINYINT(1)   NOT NULL DEFAULT 1,
+  created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY idx_pv_product (product_id),
+  KEY idx_pv_barcode (barcode),
+  KEY idx_pv_sku (sku),
+  CONSTRAINT fk_pv_product FOREIGN KEY (product_id)
+    REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
 -- Restaurant tables (dine-in). Only used by the restaurant module.
 CREATE TABLE restaurant_tables (
   id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -580,6 +614,7 @@ CREATE TABLE sale_items (
   id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   sale_id             BIGINT UNSIGNED NOT NULL,
   product_id          BIGINT UNSIGNED NULL,   -- NULL if product later deleted
+  variant_id          BIGINT UNSIGNED NULL,   -- NULL if base product sale
   product_name        VARCHAR(191) NOT NULL,
   quantity            DECIMAL(12,3) NOT NULL,
   unit_price          DECIMAL(12,2) NOT NULL,
@@ -591,10 +626,13 @@ CREATE TABLE sale_items (
   PRIMARY KEY (id),
   KEY idx_sale_items_sale (sale_id),
   KEY idx_sale_items_product (product_id),
+  KEY idx_sale_items_variant (variant_id),
   CONSTRAINT fk_sale_items_sale FOREIGN KEY (sale_id)
     REFERENCES sales(id) ON DELETE CASCADE,
   CONSTRAINT fk_sale_items_product FOREIGN KEY (product_id)
     REFERENCES products(id) ON DELETE SET NULL,
+  CONSTRAINT fk_sale_items_variant FOREIGN KEY (variant_id)
+    REFERENCES product_variants(id) ON DELETE SET NULL,
   CONSTRAINT chk_sale_items_qty CHECK (quantity > 0)
 ) ENGINE=InnoDB;
 
@@ -702,6 +740,7 @@ CREATE TABLE stock_movements (
   id                  BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
   business_id         BIGINT UNSIGNED NOT NULL,
   product_id          BIGINT UNSIGNED NOT NULL,
+  variant_id          BIGINT UNSIGNED NULL,
   user_id             BIGINT UNSIGNED NULL,
   movement_type       ENUM('sale','purchase','refund','adjustment','damage','expiry','opening') NOT NULL,
   quantity_change     DECIMAL(12,3) NOT NULL,   -- negative for outflow
@@ -712,6 +751,7 @@ CREATE TABLE stock_movements (
   created_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   KEY idx_stock_movements_product (product_id, created_at),
+  KEY idx_stock_movements_variant (variant_id),
   KEY idx_stock_movements_business (business_id, created_at),
   KEY idx_stock_movements_reference (reference_type, reference_id),
   KEY idx_stock_movements_user (user_id),
@@ -719,6 +759,8 @@ CREATE TABLE stock_movements (
     REFERENCES businesses(id) ON DELETE CASCADE,
   CONSTRAINT fk_stock_movements_product FOREIGN KEY (product_id)
     REFERENCES products(id) ON DELETE CASCADE,
+  CONSTRAINT fk_stock_movements_variant FOREIGN KEY (variant_id)
+    REFERENCES product_variants(id) ON DELETE CASCADE,
   CONSTRAINT fk_stock_movements_user FOREIGN KEY (user_id)
     REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
@@ -879,3 +921,25 @@ CREATE TABLE pos_modules (
   CONSTRAINT fk_pos_modules_palette FOREIGN KEY (palette_id)
     REFERENCES pos_palettes(id) ON DELETE SET NULL
 ) ENGINE=InnoDB;
+
+-- =====================================================================
+-- SECTION 4e: BUSINESS RECEIPT SETTINGS
+-- Tenant-scoped configuration for receipts (Shop name, address, font size, logo, language)
+-- =====================================================================
+
+CREATE TABLE business_receipt_settings (
+  id             BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  business_id    BIGINT UNSIGNED NOT NULL,
+  shop_name      VARCHAR(255) NULL,
+  shop_address   TEXT NULL,
+  font_size      INT NOT NULL DEFAULT 15,
+  language       VARCHAR(10) NOT NULL DEFAULT 'en',
+  logo_url       LONGTEXT NULL,
+  created_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_business_receipt_settings_business (business_id),
+  CONSTRAINT fk_receipt_settings_business FOREIGN KEY (business_id)
+    REFERENCES businesses(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+

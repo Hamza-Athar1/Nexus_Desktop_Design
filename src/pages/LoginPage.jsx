@@ -4,6 +4,7 @@ import { apiFetchJson } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { roleHome } from '../lib/roleRedirects';
 import { GoogleLogin } from '@react-oauth/google';
+import RegistrationPendingModal from '../components/RegistrationPendingModal';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export default function LoginPage() {
   // UI state
   const [status, setStatus] = useState('idle'); // idle | error | loading | success
   const [errorMsg, setErrorMsg] = useState('Invalid username or password');
+  const [pendingModalData, setPendingModalData] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -36,7 +38,17 @@ export default function LoginPage() {
       });
 
       if (!ok) {
-        setErrorMsg(data.message || 'Invalid username or password');
+        const msg = data.message || 'Invalid username or password';
+        if (msg.includes('Registration pending approval')) {
+          const isSubmitted = msg.includes('status: submitted');
+          setPendingModalData({
+            businessName: username,
+            paymentProofStatus: isSubmitted ? 'submitted' : 'not_submitted',
+          });
+          setStatus('idle');
+          return;
+        }
+        setErrorMsg(msg);
         setStatus('error');
         return;
       }
@@ -285,6 +297,12 @@ export default function LoginPage() {
         </div>
       </div>
 
+      {/* Registration Pending Review & Support Details Modal Box */}
+      <RegistrationPendingModal
+        isOpen={Boolean(pendingModalData)}
+        registrationData={pendingModalData}
+        onClose={() => setPendingModalData(null)}
+      />
     </div>
   );
 }

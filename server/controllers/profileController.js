@@ -70,9 +70,6 @@ export async function changePasswordHandler(req, res) {
   if (!currentPassword || !newPassword) {
     throw new ApiError(400, 'currentPassword and newPassword are required');
   }
-  if (newPassword.length < 8) throw new ApiError(400, 'New password must be at least 8 characters');
-  if (!/[A-Z]/.test(newPassword)) throw new ApiError(400, 'New password must contain an uppercase letter');
-  if (!/[0-9^$@!%*?&]/.test(newPassword)) throw new ApiError(400, 'New password must contain a number or special character');
 
   try {
     await verifyAndChangePassword(req.user.id, { currentPassword, newPassword });
