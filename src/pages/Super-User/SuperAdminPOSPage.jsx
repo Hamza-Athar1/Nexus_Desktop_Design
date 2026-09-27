@@ -14,17 +14,11 @@ export default function SuperAdminPOSPage() {
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: 'Theme management',
-        subtitle: (
-          <>
-            <span>{palettes.length} Color Palettes</span>
-            <span className="text-[#14391a]/30">•</span>
-            <span>Platform themes catalogue</span>
-          </>
-        )
+        title: 'Theme Management',
+        subtitle: null,
       });
     }
-  }, [palettes.length, setHeaderDetails]);
+  }, [setHeaderDetails]);
 
   // ── Load Palettes ────────────────────────────────────────────────────────────
   const loadPalettes = useCallback(async () => {

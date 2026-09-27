@@ -50,11 +50,11 @@ export default function SuperAdminDashboardPage() {
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: `Welcome, ${userName}`,
-        subtitle: 'System analytics',
+        title: 'Dashboard',
+        subtitle: null,
       });
     }
-  }, [setHeaderDetails, userName]);
+  }, [setHeaderDetails]);
 
   useEffect(() => {
     async function loadDashboardData() {

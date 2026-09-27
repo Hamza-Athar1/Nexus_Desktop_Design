@@ -18,11 +18,13 @@ import salesRoutes from './routes/salesRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
+import path from 'path';
 export const app = express();
 
 // ── Core middleware ─────────────────────────────────────
 app.use(express.json());
 app.use(cookieParser());
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(
   cors({
     origin: process.env.CLIENT_URL, // Vite dev server, e.g. http://localhost:5173

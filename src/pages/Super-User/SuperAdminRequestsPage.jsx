@@ -36,10 +36,10 @@ export default function SuperAdminRequestsPage() {
     if (setHeaderDetails) {
       setHeaderDetails({
         title: 'Requests',
-        subtitle: `${pendingCount} pending across all POS modules`
+        subtitle: null,
       });
     }
-  }, [pendingCount, setHeaderDetails]);
+  }, [setHeaderDetails]);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');

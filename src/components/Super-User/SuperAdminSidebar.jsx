@@ -2,6 +2,7 @@ import {
   LayoutDashboard,
   GitPullRequest,
   Users,
+  UserCheck,
   Receipt,
   CreditCard,
   UserCircle,
@@ -10,30 +11,40 @@ import {
   LogOut,
 } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { apiFetchJson } from '../../lib/api';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'requests', label: 'Requests', icon: GitPullRequest },
-  { id: 'users', label: 'User management', icon: Users },
+  { id: 'users', label: 'User Management', icon: Users },
+  { id: 'approvals', label: 'User Approvals', icon: UserCheck, hasBadge: true },
   { id: 'billing', label: 'Billing', icon: Receipt },
   { id: 'payment', label: 'Payment', icon: CreditCard },
-  { id: 'profile', label: 'Profile Management', icon: UserCircle },
+  { id: 'requests', label: 'Requests', icon: GitPullRequest },
+  { id: 'profile', label: 'Settings', icon: UserCircle },
   { id: 'pos', label: 'Theme Management', icon: Palette },
 ];
 
-function NavItem({ icon: Icon, label, active, onClick }) {
+function NavItem({ icon: Icon, label, active, onClick, badgeCount }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-full text-left transition duration-200 ${active
+      className={`w-full flex items-center justify-between px-4 py-3 rounded-full text-left transition duration-200 ${active
         ? 'bg-[#eae2bf] text-[#0c3818] font-bold shadow-sm'
         : 'text-[#a2bc90] hover:bg-[#114720]/40 hover:text-[#eae2bf]'
         }`}
     >
-      <Icon size={20} className={active ? 'text-[#0c3818]' : 'text-[#a2bc90]'} />
-      <span className="text-sm tracking-wide">{label}</span>
+      <div className="flex items-center gap-3">
+        <Icon size={20} className={active ? 'text-[#0c3818]' : 'text-[#a2bc90]'} />
+        <span className="text-sm tracking-wide">{label}</span>
+      </div>
+      {typeof badgeCount === 'number' && badgeCount > 0 && (
+        <span className={`px-2 py-0.5 rounded-full text-xs font-black ${active ? 'bg-[#0c3818] text-[#efeacb]' : 'bg-[#e5a024] text-black'}`}>
+          {badgeCount}
+        </span>
+      )}
     </button>
   );
 }
@@ -42,12 +53,31 @@ export default function SuperAdminSidebar({ isOpen, onClose, activeTab, onTabCha
   const location = useLocation();
   const navigate = useNavigate();
   const { logout } = useAuth();
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchPendingCount() {
+      try {
+        const { ok, data } = await apiFetchJson('/admin/requests?status=Pending');
+        if (ok && active && Array.isArray(data?.requests)) {
+          const regPending = data.requests.filter(r => r.requestType === 'registration');
+          setPendingApprovalsCount(regPending.length);
+        }
+      } catch {
+        // keep 0 on failure
+      }
+    }
+    fetchPendingCount();
+    return () => { active = false; };
+  }, [location.pathname]);
 
   // Determine active tab dynamically if not explicitly provided as a prop
   let currentActiveTab = activeTab;
   if (!currentActiveTab) {
     currentActiveTab = 'dashboard';
-    if (location.pathname.includes('/super-admin/requests')) currentActiveTab = 'requests';
+    if (location.pathname.includes('/super-admin/approvals')) currentActiveTab = 'approvals';
+    else if (location.pathname.includes('/super-admin/requests')) currentActiveTab = 'requests';
     else if (location.pathname.includes('/super-admin/users')) currentActiveTab = 'users';
     else if (location.pathname.includes('/super-admin/billing')) currentActiveTab = 'billing';
     else if (location.pathname.includes('/super-admin/payment')) currentActiveTab = 'payment';
@@ -92,6 +122,7 @@ export default function SuperAdminSidebar({ isOpen, onClose, activeTab, onTabCha
               icon={item.icon}
               label={item.label}
               active={currentActiveTab === item.id}
+              badgeCount={item.hasBadge ? pendingApprovalsCount : undefined}
               onClick={() => handleNav(item.id)}
             />
           ))}

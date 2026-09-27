@@ -2,7 +2,7 @@ import bcrypt from 'bcrypt';
 import crypto from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { ApiError } from '../utils/ApiError.js';
-import { withTransaction } from '../config/db.js';
+import { pool, withTransaction } from '../config/db.js';
 import { findOAuthAccount, createOAuthAccount } from '../models/oauthModel.js';
 import {
   findUserByEmail,
@@ -51,6 +51,8 @@ async function toAuthUser(user) {
     phone: user.phone,
     role: user.role, // 'super_admin' | 'admin' | 'user'
     status: user.status,
+    mustChangePassword: Boolean(user.must_change_password),
+    posLayout: user.pos_layout || 'grid',
     businessId: business?.id ?? null, // null until the registration wizard finishes — drives frontend routing
     businessName: business?.name ?? null,
     moduleCode: business?.module_code ?? null,
@@ -153,7 +155,15 @@ export async function login(req, res) {
 
   if (user.status === 'pending') {
     await recordLoginAttempt(identifier, false);
-    throw new ApiError(403, 'Your registration request is awaiting Super Admin approval.');
+    // Retrieve business payment proof status
+    const [bizRows] = await pool.query('SELECT payment_proof_status FROM businesses WHERE owner_user_id = ? OR id = ? LIMIT 1', [user.id, user.business_id]);
+    const proofStatus = bizRows[0]?.payment_proof_status || 'not_submitted';
+    const proofMsg = proofStatus === 'submitted'
+      ? 'Payment proof submitted — awaiting verification.'
+      : 'Payment proof not submitted.';
+
+    const contactMsg = 'Registration pending approval.\nSuper Admin Support Contact:\nName: Nexus Platform Operations\nEmail: support@nexuspos.com | Phone: +92 300 1234567\n' + proofMsg;
+    throw new ApiError(403, contactMsg);
   }
 
   if (user.status === 'suspended' || user.status === 'blocked') {

@@ -32,6 +32,16 @@ router.post(  '/profile/password',     ...Auth, asyncHandler(changePasswordHandl
 router.patch( '/profile/2fa',          ...Auth, asyncHandler(toggle2faHandler));
 router.patch( '/profile/preferences',  ...Auth, asyncHandler(updatePreferencesHandler));
 
+router.patch('/profile/pos-layout', ...Auth, asyncHandler(async (req, res) => {
+  const { layout } = req.body;
+  const allowed = ['grid', 'classic', 'fast'];
+  if (!layout || !allowed.includes(layout)) {
+    throw new ApiError(400, `Invalid layout mode. Allowed: ${allowed.join(', ')}`);
+  }
+  await pool.query('UPDATE users SET pos_layout = ?, updated_at = NOW() WHERE id = ?', [layout, req.user.id]);
+  res.json({ ok: true, message: 'POS layout saved successfully', layout });
+}));
+
 router.patch( '/profile/theme',        ...Auth, asyncHandler(async (req, res) => {
   const { paletteId } = req.body;
   if (!paletteId) throw new ApiError(400, 'paletteId is required');

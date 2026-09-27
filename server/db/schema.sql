@@ -95,6 +95,8 @@ CREATE TABLE users (
   pref_billing_updates  TINYINT(1)   NOT NULL DEFAULT 1,
   pref_announcements    TINYINT(1)   NOT NULL DEFAULT 1,
   password_hash       VARCHAR(255) NULL,     -- NULL when the account is OAuth-only
+  must_change_password TINYINT(1)   NOT NULL DEFAULT 0,
+  pos_layout          VARCHAR(50)  NOT NULL DEFAULT 'grid',
   role                ENUM('super_admin','admin','user') NOT NULL DEFAULT 'admin',
   status              ENUM('pending','active','suspended','blocked') NOT NULL DEFAULT 'pending',
   city_region         VARCHAR(96)  NULL,     -- captured on the Account form
@@ -222,6 +224,8 @@ CREATE TABLE businesses (
   last_paid_at        DATE NULL,           -- "Last Paid" column in User Management
   status_reason       VARCHAR(255) NULL,   -- reason recorded when status changed,
   palette_id          BIGINT UNSIGNED NULL,
+  payment_proof_url   VARCHAR(255) NULL,
+  payment_proof_status ENUM('not_submitted','submitted','verified','rejected') NOT NULL DEFAULT 'not_submitted',
   terms_accepted_at   TIMESTAMP    NULL,
   created_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at          TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

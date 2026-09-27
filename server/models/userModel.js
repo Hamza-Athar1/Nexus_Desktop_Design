@@ -3,6 +3,7 @@ import { pool } from '../config/db.js';
 /** Columns we're ever willing to send to the client. Never password_hash. */
 const SAFE_FIELDS = `
   id, username, email, phone, role, status, city_region, business_id,
+  must_change_password, pos_layout,
   email_verified_at, last_login_at, created_at
 `;
 

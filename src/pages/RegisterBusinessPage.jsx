@@ -48,14 +48,65 @@ export default function RegisterBusinessPage() {
   const [selectedModule, setSelectedModule] = useState('');
 
   // Step 3 Form State — values match the backend's ENUMs directly
-  // (see server/README.md Phase 3 "Known gaps" for the mapping this replaces).
   const [planCode, setPlanCode] = useState('retention_6m');
   const [platform, setPlatform] = useState('web_app'); // web_app | mobile_pos | both
   const [paymentMethod, setPaymentMethod] = useState('card'); // card | bank_transfer | jazzcash_easypaisa
   const [selectedBackupCodes, setSelectedBackupCodes] = useState([]);
-
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Step 4 Form State (Payment Proof & First Staff)
+  const [_proofFile, setProofFile] = useState(null);
+  const [proofPreviewUrl, setProofPreviewUrl] = useState('');
+  const [uploadingProof, setUploadingProof] = useState(false);
+  const [uploadedProofUrl, setUploadedProofUrl] = useState('');
+
+  const [firstStaffForm, setFirstStaffForm] = useState({
+    username: '',
+    fullName: '',
+    password: '',
+    confirmPassword: '',
+    showPassword: false,
+  });
+
+  // Handle proof file selection and real server upload
+  const handleProofFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('File size exceeds 5MB limit.');
+      return;
+    }
+
+    const localUrl = URL.createObjectURL(file);
+    setProofPreviewUrl(localUrl);
+    setProofFile(file);
+    setErrorMsg('');
+
+    // Trigger immediate backend upload
+    const formData = new FormData();
+    formData.append('proofFile', file);
+
+    setUploadingProof(true);
+    try {
+      const res = await fetch('http://localhost:5000/api/registration/upload-proof', {
+        method: 'POST',
+        credentials: 'include',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.message || 'Payment proof upload failed.');
+      } else {
+        setUploadedProofUrl(data.proofUrl);
+      }
+    } catch {
+      setErrorMsg('Failed to connect to upload server.');
+    } finally {
+      setUploadingProof(false);
+    }
+  };
 
   // ── Already onboarded? Don't let them redo the wizard. ──────────────────
   useEffect(() => {
@@ -237,6 +288,12 @@ export default function RegisterBusinessPage() {
           },
           moduleCode: selectedModule,
           subscription: { planCode, platform, paymentMethod, backupModuleCodes: selectedBackupCodes },
+          paymentProofUrl: uploadedProofUrl || null,
+          firstStaff: firstStaffForm.username && firstStaffForm.password ? {
+            username: firstStaffForm.username,
+            fullName: firstStaffForm.fullName,
+            password: firstStaffForm.password,
+          } : null,
         }),
       });
 
@@ -274,7 +331,7 @@ export default function RegisterBusinessPage() {
             Register your business
           </h1>
           <p className="text-sm md:text-base font-semibold opacity-90">
-            Tell us abour your business to finish setting up nexus
+            Tell us about your business to finish setting up Nexus
           </p>
         </div>
 
@@ -299,11 +356,21 @@ export default function RegisterBusinessPage() {
             <span>Module Selection</span>
           </div>
 
-          <div className={`flex items-center gap-2 pb-2 whitespace-nowrap transition-all ${step === 3 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/50'
-            }`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 3 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
+          <div
+            onClick={() => step > 3 && setStep(3)}
+            className={`flex items-center gap-2 pb-2 cursor-pointer whitespace-nowrap transition-all ${step === 3 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/70'
+              }`}
+          >
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 3 || step > 3 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
               }`}>3</span>
             <span>Backup & Plan</span>
+          </div>
+
+          <div className={`flex items-center gap-2 pb-2 whitespace-nowrap transition-all ${step === 4 ? 'border-b-2 border-[#14391a]' : 'text-[#14391a]/50'
+            }`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 4 ? 'bg-[#14391a] text-white' : 'border border-[#14391a]/30'
+              }`}>4</span>
+            <span>Proof & First Staff</span>
           </div>
         </div>
 
@@ -502,30 +569,83 @@ export default function RegisterBusinessPage() {
               </div>
 
               {/* Module Grid — sourced from GET /api/catalog/modules */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full" role="list">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 w-full" role="list">
                 {modules.map((mod) => {
                   const IconComponent = MODULE_ICONS[mod.icon] || Store;
                   const isActive = selectedModule === mod.code;
                   const isAvailable = Boolean(mod.is_available);
+
+                  const MODULE_IMAGES = {
+                    grocery: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=500&auto=format&fit=crop&q=80',
+                    pharmacy: 'https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=500&auto=format&fit=crop&q=80',
+                    clothing: 'https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=500&auto=format&fit=crop&q=80',
+                    electronics: 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=500&auto=format&fit=crop&q=80',
+                    bakery: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=500&auto=format&fit=crop&q=80',
+                    restaurant: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=500&auto=format&fit=crop&q=80',
+                    general_store: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=500&auto=format&fit=crop&q=80',
+                  };
+
+                  const MODULE_DESCRIPTIONS = {
+                    grocery: 'Manage groceries, fresh goods, inventory, and retail barcodes.',
+                    pharmacy: 'Manage medicines, prescription tracking, and pharmacy inventory.',
+                    clothing: 'Manage clothing items, sizes, colors, and variant tags.',
+                    electronics: 'Manage electronics, hardware items, serial numbers, and warranties.',
+                    bakery: 'Manage fresh baked goods, daily batches, and confectionery sales.',
+                    restaurant: 'Manage restaurant menus, dining tables, orders, and kitchen bills.',
+                    general_store: 'Manage multi-category inventory and quick general store checkout.',
+                  };
+
+                  const imgUrl = MODULE_IMAGES[mod.code] || MODULE_IMAGES.general_store;
+                  const desc = MODULE_DESCRIPTIONS[mod.code] || mod.tagline || 'Manage products and point of sale inventory.';
+
                   return (
-                    <button
+                    <div
                       key={mod.code}
-                      type="button"
-                      disabled={!isAvailable}
                       onClick={() => isAvailable && setSelectedModule(mod.code)}
-                      className={`flex flex-col items-center justify-center p-6 rounded-lg border text-center transition-all duration-200 gap-3 h-44 select-none border-4 ${!isAvailable
-                        ? 'border-dashed border-[#14391a]/30 opacity-50 cursor-not-allowed bg-transparent text-[#14391a]'
-                        : isActive
-                          ? 'bg-[#14391a] border-[#14391a] text-white shadow-lg cursor-pointer'
-                          : 'bg-[#e5dcba]/30 border-[#14391a]/20 hover:border-[#14391a]/40 text-[#14391a] hover:bg-[#e5dcba]/40 cursor-pointer'
-                        }`}
+                      className={`relative flex flex-col rounded-2xl border-2 overflow-hidden transition-all duration-200 select-none ${
+                        !isAvailable
+                          ? 'border-dashed border-gray-300 opacity-60 cursor-not-allowed bg-gray-50'
+                          : isActive
+                          ? 'border-[#14391a] bg-white shadow-xl ring-2 ring-[#14391a]/30 cursor-pointer'
+                          : 'border-gray-200/80 bg-white hover:border-[#14391a]/40 hover:shadow-md cursor-pointer'
+                      }`}
                     >
-                      <IconComponent size={28} className={isActive ? 'text-white' : 'text-[#14391a]'} />
-                      <span className="text-sm font-bold">{mod.name}</span>
-                      <span className={`text-[9px] font-mono tracking-wider ${isActive ? 'text-white/70' : 'text-[#14391a]/60'}`}>
-                        {isAvailable ? mod.tagline : 'MORE SOON'}
-                      </span>
-                    </button>
+                      {/* Image Header */}
+                      <div className="relative h-28 w-full overflow-hidden bg-gray-100">
+                        <img
+                          src={imgUrl}
+                          alt={mod.name}
+                          className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                        <div className="absolute top-2.5 right-2.5 p-1.5 rounded-full bg-white/90 backdrop-blur-xs text-[#14391a] shadow-xs">
+                          <IconComponent size={16} />
+                        </div>
+                        <span className="absolute bottom-2 left-3 text-white font-extrabold text-sm drop-shadow-sm">
+                          {mod.name}
+                        </span>
+                      </div>
+
+                      {/* Content Body */}
+                      <div className="p-3.5 flex flex-col justify-between flex-1 gap-3">
+                        <p className="text-xs text-gray-600 line-clamp-2 leading-relaxed">
+                          {desc}
+                        </p>
+
+                        <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                          <span className={`text-[10px] font-bold tracking-wider uppercase ${
+                            isActive ? 'text-[#14391a]' : 'text-gray-400'
+                          }`}>
+                            {isAvailable ? (isActive ? 'Selected' : 'Click to select') : 'Coming Soon'}
+                          </span>
+                          <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                            isActive ? 'border-[#14391a] bg-[#14391a]' : 'border-gray-300'
+                          }`}>
+                            {isActive && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   );
                 })}
               </div>
@@ -824,11 +944,192 @@ export default function RegisterBusinessPage() {
                   </button>
                   <button
                     type="button"
+                    onClick={async () => {
+                      if (!planCode || !paymentMethod) {
+                        setErrorMsg('Please select a plan and payment method.');
+                        return;
+                      }
+                      setErrorMsg('');
+                      await saveDraft(4);
+                      setStep(4);
+                    }}
+                    className="px-6 py-2.5 bg-[#14391a] hover:bg-[#0f2a13] text-white text-xs md:text-sm font-bold rounded-lg shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer"
+                  >
+                    Continue to Proof & Staff
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          )}
+
+          {/* STEP 4: PAYMENT PROOF & FIRST STAFF */}
+          {step === 4 && (
+            <div className="bg-white rounded-xl shadow-[0_15px_30px_rgba(20,57,26,0.06)] border border-[#14391a]/5 p-6 md:p-8 space-y-6 animate-fade-in">
+
+              {/* Bank Details & Payment Proof Upload */}
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h2 className="text-sm md:text-base font-bold tracking-wider text-[#14391a] uppercase">
+                    STEP 4: PAYMENT PROOF & FIRST STAFF
+                  </h2>
+                  <p className="text-xs md:text-sm text-gray-500">
+                    Transfer payment to Super Admin account and upload proof (optional screenshot).
+                  </p>
+                </div>
+
+                {/* Bank Account Details Card */}
+                <div className="bg-[#fcfbf4] border border-[#14391a]/15 rounded-xl p-4 space-y-2">
+                  <h3 className="text-xs font-bold text-[#14391a] uppercase tracking-wider">Super Admin Payment Details</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs md:text-sm">
+                    <div><span className="text-gray-500">Bank Name:</span> <strong>Meezan Bank Ltd.</strong></div>
+                    <div><span className="text-gray-500">Account Title:</span> <strong>Nexus POS Solutions</strong></div>
+                    <div><span className="text-gray-500">IBAN:</span> <strong className="font-mono">PK36MEZN0099340102938101</strong></div>
+                    <div><span className="text-gray-500">JazzCash / EasyPaisa:</span> <strong className="font-mono">0300-1234567</strong></div>
+                  </div>
+                </div>
+
+                {/* File Upload Component */}
+                <div className="space-y-2">
+                  <label className="text-xs md:text-sm font-bold text-[#14391a] block">
+                    Upload Payment Receipt Screenshot (JPG, PNG, WEBP, PDF - Max 5MB)
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <label className="flex items-center gap-2 px-4 py-2.5 bg-[#e5dcba] hover:bg-[#d8cdab] text-[#14391a] text-xs font-bold rounded-lg cursor-pointer transition border border-[#14391a]/20">
+                      <span>Choose File</span>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,application/pdf"
+                        onChange={handleProofFileChange}
+                        className="hidden"
+                      />
+                    </label>
+                    {uploadingProof && <span className="text-xs font-bold text-[#14391a]">Uploading file to server…</span>}
+                    {uploadedProofUrl && (
+                      <span className="text-xs font-bold text-green-700 bg-green-50 px-2.5 py-1 rounded border border-green-200">
+                        ✓ Proof Uploaded Successfully
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Proof Preview */}
+                  {proofPreviewUrl && (
+                    <div className="mt-3 p-2 border border-gray-200 rounded-xl bg-gray-50 max-w-xs">
+                      <p className="text-[10px] font-bold text-gray-400 mb-1">Receipt Preview:</p>
+                      <img src={proofPreviewUrl} alt="Receipt Preview" className="max-h-36 object-contain rounded-lg shadow-xs" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="w-full h-px bg-gray-200 my-4" />
+
+              {/* First Staff Member Setup (Optional) */}
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <h3 className="text-xs md:text-sm font-bold tracking-wider text-[#14391a] uppercase">
+                    First Staff Member Account (Optional)
+                  </h3>
+                  <p className="text-xs text-gray-500">
+                    Create the first cashier account for your store now, or add staff later from Admin Settings.
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#14391a]">Staff Username</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. cashier1"
+                      value={firstStaffForm.username}
+                      onChange={(e) => setFirstStaffForm((prev) => ({ ...prev, username: e.target.value }))}
+                      className="w-full px-3.5 py-2 rounded-lg border border-gray-200 text-xs md:text-sm outline-none focus:border-[#14391a]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#14391a]">Full Name</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Ali Khan"
+                      value={firstStaffForm.fullName}
+                      onChange={(e) => setFirstStaffForm((prev) => ({ ...prev, fullName: e.target.value }))}
+                      className="w-full px-3.5 py-2 rounded-lg border border-gray-200 text-xs md:text-sm outline-none focus:border-[#14391a]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#14391a]">Staff Password</label>
+                    <input
+                      type={firstStaffForm.showPassword ? 'text' : 'password'}
+                      placeholder="At least 6 characters"
+                      value={firstStaffForm.password}
+                      onChange={(e) => setFirstStaffForm((prev) => ({ ...prev, password: e.target.value }))}
+                      className="w-full px-3.5 py-2 rounded-lg border border-gray-200 text-xs md:text-sm outline-none focus:border-[#14391a]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#14391a]">Confirm Password</label>
+                    <div className="flex gap-2">
+                      <input
+                        type={firstStaffForm.showPassword ? 'text' : 'password'}
+                        placeholder="Re-enter password"
+                        value={firstStaffForm.confirmPassword}
+                        onChange={(e) => setFirstStaffForm((prev) => ({ ...prev, confirmPassword: e.target.value }))}
+                        className="w-full px-3.5 py-2 rounded-lg border border-gray-200 text-xs md:text-sm outline-none focus:border-[#14391a]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setFirstStaffForm((prev) => ({ ...prev, showPassword: !prev.showPassword }))}
+                        className="px-3 py-2 border border-gray-200 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50"
+                      >
+                        {firstStaffForm.showPassword ? 'Hide' : 'Show'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full h-px bg-gray-150 pt-2" />
+
+              {/* Step 4 Footer Actions */}
+              <div className="flex flex-row items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => navigate('/')}
+                  className="text-xs md:text-sm font-bold text-gray-700 hover:text-black transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+
+                <div className="flex gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setStep(3)}
+                    className="px-6 py-2.5 bg-[#e6e2b8] hover:bg-[#dcd8ae] text-[#14391a] text-xs md:text-sm font-bold rounded-lg border border-[#14391a]/15 shadow-sm active:scale-[0.99] transition-all duration-200 cursor-pointer"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
                     disabled={submitting}
-                    onClick={handleFinishSetup}
+                    onClick={(e) => {
+                      if (firstStaffForm.username || firstStaffForm.password) {
+                        if (!firstStaffForm.username.trim() || !firstStaffForm.password) {
+                          setErrorMsg('Staff username and password are required.');
+                          return;
+                        }
+                        if (firstStaffForm.password !== firstStaffForm.confirmPassword) {
+                          setErrorMsg('Staff passwords do not match.');
+                          return;
+                        }
+                      }
+                      handleFinishSetup(e);
+                    }}
                     className="px-6 py-2.5 bg-[#14391a] hover:bg-[#0f2a13] text-white text-xs md:text-sm font-bold rounded-lg shadow-md active:scale-[0.99] transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {submitting ? 'Setting up…' : 'Finish setup'}
+                    {submitting ? 'Setting up…' : 'Finish & Submit Registration'}
                   </button>
                 </div>
               </div>

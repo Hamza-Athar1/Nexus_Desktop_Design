@@ -36,8 +36,8 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: user?.businessName?.toUpperCase() || 'STORE DASHBOARD',
-        subtitle: 'Store Analytics & Management Summary',
+        title: user?.businessName?.toUpperCase() || 'DASHBOARD',
+        subtitle: null,
       });
     }
   }, [setHeaderDetails, user]);

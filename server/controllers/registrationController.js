@@ -47,19 +47,20 @@ export async function saveDraft(req, res) {
   res.json({ message: 'Draft saved', draft });
 }
 
+// ── POST /api/registration/upload-proof ────────────────────────────────────
+export async function uploadPaymentProof(req, res) {
+  if (!req.file) {
+    throw new ApiError(400, 'proofFile is required');
+  }
+  const proofUrl = `/uploads/proofs/${req.file.filename}`;
+  res.json({ ok: true, proofUrl, filename: req.file.filename });
+}
+
 // ── POST /api/registration/finish ─────────────────────────────────────────
 // Validates everything, then creates businesses + subscriptions +
-// subscription_backup_modules atomically, and clears the draft.
-//
-// Expected body shape:
-// {
-//   business: { businessName, businessTypeCode|businessType, location,
-//               cityRegion, shopAddress, isRegistered, nicNumber },
-//   moduleCode: 'pharmacy',
-//   subscription: { planCode, platform, paymentMethod, backupModuleCodes: [] }
-// }
+// first staff + shop_request atomically, and clears the draft.
 export async function finishSetup(req, res) {
-  const { business, moduleCode, subscription } = req.body;
+  const { business, moduleCode, subscription, firstStaff, paymentProofUrl } = req.body;
 
   if (await findBusinessByOwner(req.user.id)) {
     throw new ApiError(409, 'You have already completed business setup');
@@ -80,8 +81,6 @@ export async function finishSetup(req, res) {
     throw new ApiError(400, 'City/region is required for a registered business');
   }
 
-  // businessTypeCode is the correct field once the frontend has a real
-  // dropdown; businessType (free text) is what it sends today. Either works.
   const businessType = business.businessTypeCode
     ? await resolveBusinessType(business.businessTypeCode)
     : await resolveBusinessType(business.businessType);
@@ -129,7 +128,6 @@ export async function finishSetup(req, res) {
     themePrice = Number(pRows[0].price || 0);
     paletteName = pRows[0].name;
   } else {
-    // Fallback to module's default palette or preset palette 1
     paletteIdToUse = module.palette_id || 1;
     const [pRows] = await pool.query('SELECT name, price FROM pos_palettes WHERE id = ? LIMIT 1', [paletteIdToUse]);
     if (pRows[0]) {
@@ -140,7 +138,29 @@ export async function finishSetup(req, res) {
 
   const totalMonthlyCost = Number(plan.monthly_price) + backupModulesPrice + themePrice;
 
-  // ── All validated — create business + subscription + shop_request together ───
+  // ── First Staff Member (Optional) ────────────────────────────────────
+  let staffObj = null;
+  if (firstStaff && firstStaff.username?.trim() && firstStaff.password) {
+    if (firstStaff.password.length < 6) {
+      throw new ApiError(400, 'First staff password must be at least 6 characters');
+    }
+    const [existingUser] = await pool.query('SELECT id FROM users WHERE username = ? LIMIT 1', [firstStaff.username.trim()]);
+    if (existingUser.length > 0) {
+      throw new ApiError(409, 'Staff username is already taken');
+    }
+    const bcrypt = (await import('bcrypt')).default;
+    const staffPassHash = await bcrypt.hash(firstStaff.password, 10);
+    staffObj = {
+      username: firstStaff.username.trim(),
+      fullName: firstStaff.fullName?.trim() || firstStaff.username.trim(),
+      passwordHash: staffPassHash,
+    };
+  }
+
+  // ── Payment Proof Status ─────────────────────────────────────────────
+  const proofStatus = paymentProofUrl ? 'submitted' : 'not_submitted';
+
+  // ── All validated — create business + subscription + staff + shop_request atomically ───
   const result = await withTransaction(async (conn) => {
     const createdBusiness = await createBusiness(conn, {
       ownerUserId: req.user.id,
@@ -154,6 +174,12 @@ export async function finishSetup(req, res) {
       nicNumber: isRegistered ? business.nicNumber.trim() : null,
       paletteId: paletteIdToUse,
     });
+
+    // Update payment proof URL and status on business row
+    await conn.query(
+      'UPDATE businesses SET payment_proof_url = ?, payment_proof_status = ? WHERE id = ?',
+      [paymentProofUrl || null, proofStatus, createdBusiness.id]
+    );
 
     // Ensure user has business_id set and status is 'pending' until Super Admin approves
     await conn.query('UPDATE users SET business_id = ?, status = ? WHERE id = ?', [createdBusiness.id, 'pending', req.user.id]);
@@ -173,6 +199,22 @@ export async function finishSetup(req, res) {
     // Grant initial theme entitlement for the selected palette
     await grantThemeEntitlement(createdBusiness.id, paletteIdToUse, themePrice, conn);
 
+    // Create First Staff member if provided (status = 'pending' until business approval)
+    if (staffObj) {
+      await conn.query(
+        `INSERT INTO users (username, email, phone, full_name, password_hash, role, status, business_id)
+         VALUES (?, ?, ?, ?, ?, 'user', 'pending', ?)`,
+        [
+          staffObj.username,
+          `${staffObj.username}_${createdBusiness.id}@staff.local`,
+          '00000000000',
+          staffObj.fullName,
+          staffObj.passwordHash,
+          createdBusiness.id,
+        ]
+      );
+    }
+
     // Create Approval Request in shop_requests for Super Admin
     const detailsObj = {
       planName: plan.name,
@@ -185,6 +227,10 @@ export async function finishSetup(req, res) {
       currency: plan.currency,
       ownerEmail: req.user.email,
       ownerUsername: req.user.username,
+      paymentProofUrl: paymentProofUrl || null,
+      paymentProofStatus: proofStatus,
+      firstStaffUsername: staffObj?.username || null,
+      firstStaffFullName: staffObj?.fullName || null,
     };
 
     await conn.query(
@@ -206,6 +252,8 @@ export async function finishSetup(req, res) {
       moduleCode: module.code,
       status: 'pending',
       onboardingStatus: result.business.onboarding_status,
+      paymentProofStatus: proofStatus,
+      paymentProofUrl: paymentProofUrl || null,
     },
     subscription: {
       planCode: plan.code,

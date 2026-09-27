@@ -33,7 +33,7 @@ import { useAuth } from '../../context/AuthContext';
 
 export default function POSSystemPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const receiptSettings = user?.receiptSettings || {};
   const displayShopName = receiptSettings.shopName || user?.businessName || 'Imtiaz Super Market';
   const displayLogo = receiptSettings.logoUrl || '/Nexus_superadmin.png';
@@ -44,6 +44,15 @@ export default function POSSystemPage() {
   // Real Customers State
   const [customerList, setCustomerList] = useState([{ id: null, name: 'Walk-in Customer' }]);
   const [activeCustomerIndex, setActiveCustomerIndex] = useState(0);
+
+  // POS Layout preference state derived from server user preference
+  const [posLayout, setPosLayout] = useState(() => user?.posLayout || 'grid');
+
+  useEffect(() => {
+    if (user?.posLayout) {
+      setPosLayout(user.posLayout);
+    }
+  }, [user?.posLayout]);
 
   // Cart / Invoice state per customer
   const [carts, setCarts] = useState({
@@ -285,9 +294,9 @@ export default function POSSystemPage() {
       return;
     }
 
-    const paidVal = Number(currentPaid);
-    if (!currentPaid || isNaN(paidVal) || paidVal < total) {
-      alert(`Paid amount must be at least the total amount (Rs. ${total}).`);
+    const paidVal = currentPaid !== '' && currentPaid !== undefined ? Number(currentPaid) : total;
+    if (isNaN(paidVal) || paidVal < total) {
+      alert(`Payment given must be at least the total amount (Rs. ${total}).`);
       return;
     }
 
@@ -350,15 +359,41 @@ export default function POSSystemPage() {
             />
           </div>
 
-          {/* Center Store Title */}
-          <div className="flex flex-col items-center">
+          {/* Center Store Title & POS Layout Switcher */}
+          <div className="flex flex-col items-center gap-1.5">
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-wide text-center uppercase" style={{ color: 'var(--color-primary)' }}>
               {displayShopName}
             </h1>
-            <div className="flex gap-1.5 mt-0.5">
-              <span className="w-1.5 h-1.5 rounded-full animate-ping" style={{ backgroundColor: 'var(--color-accent)' }} />
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }} />
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }} />
+            <div className="flex items-center gap-1 bg-[#0f2e13]/10 p-1 rounded-xl border border-[#0f2e13]/15">
+              {[
+                { id: 'classic', label: 'Classic' },
+                { id: 'grid', label: 'Grid' },
+                { id: 'fast', label: 'Fast POS' },
+              ].map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={async () => {
+                    setPosLayout(l.id);
+                    try {
+                      await apiFetchJson('/profile/pos-layout', {
+                        method: 'PATCH',
+                        body: JSON.stringify({ layout: l.id }),
+                      });
+                      if (refreshUser) refreshUser();
+                    } catch (err) {
+                      console.error('Failed to persist POS layout:', err);
+                    }
+                  }}
+                  className={`px-3 py-1 rounded-lg text-xs font-black transition-all cursor-pointer ${
+                    posLayout === l.id
+                      ? 'bg-[#0f2e13] text-[#efe9c4] shadow-xs'
+                      : 'text-[#0f2e13]/70 hover:text-[#0f2e13] hover:bg-white/40'
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -474,8 +509,27 @@ export default function POSSystemPage() {
 
         {/* Main interactive grid section */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-          {/* Left panel: Barcode Scanner & Hardware Input */}
+          {/* Left panel: Barcode Scanner / Inventory Grid */}
           <div className="lg:col-span-7 bg-white rounded-3xl border border-gray-100 p-6 flex flex-col items-center justify-between min-h-[460px] shadow-sm relative overflow-hidden">
+            {posLayout === 'grid' ? (
+              <div className="w-full flex flex-col gap-4">
+                <h3 className="text-base font-extrabold text-[#0d3410]">Product Catalogue</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[380px] overflow-y-auto pr-1">
+                  {catalog.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => addItemToCart(item)}
+                      className="p-3 bg-[#efe9c4]/30 hover:bg-[#efe9c4]/70 border border-[#0d3410]/15 rounded-2xl flex flex-col justify-between items-start text-left gap-2 transition cursor-pointer select-none"
+                    >
+                      <span className="font-bold text-xs text-[#0d3410] line-clamp-2">{item.name}</span>
+                      <span className="font-mono text-xs font-black text-[#ca8a04]">Rs. {item.sale_price ?? item.price}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <>
             {/* Top Right Scanned items badge */}
             <div className="absolute top-4 right-4 text-[11px] md:text-xs font-bold px-3 py-1.5 rounded-full select-none" style={{ backgroundColor: 'var(--color-light)', color: 'var(--color-primary)' }}>
               {currentCart.reduce((sum, item) => sum + item.qty, 0)} items scanned
@@ -551,6 +605,8 @@ export default function POSSystemPage() {
                 <span className="text-xs text-gray-400">No items scanned yet in this session</span>
               )}
             </div>
+            </>
+          )}
           </div>
 
           {/* Right panel: Bill preview and table */}
@@ -646,27 +702,6 @@ export default function POSSystemPage() {
                   </div>
                 )}
 
-                {/* Labor Charges input */}
-                <div className="flex justify-between items-center text-xs md:text-sm font-bold text-gray-600">
-                  <span>Labor charges</span>
-                  <div className="flex items-center gap-1.5 bg-[#f5f2db] px-2 py-1 rounded-lg border border-gray-200">
-                    <span className="text-[10px] md:text-xs text-gray-500">Enter Rs.</span>
-                    <input
-                      type="number"
-                      className="w-16 bg-transparent text-right font-mono outline-none font-bold text-[#0d3410]"
-                      value={currentLabor || ''}
-                      placeholder="0"
-                      onChange={(e) => {
-                        const val = e.target.value ? Math.max(0, parseInt(e.target.value)) : 0;
-                        setLaborCharges((prev) => ({
-                          ...prev,
-                          [activeCustomerIndex]: val,
-                        }));
-                      }}
-                    />
-                  </div>
-                </div>
-
                 {/* Total bold row */}
                 <div className="flex justify-between items-center pt-1.5 border-t border-dashed border-gray-100">
                   <span className="text-sm md:text-base font-extrabold" style={{ color: 'var(--color-primary)' }}>Total</span>
@@ -675,16 +710,16 @@ export default function POSSystemPage() {
                   </span>
                 </div>
 
-                {/* Paid Amount input */}
+                {/* Cash Tendered / Optional Change calculation */}
                 <div className="flex justify-between items-center text-xs md:text-sm font-bold text-gray-600">
-                  <span>Paid amount</span>
+                  <span>Cash Given (Optional)</span>
                   <div className="flex items-center gap-1.5 bg-[#f5f2db] px-2 py-1 rounded-lg border border-gray-200">
-                    <span className="text-[10px] md:text-xs text-gray-500">Enter Rs.</span>
+                    <span className="text-[10px] md:text-xs text-gray-500">Rs.</span>
                     <input
                       type="number"
                       className="w-16 bg-transparent text-right font-mono outline-none font-bold text-[#0d3410]"
                       value={currentPaid}
-                      placeholder="0"
+                      placeholder={total > 0 ? String(total) : "0"}
                       onChange={(e) => {
                         const val = e.target.value;
                         setPaidAmounts((prev) => ({
@@ -698,7 +733,7 @@ export default function POSSystemPage() {
 
                 {/* Change row */}
                 <div className="flex justify-between items-center text-xs md:text-sm font-bold text-gray-600">
-                  <span>Change</span>
+                  <span>Change Due</span>
                   <span className="font-mono text-gray-900">Rs. {changeDue}</span>
                 </div>
 

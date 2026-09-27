@@ -75,13 +75,22 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
             <span className="text-sm tracking-wide">Dashboard</span>
           </button>
 
-          {/* Manage Product */}
+          {/* POS Terminal */}
+          <button
+            onClick={() => handleNav('pos', '/pos')}
+            className={navItemClass('pos')}
+          >
+            <ShoppingCart size={20} className={iconClass('pos')} />
+            <span className="text-sm tracking-wide">POS</span>
+          </button>
+
+          {/* Products */}
           <button
             onClick={() => handleNav('products', '/admin/products')}
             className={navItemClass('products')}
           >
             <Sliders size={20} className={iconClass('products')} />
-            <span className="text-sm tracking-wide">Manage Product</span>
+            <span className="text-sm tracking-wide">Products</span>
           </button>
 
           {/* Sales */}
@@ -122,7 +131,7 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
                       ? 'bg-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.6)]'
                       : 'border border-[#a2bc90] bg-transparent'
                   }`} />
-                  <span>Return/Refunds</span>
+                  <span>Returns / Refunds</span>
                 </button>
               </div>
             )}
@@ -200,13 +209,13 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
             )}
           </div>
 
-          {/* User */}
+          {/* Staff & User Management */}
           <button
             onClick={() => handleNav('user', '/admin/user')}
             className={navItemClass('user')}
           >
             <UserCircle size={20} className={iconClass('user')} />
-            <span className="text-sm tracking-wide">User</span>
+            <span className="text-sm tracking-wide">Staff & Account</span>
           </button>
 
           {/* Requests */}
@@ -224,7 +233,7 @@ export default function AdminSidebar({ activeTab, isOpen, onClose }) {
             className={navItemClass('billing')}
           >
             <Receipt size={20} className={iconClass('billing')} />
-            <span className="text-sm tracking-wide">Billing</span>
+            <span className="text-sm tracking-wide">Billing & Settings</span>
           </button>
         </nav>
 

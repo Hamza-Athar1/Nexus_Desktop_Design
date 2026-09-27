@@ -11,6 +11,7 @@ import {
   getShopActivity,
   postMessage,
   deleteShop,
+  resetAdminPassword,
 } from '../controllers/userManagementController.js';
 
 const router = express.Router();
@@ -27,6 +28,8 @@ router.patch('/admin/shops/:id/status',   ...SA, asyncHandler(patchShopStatus));
 router.patch('/admin/shops/:id/extend-due', ...SA, asyncHandler(patchExtendDue));
 router.get('/admin/shops/:id/activity',   ...SA, asyncHandler(getShopActivity));
 router.post('/admin/shops/:id/message',   ...SA, asyncHandler(postMessage));
+router.post('/admin/shops/:id/reset-password', ...SA, asyncHandler(resetAdminPassword));
 router.delete('/admin/shops/:id',         ...SA, asyncHandler(deleteShop));
 
 export default router;
+

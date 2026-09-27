@@ -1,6 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell,
+} from 'recharts';
 import { apiFetchJson } from '../../lib/api';
 
 // POS module options: label shown in the UI, code sent to the API
@@ -19,6 +30,10 @@ function subtractMonths(n) {
   const d = new Date();
   d.setMonth(d.getMonth() - n);
   return d.toISOString().slice(0, 10);
+}
+
+function comma(val) {
+  return Number(val || 0).toLocaleString();
 }
 
 export default function SuperAdminPaymentPage() {
@@ -44,17 +59,11 @@ export default function SuperAdminPaymentPage() {
   useEffect(() => {
     if (setHeaderDetails) {
       setHeaderDetails({
-        title: 'Payment',
-        subtitle: (
-          <>
-            <span>Payment overview</span>
-            <span className="text-[#14391a]/30">•</span>
-            <span>{timeFilter === 'all' ? 'All time' : timeFilter === '6months' ? 'Last 6 months' : 'Last 12 months'}</span>
-          </>
-        )
+        title: 'Payments & Billing',
+        subtitle: null,
       });
     }
-  }, [timeFilter, setHeaderDetails]);
+  }, [setHeaderDetails]);
 
   const isOverview = selectedMod.code === '';
 
@@ -206,9 +215,31 @@ export default function SuperAdminPaymentPage() {
         </button>
       </div>
 
+      {/* Financial KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between min-h-[104px]">
+          <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">Total Revenue</span>
+          <span className="text-2xl font-black text-[#85c796] tracking-tight block leading-tight">
+            Rs {comma(payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + p.rawAmount, 0))}
+          </span>
+        </div>
+        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between min-h-[104px]">
+          <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">Total Overdue</span>
+          <span className="text-2xl font-black text-[#f4a98a] tracking-tight block leading-tight">
+            Rs {comma(payments.filter(p => p.status === 'overdue').reduce((sum, p) => sum + p.rawAmount, 0))}
+          </span>
+        </div>
+        <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between min-h-[104px]">
+          <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">Pending / Outstanding</span>
+          <span className="text-2xl font-black text-[#dfc480] tracking-tight block leading-tight">
+            Rs {comma(payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + p.rawAmount, 0))}
+          </span>
+        </div>
+      </div>
+
       {/* KPI Cards — only when a specific module is selected */}
       {!isOverview && moduleStats && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
             <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">POS since</span>
             <span className="text-xl font-extrabold tracking-tight block leading-tight">
@@ -227,17 +258,59 @@ export default function SuperAdminPaymentPage() {
               {moduleStats.paymentsMade}
             </span>
           </div>
-          <div className="bg-[#113819] text-white rounded-[14px] p-5 shadow-lg shadow-[#113819]/15 flex flex-col justify-between h-[104px]">
-            <span className="text-[12px] font-semibold text-white/95 uppercase tracking-wider">Total paid</span>
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xs font-extrabold text-[#d2a233]">Rs</span>
-              <span className="text-xl font-extrabold tracking-tight text-[#d2a233]">
-                {Number(moduleStats.totalPaid).toLocaleString('en-PK', { maximumFractionDigits: 0 })}
-              </span>
-            </div>
-          </div>
         </div>
       )}
+
+      {/* Visual Charts: Revenue by Module */}
+      {(() => {
+        const moduleRevenueMap = {};
+        payments.forEach(p => {
+          if (p.status === 'paid') {
+            const mName = p.moduleName || 'General POS';
+            moduleRevenueMap[mName] = (moduleRevenueMap[mName] || 0) + p.rawAmount;
+          }
+        });
+        const chartData = Object.entries(moduleRevenueMap).map(([name, value]) => ({ name, value }));
+        const COLORS = ['#113819', '#2d6a4f', '#40916c', '#52b788', '#74c69d', '#95d5b2', '#d8f3dc'];
+
+        if (chartData.length === 0) return null;
+
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* Bar Chart */}
+            <div className="bg-white p-5 rounded-[18px] border border-[#14391a]/20 shadow-xs">
+              <h3 className="text-sm font-extrabold text-[#14391a] mb-4">Revenue by Module (PKR)</h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData} margin={{ top: 10, right: 10, left: 10, bottom: 25 }}>
+                    <XAxis dataKey="name" tick={{ fontSize: 10, fill: '#14391a' }} interval={0} angle={-15} textAnchor="end" />
+                    <YAxis tick={{ fontSize: 10, fill: '#14391a' }} />
+                    <Tooltip formatter={(value) => [`Rs ${comma(value)}`, 'Revenue']} />
+                    <Bar dataKey="value" fill="#113819" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Pie / Donut Chart */}
+            <div className="bg-white p-5 rounded-[18px] border border-[#14391a]/20 shadow-xs">
+              <h3 className="text-sm font-extrabold text-[#14391a] mb-4">Revenue Share by Module</h3>
+              <div className="h-64 w-full flex items-center justify-center">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={chartData} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2}>
+                      {chartData.map((_, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip formatter={(value) => [`Rs ${comma(value)}`, 'Revenue']} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Payments table */}
       <div className="bg-[#ede7cd] rounded-[18px] border border-[#14391a]/20 shadow-xs">

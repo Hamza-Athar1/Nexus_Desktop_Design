@@ -118,15 +118,21 @@ export async function updateShopRequestStatus(id, { status, reviewerId, note = n
         // ignore parse error
       }
     } else {
-      // Activate business and owner user for registration/other activation requests
+      // Activate business, owner user, staff, and subscription for registration/terminal/other requests
       await pool.query('UPDATE businesses SET status = "active", onboarding_status = "completed" WHERE id = ?', [currentReq.business_id]);
-      await pool.query('UPDATE users SET status = "active" WHERE business_id = ? OR id = (SELECT owner_user_id FROM businesses WHERE id = ?)', [currentReq.business_id, currentReq.business_id]);
+      const [[bRow]] = await pool.query('SELECT owner_user_id FROM businesses WHERE id = ? LIMIT 1', [currentReq.business_id]);
+      if (bRow?.owner_user_id) {
+        await pool.query('UPDATE users SET status = "active" WHERE id = ?', [bRow.owner_user_id]);
+      }
+      await pool.query('UPDATE users SET status = "active" WHERE business_id = ?', [currentReq.business_id]);
       await pool.query('UPDATE subscriptions SET status = "active" WHERE business_id = ?', [currentReq.business_id]);
     }
   } else if (status === 'Rejected') {
     if (currentReq.request_type === 'registration') {
-      // Keep user pending / blocked only for registration requests
-      await pool.query('UPDATE users SET status = "blocked" WHERE business_id = ? OR id = (SELECT owner_user_id FROM businesses WHERE id = ?)', [currentReq.business_id, currentReq.business_id]);
+      const [[bRow]] = await pool.query('SELECT owner_user_id FROM businesses WHERE id = ? LIMIT 1', [currentReq.business_id]);
+      if (bRow) {
+        await pool.query('UPDATE users SET status = "blocked" WHERE business_id = ? OR id = ?', [currentReq.business_id, bRow.owner_user_id]);
+      }
     }
   }
 

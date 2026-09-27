@@ -26,13 +26,7 @@ export default function SuperAdminBillingPage() {
     if (setHeaderDetails) {
       setHeaderDetails({
         title: 'Billing',
-        subtitle: (
-          <>
-            <span>Revenue overview</span>
-            <span className="text-[#14391a]/30">•</span>
-            <span>{new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}</span>
-          </>
-        )
+        subtitle: null,
       });
     }
   }, [setHeaderDetails]);
