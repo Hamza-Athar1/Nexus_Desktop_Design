@@ -34,7 +34,7 @@ router.patch( '/profile/preferences',  ...Auth, asyncHandler(updatePreferencesHa
 
 router.patch('/profile/pos-layout', ...Auth, asyncHandler(async (req, res) => {
   const { layout } = req.body;
-  const allowed = ['grid', 'classic', 'fast'];
+  const allowed = ['grid', 'classic', 'fast', 'modern'];
   if (!layout || !allowed.includes(layout)) {
     throw new ApiError(400, `Invalid layout mode. Allowed: ${allowed.join(', ')}`);
   }

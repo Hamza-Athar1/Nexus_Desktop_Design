@@ -136,11 +136,17 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
       product_name: displayName,
       quantity: qty,
       unitPrice,
+      unit_price: unitPrice,
       costPrice,
+      cost_price: costPrice,
       discountAmount: itemDiscount,
+      discount_amount: itemDiscount,
       taxRate,
+      tax_rate: taxRate,
       taxAmount: lineTax,
+      tax_amount: lineTax,
       lineTotal,
+      line_total: lineTotal,
     });
   }
 
@@ -244,12 +250,19 @@ export async function executeCheckoutTransaction(conn, { businessId, userId, cus
   return {
     id: saleId,
     invoiceNumber,
+    invoice_number: invoiceNumber,
     subtotal,
+    subtotal_amount: subtotal,
     taxAmount,
+    tax_amount: taxAmount,
     discountAmount: discountAmountTotal,
+    discount_amount: discountAmountTotal,
     totalAmount,
+    total_amount: totalAmount,
     paidAmount: finalPaidAmount,
+    paid_amount: finalPaidAmount,
     changeAmount,
+    change_amount: changeAmount,
     status: 'completed',
     items: processedItems,
   };
@@ -274,8 +287,24 @@ export async function findSalesByBusiness(businessId, { page = 1, limit = 20, st
     params.push(status);
   }
   if (search?.trim()) {
-    conditions.push('(s.invoice_number LIKE ? OR c.name LIKE ?)');
-    params.push(`%${search.trim()}%`, `%${search.trim()}%`);
+    const rawSearch = search.trim();
+    const digits = rawSearch.replace(/\D+/g, '');
+
+    if (digits) {
+      const numVal = Number(digits);
+      const paddedSeq = digits.padStart(4, '0');
+      conditions.push('(s.invoice_number LIKE ? OR c.name LIKE ? OR s.id = ? OR s.invoice_number LIKE ? OR s.invoice_number LIKE ?)');
+      params.push(
+        `%${rawSearch}%`,
+        `%${rawSearch}%`,
+        numVal,
+        `%-${paddedSeq}`,
+        `%${digits}%`
+      );
+    } else {
+      conditions.push('(s.invoice_number LIKE ? OR c.name LIKE ?)');
+      params.push(`%${rawSearch}%`, `%${rawSearch}%`);
+    }
   }
 
   const whereClause = conditions.join(' AND ');

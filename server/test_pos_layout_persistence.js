@@ -38,7 +38,7 @@ async function runPosLayoutTests() {
     console.log('✅ 3. Cashier B layout remains "grid" (Multi-user account isolation verified)');
 
     // 4. Invalid layout rejection logic
-    const validLayouts = ['grid', 'classic', 'fast'];
+    const validLayouts = ['grid', 'classic', 'fast', 'modern'];
     const invalidInput = 'matrix_custom';
     if (validLayouts.includes(invalidInput)) {
       throw new Error('Invalid layout was erroneously accepted');

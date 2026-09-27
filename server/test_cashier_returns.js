@@ -159,7 +159,12 @@ async function runCashierReturnTests() {
     // ── TEST 1: Invoice Search ─────────────────────────────────────────────
     const searchRes = await findSalesByBusiness(bizAId, { search: saleA1.invoiceNumber });
     const foundSale = searchRes.sales.find((s) => s.invoice_number === saleA1.invoiceNumber);
-    recordTest('Test 1 — Invoice Search', Boolean(foundSale), `Found invoice ${saleA1.invoiceNumber}`);
+
+    // Also test shorthand search like INV-<saleId> or numeric sale ID
+    const shorthandRes = await findSalesByBusiness(bizAId, { search: `INV-${saleA1.id}` });
+    const foundShorthand = shorthandRes.sales.find((s) => s.id === saleA1.id);
+
+    recordTest('Test 1 — Invoice Search', Boolean(foundSale && foundShorthand), `Found invoice ${saleA1.invoiceNumber} and shorthand INV-${saleA1.id}`);
 
     // ── TEST 2: Business Isolation ──────────────────────────────────────────
     // Cashier of Biz A searching for Sale B2 (which belongs to Biz B)

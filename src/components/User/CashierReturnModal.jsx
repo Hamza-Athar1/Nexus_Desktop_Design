@@ -44,20 +44,20 @@ export default function CashierReturnModal({ isOpen, onClose, onReturnSuccess })
         setSale(fullSale);
 
         const preparedItems = (fullSale.items || []).map((i) => {
-          const origQty = Number(i.quantity || 0);
-          const retQty = Number(i.returned_quantity || i.returnedQuantity || 0);
+          const origQty = Number(i.quantity ?? i.qty ?? 0);
+          const retQty = Number(i.returned_quantity ?? i.returnedQuantity ?? 0);
           const returnable = Math.max(0, origQty - retQty);
-          const unitPrice = Number(i.unit_price || 0);
-          const discountAmt = Number(i.discount_amount || 0);
-          const taxAmt = Number(i.tax_amount || 0);
+          const unitPrice = Number(i.unit_price ?? i.unitPrice ?? i.price ?? i.sale_price ?? 0);
+          const discountAmt = Number(i.discount_amount ?? i.discountAmount ?? 0);
+          const taxAmt = Number(i.tax_amount ?? i.taxAmount ?? 0);
           // Effective per-unit refund price (unit price - discount + per-unit tax)
           const perUnitRefund = origQty > 0 ? (unitPrice - discountAmt) + (taxAmt / origQty) : unitPrice;
 
           return {
             saleItemId: Number(i.id),
-            productId: Number(i.product_id),
-            variantId: i.variant_id ? Number(i.variant_id) : null,
-            product_name: i.product_name || `Product #${i.product_id}`,
+            productId: Number(i.product_id ?? i.productId ?? 0),
+            variantId: i.variant_id ? Number(i.variant_id) : (i.variantId ? Number(i.variantId) : null),
+            product_name: i.product_name || i.productName || i.name || `Product #${i.product_id || i.productId}`,
             sku: i.sku || '',
             barcode: i.barcode || '',
             original_quantity: origQty,
@@ -79,7 +79,8 @@ export default function CashierReturnModal({ isOpen, onClose, onReturnSuccess })
 
   const handleSearch = async (e) => {
     if (e) e.preventDefault();
-    if (!searchInvoice.trim()) return;
+    const queryStr = searchInvoice.trim();
+    if (!queryStr) return;
 
     setIsSearching(true);
     setSearchError(null);
@@ -89,15 +90,35 @@ export default function CashierReturnModal({ isOpen, onClose, onReturnSuccess })
     setSubmitError(null);
 
     try {
-      const queryStr = searchInvoice.trim();
+      let matchedSale = null;
+      const digitsOnly = queryStr.replace(/\D+/g, '');
+
+      // 1. Search via getSales API
       const res = await getSales({ search: queryStr, limit: 10 });
       if (res.ok && Array.isArray(res.data?.sales) && res.data.sales.length > 0) {
-        // Find exact match or take first result belonging to cashier's business
-        const exactMatch = res.data.sales.find(
-          (s) => s.invoice_number?.toLowerCase() === queryStr.toLowerCase()
-        ) || res.data.sales[0];
+        const sales = res.data.sales;
+        const qLower = queryStr.toLowerCase();
+        matchedSale =
+          sales.find((s) => s.invoice_number?.toLowerCase() === qLower) ||
+          sales.find((s) => s.invoice_number?.toLowerCase().includes(qLower)) ||
+          (digitsOnly ? sales.find((s) => String(s.id) === digitsOnly) : null) ||
+          sales[0];
+      }
 
-        await loadSaleDetails(exactMatch.id);
+      // 2. Direct sale ID lookup fallback (e.g. if user types INV-300 or 300)
+      if (!matchedSale && digitsOnly) {
+        try {
+          const detailRes = await getSaleById(digitsOnly);
+          if (detailRes.ok && detailRes.data?.sale) {
+            matchedSale = detailRes.data.sale;
+          }
+        } catch {
+          // Ignore 404
+        }
+      }
+
+      if (matchedSale) {
+        await loadSaleDetails(matchedSale.id);
       } else {
         setSearchError(`No invoice found matching "${queryStr}" for your shop.`);
       }

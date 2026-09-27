@@ -130,7 +130,8 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
               rawItems.map((item, idx) => {
                 const itemName = item.product_name || item.productName || item.name || item.product?.name || item.item_name || item.title || (item.product_id || item.productId ? `Product #${item.product_id || item.productId}` : `Item #${idx + 1}`);
                 const itemQty = item.quantity ?? item.qty ?? 1;
-                const itemPrice = Number(item.unit_price ?? item.price ?? 0);
+                const itemPrice = Number(item.unit_price ?? item.unitPrice ?? item.price ?? item.sale_price ?? 0);
+                const lineTotal = item.line_total ?? item.lineTotal ?? (itemPrice * itemQty);
                 return (
                   <div key={idx} className="grid grid-cols-12 gap-2 items-center px-1">
                     <div className="col-span-6 flex items-center gap-3 min-w-0">
@@ -155,7 +156,7 @@ export default function ViewInvoiceModal({ invoice, onClose }) {
                     </div>
 
                     <div className={`col-span-3 font-bold text-[#0c3818] ${isUrdu ? 'text-left' : 'text-right'}`} style={{ fontSize }}>
-                      Rs {itemPrice * itemQty}
+                      Rs. {Number(lineTotal).toLocaleString('en-IN')}
                     </div>
                   </div>
                 );
